@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'dart:io' show Platform;
+import 'presentation/cliente/screens/negocios_screen.dart';
+import 'presentation/cliente/screens/menu_screen.dart';
+import 'presentation/cliente/screens/carrito_screen.dart';
+import 'presentation/cliente/screens/pedidos_screen.dart';
+import 'presentation/repartidor/screens/pedidos_screen.dart';
+import 'presentation/repartidor/screens/mapa_screen.dart';
+import 'presentation/repartidor/screens/actualizar_estado_screen.dart';
+import 'presentation/duenio/screens/pedidos_screen.dart';
+import 'presentation/duenio/screens/menu_screen.dart';
+import 'presentation/admin/screens/dashboard_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,110 +19,146 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter GPS',
-      home: const MyHomePage(),
+      title: 'Demo Multirrol',
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      home: const RoleSelectorScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  Position? _position;
-  String _error = '';
-
-  Future<void> _getCurrentLocation() async {
-    setState(() {
-      _error = '';
-    });
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        setState(() {
-          _error = 'El servicio de ubicación está desactivado.';
-        });
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() {
-            _error = 'Permiso de ubicación denegado.';
-          });
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        setState(() {
-          _error = 'Permiso de ubicación denegado permanentemente.';
-        });
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _position = position;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _getCurrentLocation();
-  }
+class RoleSelectorScreen extends StatelessWidget {
+  const RoleSelectorScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Flutter GPS')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              Platform.isIOS
-                  ? 'Estás en iOS'
-                  : Platform.isAndroid
-                      ? 'Estás en Android'
-                      : 'Otro sistema',
-              style: const TextStyle(fontSize: 20, color: Colors.green),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _getCurrentLocation,
-              child: const Text('Obtener ubicación'),
-            ),
-            const SizedBox(height: 20),
-            if (_position != null)
-              Text(
-                'Latitud: ${_position!.latitude}\nLongitud: ${_position!.longitude}',
-                style: const TextStyle(fontSize: 18),
-                textAlign: TextAlign.center,
-              ),
-            if (_error.isNotEmpty)
-              Text(
-                _error,
-                style: const TextStyle(color: Colors.red),
-              ),
-            const SizedBox(height: 20),
-            const Text(
-              '#19',
-              style: TextStyle(fontSize: 48, color: Colors.blue),
-            ),
-          ],
-        ),
+      appBar: AppBar(title: const Text('Selecciona un rol')),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          ListTile(
+            title: const Text('Cliente'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const NegociosScreen(),
+            )),
+          ),
+          ListTile(
+            title: const Text('Repartidor'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const RepartidorDemoMenu(),
+            )),
+          ),
+          ListTile(
+            title: const Text('Dueño de negocio'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const DuenioDemoMenu(),
+            )),
+          ),
+          ListTile(
+            title: const Text('Administrador'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const AdminDashboardScreen(),
+            )),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ClienteDemoMenu extends StatelessWidget {
+  const ClienteDemoMenu({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Cliente')),
+      body: ListView(
+        children: [
+          ListTile(
+            title: const Text('Ver negocios'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const NegociosScreen(),
+            )),
+          ),
+          // Eliminar o comentar la opción de 'Ver menú' porque MenuScreen requiere argumentos obligatorios
+          // ListTile(
+          //   title: const Text('Ver menú'),
+          //   onTap: () => Navigator.push(context, MaterialPageRoute(
+          //     builder: (_) => const MenuScreen(),
+          //   )),
+          // ),
+          ListTile(
+            title: const Text('Carrito de compras'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const CarritoScreen(),
+            )),
+          ),
+          ListTile(
+            title: const Text('Mis pedidos'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const ClientePedidosScreen(),
+            )),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class RepartidorDemoMenu extends StatelessWidget {
+  const RepartidorDemoMenu({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Repartidor')),
+      body: ListView(
+        children: [
+          ListTile(
+            title: const Text('Pedidos asignados'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const RepartidorPedidosScreen(),
+            )),
+          ),
+          ListTile(
+            title: const Text('Mapa de entrega'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const MapaScreen(),
+            )),
+          ),
+          ListTile(
+            title: const Text('Actualizar estado de pedido'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const ActualizarEstadoScreen(),
+            )),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class DuenioDemoMenu extends StatelessWidget {
+  const DuenioDemoMenu({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dueño de negocio')),
+      body: ListView(
+        children: [
+          ListTile(
+            title: const Text('Pedidos recibidos'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const DuenioPedidosScreen(),
+            )),
+          ),
+          ListTile(
+            title: const Text('Menú del negocio'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const DuenioMenuScreen(),
+            )),
+          ),
+        ],
       ),
     );
   }
