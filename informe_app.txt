@@ -1,0 +1,132 @@
+COTIZACIÓN DE DESARROLLO DE APLICACIÓN MÓVIL MULTIROL
+
+Fecha: ${DateTime.now().toString().split(' ')[0]}
+
+---
+
+1. OBJETIVO DEL PROYECTO
+Desarrollar una aplicación móvil multiplataforma (Flutter) para gestión de pedidos, negocios y entregas, con soporte para múltiples roles (Cliente, Repartidor, Dueño de negocio, Administrador), arquitectura escalable y lista para integración con base de datos en la nube (Firebase).
+
+2. ALCANCE Y FUNCIONALIDADES
+- Login y registro de usuarios con validación de rol.
+- Navegación dinámica según el rol (Cliente, Repartidor, Dueño, Admin).
+- Flujos completos de negocio: exploración de negocios, menú, carrito, pedidos, notificaciones, gestión de productos y pedidos.
+- Geolocalización y selección de ubicación para pedidos.
+- Notificaciones push (preparado para FCM).
+- Interfaz moderna, responsiva y accesible.
+
+3. ARQUITECTURA Y ESTRUCTURA DEL PROYECTO
+- Clean Architecture/MVVM, modular y desacoplada.
+- Carpetas principales:
+  - /presentation: UI y lógica de presentación por rol.
+  - /application: Casos de uso y lógica de aplicación.
+  - /domain: Entidades y modelos.
+  - /data: Repositorios y fuentes de datos.
+  - /core: Temas, helpers, configuración global.
+  - /shared: Componentes reutilizables.
+
+4. ROLES Y FLUJOS DE USUARIO
+- Cliente: Ver negocios, menús, agregar al carrito, realizar pedidos, ver estado, seleccionar ubicación.
+- Repartidor: Ver pedidos asignados, actualizar estado, ver mapa de entregas.
+- Dueño: Gestionar pedidos y menú, marcar pedidos como preparados.
+- Admin: Dashboard de métricas y gestión global.
+
+5. BASE DE DATOS PROPUESTA: FIREBASE FIRESTORE
+Estructura de colecciones y campos principales:
+
+- **usuarios**
+  - uid (string, id autogenerado)
+  - email (string)
+  - nombre (string)
+  - rol (string: cliente, repartidor, duenio, admin)
+  - telefono (string)
+  - direccion (string)
+  - fechaRegistro (timestamp)
+
+- **negocios**
+  - negocioId (string, id autogenerado)
+  - nombre (string)
+  - direccion (string)
+  - categoria (string)
+  - img (string, url)
+  - duenioId (string, referencia a usuario)
+  - productos (array de referencias o subcolección)
+
+- **productos** (puede ser subcolección de negocios o colección global)
+  - productoId (string)
+  - nombre (string)
+  - descripcion (string)
+  - precio (number)
+  - img (string, url)
+  - negocioId (string, referencia)
+
+- **pedidos**
+  - pedidoId (string)
+  - clienteId (string, referencia a usuario)
+  - negocioId (string, referencia)
+  - repartidorId (string, referencia, opcional)
+  - productos (array de objetos: productoId, cantidad, precio)
+  - total (number)
+  - estado (string: pendiente, preparado, entregando, entregado)
+  - ubicacionEntrega (geopoint o string)
+  - fecha (timestamp)
+
+- **notificaciones**
+  - notificacionId (string)
+  - usuarioId (string, referencia)
+  - mensaje (string)
+  - tipo (string)
+  - leida (bool)
+  - fecha (timestamp)
+
+6. TECNOLOGÍAS Y PAQUETES USADOS
+- Flutter (Dart) multiplataforma.
+- Riverpod para gestión de estado.
+- go_router para navegación.
+- Dio para HTTP.
+- shared_preferences/secure_storage para persistencia local.
+- Google Maps y Geolocator para geolocalización.
+- Firebase Cloud Messaging (FCM) para notificaciones push.
+- Firebase Auth y Firestore (propuesta para producción).
+- pull_to_refresh, flutter_gen, y otros para experiencia moderna.
+
+7. BUENAS PRÁCTICAS Y ESCALABILIDAD
+- Código modular, desacoplado y fácil de mantener.
+- Separación estricta de UI, lógica de negocio y datos.
+- Temas claros, soporte para dark/light mode.
+- Accesibilidad, i18n y soporte para múltiples idiomas.
+- Listas eficientes y animaciones modernas.
+- Preparado para integración con backend real y despliegue en tiendas.
+
+8. POSIBILIDADES DE ESCALADO Y PERSONALIZACIÓN
+- Fácil integración de nuevos roles o módulos.
+- Adaptable a nuevas entidades o flujos de negocio.
+- Listo para conexión con APIs, autenticación real y bases de datos externas.
+
+---
+
+Esta cotización describe el alcance, estructura y potencial de la aplicación, lista para producción y crecimiento futuro. 
+
+9. CHECKLIST PARA LANZAMIENTO A PRODUCCIÓN
+
+- [ ] Conectar la app a Firebase Auth y Firestore reales.
+- [ ] Configurar reglas de seguridad estrictas en Firestore según roles.
+- [ ] Validar datos en frontend y backend (Cloud Functions si es necesario).
+- [ ] Implementar manejo de errores y mensajes claros al usuario.
+- [ ] Optimizar imágenes y recursos.
+- [ ] Usar paginación y consultas eficientes en Firestore.
+- [ ] Configurar y probar notificaciones push (FCM).
+- [ ] Solicitar y manejar permisos de ubicación, notificaciones, etc.
+- [ ] Mostrar políticas de privacidad y términos de uso.
+- [ ] Firmar el APK/AAB con clave segura para publicación.
+- [ ] Subir la app a Google Play/App Store siguiendo las guías oficiales.
+- [ ] Integrar Firebase Crashlytics para monitoreo de errores.
+- [ ] Integrar Firebase Analytics para analítica de uso.
+- [ ] Usar archivos .env o Remote Config para variables sensibles.
+- [ ] Realizar pruebas en dispositivos reales y emuladores.
+- [ ] Probar todos los flujos de usuario y roles.
+- [ ] Preparar plan de soporte y actualizaciones.
+
+---
+
+Esta checklist asegura que la app esté lista y segura para producción, cumpliendo con las mejores prácticas del sector. 

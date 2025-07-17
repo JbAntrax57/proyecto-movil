@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'presentation/cliente/screens/login_screen.dart';
 import 'presentation/cliente/screens/menu_screen.dart';
 import 'presentation/cliente/screens/negocios_screen.dart';
+import 'presentation/admin/screens/dashboard_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 // Importa las pantallas principales de cada rol si existen
 // Si no, usa un Scaffold temporal
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -28,7 +35,7 @@ class MyApp extends StatelessWidget {
         '/cliente': (_) => const NegociosScreen(),
         '/repartidor': (_) => const RepartidorHomeScreen(),
         '/duenio': (_) => const DuenioHomeScreen(),
-        '/admin': (_) => const AdminHomeScreen(),
+        '/admin': (_) => const AdminDashboardScreen(),
       },
     );
   }

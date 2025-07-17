@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -73,6 +74,92 @@ class AdminDashboardScreen extends StatelessWidget {
                     child: const Text('Gestionar'),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.cloud_upload),
+                label: const Text('Poblar negocios de ejemplo'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+                onPressed: () async {
+                  final negocios = [
+                    {
+                      "nombre": "Pizzería Don Juan",
+                      "direccion": "Calle 1 #123",
+                      "img": "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80",
+                      "categoria": "Pizza",
+                      "menu": [
+                        {"nombre": "Pizza Margarita", "precio": 120, "img": "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80", "descripcion": "Clásica con tomate y albahaca"},
+                        {"nombre": "Pizza Pepperoni", "precio": 140, "img": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80", "descripcion": "Pepperoni y queso fundido"},
+                        {"nombre": "Pizza Hawaiana", "precio": 135, "img": "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80", "descripcion": "Piña y jamón"},
+                      ]
+                    },
+                    {
+                      "nombre": "Sushi Express",
+                      "direccion": "Av. Central 45",
+                      "img": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
+                      "categoria": "Sushi",
+                      "menu": [
+                        {"nombre": "Sushi Roll", "precio": 90, "img": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80", "descripcion": "Roll clásico de salmón"},
+                        {"nombre": "Nigiri", "precio": 80, "img": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80", "descripcion": "Bola de arroz y pescado"},
+                        {"nombre": "Tempura", "precio": 100, "img": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80", "descripcion": "Verduras y camarón fritos"},
+                      ]
+                    },
+                    {
+                      "nombre": "Tacos El Güero",
+                      "direccion": "Blvd. Norte 200",
+                      "img": "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80",
+                      "categoria": "Tacos",
+                      "menu": [
+                        {"nombre": "Taco Pastor", "precio": 25, "img": "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80", "descripcion": "Carne al pastor"},
+                        {"nombre": "Taco Bistec", "precio": 28, "img": "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80", "descripcion": "Bistec asado"},
+                        {"nombre": "Taco Campechano", "precio": 30, "img": "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80", "descripcion": "Mezcla de carnes"},
+                      ]
+                    },
+                    {
+                      "nombre": "Burger House",
+                      "direccion": "Calle 2 #456",
+                      "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80",
+                      "categoria": "Hamburguesas",
+                      "menu": [
+                        {"nombre": "Hamburguesa Clásica", "precio": 100, "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80", "descripcion": "Medallón de carne, queso, lechuga y tomate"},
+                        {"nombre": "Hamburguesa Vegana", "precio": 120, "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80", "descripcion": "Medallón de tofu, queso vegano, lechuga y tomate"},
+                        {"nombre": "Hamburguesa BBQ", "precio": 110, "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80", "descripcion": "Medallón de carne, queso, lechuga, cebolla y BBQ"},
+                      ]
+                    },
+                    {
+                      "nombre": "Veggie Life",
+                      "direccion": "Calle Verde 12",
+                      "img": "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80",
+                      "categoria": "Vegano",
+                      "menu": [
+                        {"nombre": "Ensalada Vegana", "precio": 80, "img": "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80", "descripcion": "Lechuga, tomate, cebolla roja, aceitunas, queso vegano y aderezo de limón"},
+                        {"nombre": "Pasta Vegana", "precio": 120, "img": "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80", "descripcion": "Pasta con salsa de tomate, ajo y albahaca"},
+                        {"nombre": "Tofu a la Parrilla", "precio": 150, "img": "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80", "descripcion": "Tofu a la parrilla con salsa BBQ y verduras"},
+                      ]
+                    },
+                  ];
+                  try {
+                    for (final negocio in negocios) {
+                      final docRef = await FirebaseFirestore.instance.collection('negocios').add({
+                        "nombre": negocio["nombre"],
+                        "direccion": negocio["direccion"],
+                        "img": negocio["img"],
+                        "categoria": negocio["categoria"],
+                      });
+                      final menu = negocio["menu"] as List;
+                      for (final producto in menu) {
+                        await docRef.collection('menu').add(producto);
+                      }
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Negocios y menús agregados correctamente')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: ${e.toString()}')),
+                    );
+                  }
+                },
               ),
             ],
           ),

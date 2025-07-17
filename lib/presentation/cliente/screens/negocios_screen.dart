@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'menu_screen.dart';
 import 'carrito_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NegociosScreen extends StatefulWidget {
   const NegociosScreen({super.key});
@@ -26,77 +27,8 @@ class _NegociosScreenState extends State<NegociosScreen> {
   static const double _alturaCategorias = 82; // 70 + padding
   static const double _umbralOcultar = _alturaSlider + _alturaCategorias - 20;
 
-  List<Map<String, dynamic>> negocios = [
-    {'nombre': 'Pizzería Don Juan', 'direccion': 'Calle 1 #123', 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'categoria': 'Pizza', 'menu': [
-      {'nombre': 'Pizza Margarita', 'precio': 120, 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Clásica con tomate y albahaca'},
-      {'nombre': 'Pizza Pepperoni', 'precio': 140, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pepperoni y queso fundido'},
-      {'nombre': 'Pizza Cuatro Quesos', 'precio': 150, 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Mezcla de quesos gourmet'},
-      {'nombre': 'Pizza Hawaiana', 'precio': 135, 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Piña y jamón'},
-      {'nombre': 'Refresco', 'precio': 30, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Bebida fría'},
-    ]},
-    {'nombre': 'Sushi Express', 'direccion': 'Av. Central 45', 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'categoria': 'Sushi', 'menu': [
-      {'nombre': 'Sushi Roll', 'precio': 90, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Roll clásico de salmón'},
-      {'nombre': 'Nigiri', 'precio': 80, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Bola de arroz y pescado'},
-      {'nombre': 'Tempura', 'precio': 100, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Verduras y camarón fritos'},
-      {'nombre': 'Sashimi', 'precio': 120, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Láminas de pescado fresco'},
-      {'nombre': 'Té verde', 'precio': 25, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Bebida tradicional'},
-    ]},
-    {'nombre': 'Tilines', 'direccion': 'Av. Central 45', 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'categoria': 'Sushi', 'menu': [
-      {'nombre': 'Sushi Roll', 'precio': 90, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Roll clásico de salmón'},
-      {'nombre': 'Nigiri', 'precio': 80, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Bola de arroz y pescado'},
-      {'nombre': 'Tempura', 'precio': 100, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Verduras y camarón fritos'},
-      {'nombre': 'Sashimi', 'precio': 120, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Láminas de pescado fresco'},
-      {'nombre': 'Té verde', 'precio': 25, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Bebida tradicional'},
-    ]},
-    {'nombre': 'Tacos El Güero', 'direccion': 'Blvd. Norte 200', 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'categoria': 'Tacos', 'menu': [
-      {'nombre': 'Taco Pastor', 'precio': 25, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Carne al pastor'},
-      {'nombre': 'Taco Bistec', 'precio': 28, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Bistec asado'},
-      {'nombre': 'Taco Suadero', 'precio': 27, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Suadero suave'},
-      {'nombre': 'Taco Campechano', 'precio': 30, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Mezcla de carnes'},
-      {'nombre': 'Agua de Horchata', 'precio': 20, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Bebida refrescante'},
-    ]},
-    {'nombre': 'Burger House', 'direccion': 'Calle 2 #456', 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'categoria': 'Hamburguesas', 'menu': [
-      {'nombre': 'Hamburguesa Clásica', 'precio': 100, 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Medallón de carne, queso, lechuga y tomate'},
-      {'nombre': 'Hamburguesa Vegana', 'precio': 120, 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Medallón de tofu, queso vegano, lechuga y tomate'},
-      {'nombre': 'Hamburguesa BBQ', 'precio': 110, 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Medallón de carne, queso, lechuga, cebolla y BBQ'},
-      {'nombre': 'Refresco', 'precio': 30, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Bebida fría'},
-    ]},
-    {'nombre': 'La Parrilla', 'direccion': 'Av. Sur 100', 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'categoria': 'Parrilla', 'menu': [
-      {'nombre': 'Churrasco de Pollo', 'precio': 150, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pollo a la parrilla con salsa BBQ'},
-      {'nombre': 'Churrasco de Carne', 'precio': 200, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Carne de res a la parrilla con papas fritas'},
-      {'nombre': 'Churrasco de Cerdo', 'precio': 180, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Cerdo a la parrilla con ensalada'},
-      {'nombre': 'Churrasco de Pollo', 'precio': 150, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pollo a la parrilla con salsa BBQ'},
-      {'nombre': 'Churrasco de Carne', 'precio': 200, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Carne de res a la parrilla con papas fritas'},
-    ]},
-    {'nombre': 'Veggie Life', 'direccion': 'Calle Verde 12', 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'categoria': 'Vegano', 'menu': [
-      {'nombre': 'Ensalada Vegana', 'precio': 80, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Lechuga, tomate, cebolla roja, aceitunas, queso vegano y aderezo de limón'},
-      {'nombre': 'Pasta Vegana', 'precio': 120, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pasta con salsa de tomate, ajo y albahaca'},
-      {'nombre': 'Tofu a la Parrilla', 'precio': 150, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Tofu a la parrilla con salsa BBQ y verduras'},
-      {'nombre': 'Ensalada Verde', 'precio': 90, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Lechuga, tomate, cebolla roja, aceitunas, queso vegano y aderezo de limón'},
-      {'nombre': 'Pasta Vegana', 'precio': 120, 'img': 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pasta con salsa de tomate, ajo y albahaca'},
-    ]},
-    {'nombre': 'Mariscos El Puerto', 'direccion': 'Malecón 200', 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'categoria': 'Mariscos', 'menu': [
-      {'nombre': 'Ceviche de Pescado', 'precio': 180, 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pescado fresco marinado en limón, cebolla y cilantro'},
-      {'nombre': 'Ceviche de Camarón', 'precio': 200, 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Camarón fresco marinado en limón, cebolla y cilantro'},
-      {'nombre': 'Ceviche de Pulpo', 'precio': 190, 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pulpo fresco marinado en limón, cebolla y cilantro'},
-      {'nombre': 'Ceviche de Camarón', 'precio': 200, 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Camarón fresco marinado en limón, cebolla y cilantro'},
-      {'nombre': 'Ceviche de Pulpo', 'precio': 190, 'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pulpo fresco marinado en limón, cebolla y cilantro'},
-    ]},
-    {'nombre': 'Café Central', 'direccion': 'Centro 1', 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'categoria': 'Café', 'menu': [
-      {'nombre': 'Café Americano', 'precio': 30, 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Café con leche'},
-      {'nombre': 'Café Latte', 'precio': 45, 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Café con leche y espuma de leche'},
-      {'nombre': 'Café Mocha', 'precio': 50, 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Café con chocolate y leche'},
-      {'nombre': 'Café Americano', 'precio': 30, 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Café con leche'},
-      {'nombre': 'Café Latte', 'precio': 45, 'img': 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Café con leche y espuma de leche'},
-    ]},
-    {'nombre': 'Pollo Feliz', 'direccion': 'Av. Pollo 99', 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'categoria': 'Pollo', 'menu': [
-      {'nombre': 'Pollo a la Parrilla', 'precio': 180, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pollo a la parrilla con salsa BBQ'},
-      {'nombre': 'Pollo Frito', 'precio': 150, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pollo frito con papas fritas'},
-      {'nombre': 'Pollo a la Crema', 'precio': 200, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pollo a la crema con verduras'},
-      {'nombre': 'Pollo a la Parrilla', 'precio': 180, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pollo a la parrilla con salsa BBQ'},
-      {'nombre': 'Pollo Frito', 'precio': 150, 'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', 'descripcion': 'Pollo frito con papas fritas'},
-    ]},
-  ];
+  // Eliminar la lista local de negocios
+  // List<Map<String, dynamic>> negocios = [...];
 
   final categorias = [
     {'nombre': 'Pizza', 'icon': Icons.local_pizza},
@@ -110,17 +42,24 @@ class _NegociosScreenState extends State<NegociosScreen> {
     {'nombre': 'Pollo', 'icon': Icons.set_meal},
   ];
 
-  List<Map<String, dynamic>> get destacados {
-    final list = _categoriaSeleccionada == null
-        ? negocios.take(3).toList()
-        : negocios.where((n) => n['categoria'] == _categoriaSeleccionada).take(3).toList();
-    return list;
+  // Nuevo: obtener negocios desde Firestore
+  Stream<List<Map<String, dynamic>>> getNegociosStream() {
+    Query query = FirebaseFirestore.instance.collection('negocios');
+    if (_categoriaSeleccionada != null) {
+      query = query.where('categoria', isEqualTo: _categoriaSeleccionada);
+    }
+    return query.snapshots().map((snapshot) => snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      data['id'] = doc.id;
+      return data;
+    }).toList());
   }
-  List<Map<String, dynamic>> get restantes {
-    final list = _categoriaSeleccionada == null
-        ? negocios.skip(3).toList()
-        : negocios.where((n) => n['categoria'] == _categoriaSeleccionada).skip(3).toList();
-    return list;
+
+  List<Map<String, dynamic>> getDestacados(List<Map<String, dynamic>> negocios) {
+    return negocios.take(3).toList();
+  }
+  List<Map<String, dynamic>> getRestantes(List<Map<String, dynamic>> negocios) {
+    return negocios.skip(3).toList();
   }
 
   void _addToCart(Map<String, dynamic> producto) {
@@ -141,7 +80,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
   Future<void> _onRefresh() async {
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
-      negocios = List<Map<String, dynamic>>.from(negocios);
+      // No hay estado para actualizar en Firestore, la lista es dinámica
     });
     _refreshController.refreshCompleted();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -152,8 +91,8 @@ class _NegociosScreenState extends State<NegociosScreen> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: 1000 * (destacados.isNotEmpty ? destacados.length : 1));
-    _currentPage = 1000 * (destacados.isNotEmpty ? destacados.length : 1);
+    _pageController = PageController(initialPage: 0);
+    _currentPage = 0;
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
   }
@@ -220,101 +159,176 @@ class _NegociosScreenState extends State<NegociosScreen> {
           ),
         ],
       ),
-      body: SmartRefresher(
-        controller: _refreshController,
-        onRefresh: _onRefresh,
-        header: CustomHeader(
-          builder: (context, mode) {
-            Widget body;
-            if (mode == RefreshStatus.idle) {
-              body = Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: CircularProgressIndicator(
-                      value: 0,
-                      strokeWidth: 3,
-                      color: Colors.blue,
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: getNegociosStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error al cargar negocios'));
+          }
+          final negocios = snapshot.data ?? [];
+          final destacados = getDestacados(negocios);
+          final restantes = getRestantes(negocios);
+          return SmartRefresher(
+            controller: _refreshController,
+            onRefresh: _onRefresh,
+            header: CustomHeader(
+              builder: (context, mode) {
+                Widget body;
+                if (mode == RefreshStatus.idle) {
+                  body = Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: CircularProgressIndicator(
+                          value: 0,
+                          strokeWidth: 3,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text('Desliza para refrescar', style: TextStyle(color: Colors.blue)),
+                    ],
+                  );
+                } else if (mode == RefreshStatus.canRefresh) {
+                  body = Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: CircularProgressIndicator(
+                          value: 1,
+                          strokeWidth: 3,
+                          color: Colors.green,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text('Suelta para refrescar', style: TextStyle(color: Colors.green)),
+                    ],
+                  );
+                } else if (mode == RefreshStatus.refreshing) {
+                  body = Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: CircularProgressIndicator(strokeWidth: 3),
+                      ),
+                      SizedBox(height: 8),
+                      Text('Actualizando...', style: TextStyle(color: Colors.blue)),
+                    ],
+                  );
+                } else if (mode == RefreshStatus.completed) {
+                  body = Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.check_circle, color: Colors.green, size: 36),
+                      SizedBox(height: 8),
+                      Text('¡Actualizado!', style: TextStyle(color: Colors.green)),
+                    ],
+                  );
+                } else {
+                  body = const SizedBox.shrink();
+                }
+                return SizedBox(
+                  height: 80,
+                  child: Center(child: body),
+                );
+              },
+            ),
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                if (destacados.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: DestacadosSlider(
+                      destacados: destacados,
+                      onTap: (negocio) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MenuScreen(
+                              restauranteId: negocio['id'] as String,
+                              restaurante: negocio['nombre'] as String,
+                              onAddToCart: _addToCart,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text('Desliza para refrescar', style: TextStyle(color: Colors.blue)),
-                ],
-              );
-            } else if (mode == RefreshStatus.canRefresh) {
-              body = Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: CircularProgressIndicator(
-                      value: 1,
-                      strokeWidth: 3,
-                      color: Colors.green,
+                SliverToBoxAdapter(
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 300),
+                    offset: _showCategorias ? Offset.zero : const Offset(0, -1),
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 300),
+                      opacity: _showCategorias ? 1 : 0,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                        child: SizedBox(
+                          height: 70,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: categorias.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            itemBuilder: (context, index) {
+                              final cat = categorias[index];
+                              final selected = _categoriaSeleccionada == cat['nombre'];
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _categoriaSeleccionada = selected ? null : cat['nombre'] as String;
+                                  });
+                                },
+                                child: Column(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 24,
+                                      backgroundColor: selected ? Colors.blue : Colors.blue[50],
+                                      child: Icon(cat['icon'] as IconData, color: selected ? Colors.white : Colors.blue, size: 28),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(cat['nombre'] as String, style: TextStyle(fontSize: 12, color: selected ? Colors.blue : null)),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text('Suelta para refrescar', style: TextStyle(color: Colors.green)),
-                ],
-              );
-            } else if (mode == RefreshStatus.refreshing) {
-              body = Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: CircularProgressIndicator(strokeWidth: 3),
-                  ),
-                  SizedBox(height: 8),
-                  Text('Actualizando...', style: TextStyle(color: Colors.blue)),
-                ],
-              );
-            } else if (mode == RefreshStatus.completed) {
-              body = Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.check_circle, color: Colors.green, size: 36),
-                  SizedBox(height: 8),
-                  Text('¡Actualizado!', style: TextStyle(color: Colors.green)),
-                ],
-              );
-            } else {
-              body = const SizedBox.shrink();
-            }
-            return SizedBox(
-              height: 80,
-              child: Center(child: body),
-            );
-          },
-        ),
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            if (destacados.isNotEmpty)
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 220,
-                  child: PageView.builder(
-                    scrollDirection: Axis.horizontal,
-                    controller: _pageController,
-                    onPageChanged: (i) => setState(() => _currentPage = i),
-                    itemBuilder: (context, index) {
-                      final realIndex = destacados.isNotEmpty ? index % destacados.length : 0;
-                      final negocio = destacados[realIndex];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final negocio = restantes[index];
+                      return TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: 1),
+                        duration: Duration(milliseconds: 400 + index * 100),
+                        builder: (context, value, child) => Opacity(
+                          opacity: value,
+                          child: Transform.translate(
+                            offset: Offset(0, 30 * (1 - value)),
+                            child: child,
+                          ),
+                        ),
                         child: Card(
-                          elevation: 10,
+                          elevation: 6,
                           color: Colors.white,
-                          shadowColor: Colors.blue.withOpacity(0.12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          shadowColor: Colors.blue.withOpacity(0.10),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(18),
                             splashColor: Colors.blue.withOpacity(0.08),
                             highlightColor: Colors.blue.withOpacity(0.04),
                             onTap: () {
@@ -322,8 +336,8 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => MenuScreen(
+                                    restauranteId: negocio['id'] as String,
                                     restaurante: negocio['nombre'] as String,
-                                    productos: List<Map<String, dynamic>>.from(negocio['menu'] as List),
                                     onAddToCart: _addToCart,
                                   ),
                                 ),
@@ -333,214 +347,181 @@ class _NegociosScreenState extends State<NegociosScreen> {
                               children: [
                                 ClipRRect(
                                   borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(24),
-                                    bottomLeft: Radius.circular(24),
+                                    topLeft: Radius.circular(18),
+                                    bottomLeft: Radius.circular(18),
                                   ),
                                   child: Image.network(
                                     negocio['img'] as String,
-                                    width: 120,
-                                    height: 200,
+                                    width: 80,
+                                    height: 80,
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) => Container(
-                                      width: 120,
-                                      height: 200,
+                                      width: 80,
+                                      height: 80,
                                       color: Colors.grey[300],
-                                      child: const Icon(Icons.store, size: 40, color: Colors.grey),
+                                      child: const Icon(Icons.store, size: 32, color: Colors.grey),
                                     ),
                                   ),
                                 ),
                                 Expanded(
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
                                           negocio['nombre'] as String,
-                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                             fontWeight: FontWeight.bold,
                                             color: Colors.blue[900],
                                           ),
                                         ),
-                                        const SizedBox(height: 12),
+                                        const SizedBox(height: 8),
                                         Row(
                                           children: [
-                                            const Icon(Icons.location_on, size: 18, color: Colors.redAccent),
+                                            const Icon(Icons.location_on, size: 16, color: Colors.redAccent),
                                             const SizedBox(width: 4),
                                             Expanded(
                                               child: Text(
                                                 negocio['direccion'] as String,
-                                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.blueGrey[700]),
+                                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.blueGrey[700]),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 18),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.7),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: const Text('★ Destacado', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
+                                const Icon(Icons.chevron_right, color: Colors.grey, size: 28),
                               ],
                             ),
                           ),
                         ),
                       );
                     },
+                    childCount: restantes.length,
                   ),
                 ),
-              ),
-            SliverToBoxAdapter(
-              child: AnimatedSlide(
-                duration: const Duration(milliseconds: 300),
-                offset: _showCategorias ? Offset.zero : const Offset(0, -1),
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 300),
-                  opacity: _showCategorias ? 1 : 0,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                    child: SizedBox(
-                      height: 70,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: categorias.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final cat = categorias[index];
-                          final selected = _categoriaSeleccionada == cat['nombre'];
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _categoriaSeleccionada = selected ? null : cat['nombre'] as String;
-                              });
-                            },
-                            child: Column(
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class DestacadosSlider extends StatefulWidget {
+  final List<Map<String, dynamic>> destacados;
+  final void Function(Map<String, dynamic> negocio) onTap;
+  const DestacadosSlider({super.key, required this.destacados, required this.onTap});
+
+  @override
+  State<DestacadosSlider> createState() => _DestacadosSliderState();
+}
+
+class _DestacadosSliderState extends State<DestacadosSlider> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 0);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 220,
+      child: PageView.builder(
+        scrollDirection: Axis.horizontal,
+        controller: _pageController,
+        itemCount: widget.destacados.length,
+        physics: const ClampingScrollPhysics(),
+        onPageChanged: (i) => setState(() => _currentPage = i),
+        itemBuilder: (context, index) {
+          final realIndex = widget.destacados.isNotEmpty ? index % widget.destacados.length : 0;
+          final negocio = widget.destacados[realIndex];
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            child: Card(
+              elevation: 10,
+              color: Colors.white,
+              shadowColor: Colors.blue.withOpacity(0.12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                splashColor: Colors.blue.withOpacity(0.08),
+                highlightColor: Colors.blue.withOpacity(0.04),
+                onTap: () => widget.onTap(negocio),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(24),
+                        bottomLeft: Radius.circular(24),
+                      ),
+                      child: Image.network(
+                        negocio['img'] as String,
+                        width: 120,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 120,
+                          height: 200,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.store, size: 40, color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              negocio['nombre'] as String,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[900],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
                               children: [
-                                CircleAvatar(
-                                  radius: 24,
-                                  backgroundColor: selected ? Colors.blue : Colors.blue[50],
-                                  child: Icon(cat['icon'] as IconData, color: selected ? Colors.white : Colors.blue, size: 28),
+                                const Icon(Icons.location_on, size: 18, color: Colors.redAccent),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    negocio['direccion'] as String,
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.blueGrey[700]),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(cat['nombre'] as String, style: TextStyle(fontSize: 12, color: selected ? Colors.blue : null)),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final negocio = restantes[index];
-                  return TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: 1),
-                    duration: Duration(milliseconds: 400 + index * 100),
-                    builder: (context, value, child) => Opacity(
-                      opacity: value,
-                      child: Transform.translate(
-                        offset: Offset(0, 30 * (1 - value)),
-                        child: child,
-                      ),
-                    ),
-                    child: Card(
-                      elevation: 6,
-                      color: Colors.white,
-                      shadowColor: Colors.blue.withOpacity(0.10),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        splashColor: Colors.blue.withOpacity(0.08),
-                        highlightColor: Colors.blue.withOpacity(0.04),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MenuScreen(
-                                restaurante: negocio['nombre'] as String,
-                                productos: List<Map<String, dynamic>>.from(negocio['menu'] as List),
-                                onAddToCart: _addToCart,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(18),
-                                bottomLeft: Radius.circular(18),
-                              ),
-                              child: Image.network(
-                                negocio['img'] as String,
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  width: 80,
-                                  height: 80,
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.store, size: 32, color: Colors.grey),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      negocio['nombre'] as String,
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue[900],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.location_on, size: 16, color: Colors.redAccent),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(
-                                            negocio['direccion'] as String,
-                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.blueGrey[700]),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const Icon(Icons.chevron_right, color: Colors.grey, size: 28),
+                            const SizedBox(height: 18),
                           ],
                         ),
                       ),
                     ),
-                  );
-                },
-                childCount: restantes.length,
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
