@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'menu_screen.dart';
+import 'carrito_screen.dart';
 
 class NegociosScreen extends StatefulWidget {
   const NegociosScreen({super.key});
@@ -124,10 +125,16 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
   void _addToCart(Map<String, dynamic> producto) {
     setState(() {
-      _carrito.add(producto);
+      final index = _carrito.indexWhere((item) => item['nombre'] == producto['nombre']);
+      if (index != -1) {
+        _carrito[index]['cantidad'] = (_carrito[index]['cantidad'] ?? 1) + (producto['cantidad'] ?? 1);
+      } else {
+        _carrito.add(producto);
+      }
     });
+    final cantidad = producto['cantidad'] ?? 1;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${producto['nombre']} añadido al carrito')),
+      SnackBar(content: Text('${producto['nombre']} x$cantidad añadido al carrito')),
     );
   }
 
@@ -180,26 +187,23 @@ class _NegociosScreenState extends State<NegociosScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.shopping_cart),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (context) => ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        const Text('Carrito', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
-                        ..._carrito.map((item) => ListTile(
-                              title: Text(item['nombre'] as String),
-                              trailing: Text(' 24 24${item['precio']}'),
-                            )),
-                        if (_carrito.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Center(child: Text('El carrito está vacío')),
-                          ),
-                      ],
+                onPressed: () async {
+                  // Navegar a CarritoScreen y actualizar carrito al volver
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CarritoScreen(
+                        carrito: List<Map<String, dynamic>>.from(_carrito),
+                      ),
                     ),
                   );
+                  if (result is List<Map<String, dynamic>>) {
+                    setState(() {
+                      _carrito
+                        ..clear()
+                        ..addAll(result);
+                    });
+                  }
                 },
               ),
               if (_carrito.isNotEmpty)
@@ -306,9 +310,13 @@ class _NegociosScreenState extends State<NegociosScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                         child: Card(
                           elevation: 10,
+                          color: Colors.white,
+                          shadowColor: Colors.blue.withOpacity(0.12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(24),
+                            splashColor: Colors.blue.withOpacity(0.08),
+                            highlightColor: Colors.blue.withOpacity(0.04),
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -350,7 +358,10 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                       children: [
                                         Text(
                                           negocio['nombre'] as String,
-                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blue[900],
+                                          ),
                                         ),
                                         const SizedBox(height: 12),
                                         Row(
@@ -360,14 +371,21 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                             Expanded(
                                               child: Text(
                                                 negocio['direccion'] as String,
-                                                style: Theme.of(context).textTheme.bodyMedium,
+                                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.blueGrey[700]),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                           ],
                                         ),
                                         const SizedBox(height: 18),
-                                        const Text('★ Destacado', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.7),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: const Text('★ Destacado', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -440,10 +458,14 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     ),
                     child: Card(
                       elevation: 6,
+                      color: Colors.white,
+                      shadowColor: Colors.blue.withOpacity(0.10),
                       margin: const EdgeInsets.only(bottom: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(18),
+                        splashColor: Colors.blue.withOpacity(0.08),
+                        highlightColor: Colors.blue.withOpacity(0.04),
                         onTap: () {
                           Navigator.push(
                             context,
@@ -484,7 +506,10 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                   children: [
                                     Text(
                                       negocio['nombre'] as String,
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue[900],
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Row(
@@ -494,7 +519,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                         Expanded(
                                           child: Text(
                                             negocio['direccion'] as String,
-                                            style: Theme.of(context).textTheme.bodySmall,
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.blueGrey[700]),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
