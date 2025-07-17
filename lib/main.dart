@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:io' show Platform;
 
 void main() {
@@ -7,11 +8,10 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Flutter GPS',
       home: const MyHomePage(),
     );
   }
@@ -24,12 +24,61 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int contador = 0;
+  Position? _position;
+  String _error = '';
+
+  Future<void> _getCurrentLocation() async {
+    setState(() {
+      _error = '';
+    });
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _error = 'El servicio de ubicación está desactivado.';
+        });
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _error = 'Permiso de ubicación denegado.';
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _error = 'Permiso de ubicación denegado permanentemente.';
+        });
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _position = position;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Flutter Demo')),
+      appBar: AppBar(title: const Text('Flutter GPS')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -43,25 +92,22 @@ class _MyHomePageState extends State<MyHomePage> {
               style: const TextStyle(fontSize: 20, color: Colors.green),
             ),
             const SizedBox(height: 20),
-            Image.network(
-              'https://cdn.conmebol.com/wp-content/uploads/2014/07/066_dppi_40514041_151.jpg',
-              width: 200,
-              height: 200,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Contador: $contador',
-              style: const TextStyle(fontSize: 32),
-            ),
-            const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  contador++;
-                });
-              },
-              child: const Text('Incrementar'),
+              onPressed: _getCurrentLocation,
+              child: const Text('Obtener ubicación'),
             ),
+            const SizedBox(height: 20),
+            if (_position != null)
+              Text(
+                'Latitud: ${_position!.latitude}\nLongitud: ${_position!.longitude}',
+                style: const TextStyle(fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+            if (_error.isNotEmpty)
+              Text(
+                _error,
+                style: const TextStyle(color: Colors.red),
+              ),
             const SizedBox(height: 20),
             const Text(
               '#19',
