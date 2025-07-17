@@ -5,14 +5,15 @@ import 'menu_screen.dart';
 import 'carrito_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
   const NegociosScreen({super.key});
-
   @override
   State<NegociosScreen> createState() => _NegociosScreenState();
 }
 
 class _NegociosScreenState extends State<NegociosScreen> {
+  // Controladores para scroll y refresco
   late final PageController _pageController;
   late final ScrollController _scrollController;
   final RefreshController _refreshController = RefreshController();
@@ -27,9 +28,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
   static const double _alturaCategorias = 82; // 70 + padding
   static const double _umbralOcultar = _alturaSlider + _alturaCategorias - 20;
 
-  // Eliminar la lista local de negocios
-  // List<Map<String, dynamic>> negocios = [...];
-
+  // Lista de categorías disponibles
   final categorias = [
     {'nombre': 'Pizza', 'icon': Icons.local_pizza},
     {'nombre': 'Sushi', 'icon': Icons.rice_bowl},
@@ -42,7 +41,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
     {'nombre': 'Pollo', 'icon': Icons.set_meal},
   ];
 
-  // Nuevo: obtener negocios desde Firestore
+  // Obtiene los negocios desde Firestore, filtrando por categoría si aplica
   Stream<List<Map<String, dynamic>>> getNegociosStream() {
     Query query = FirebaseFirestore.instance.collection('negocios');
     if (_categoriaSeleccionada != null) {
@@ -55,13 +54,16 @@ class _NegociosScreenState extends State<NegociosScreen> {
     }).toList());
   }
 
+  // Devuelve los 3 primeros negocios como destacados (para el slider)
   List<Map<String, dynamic>> getDestacados(List<Map<String, dynamic>> negocios) {
     return negocios.take(3).toList();
   }
+  // Devuelve el resto de negocios para la lista principal
   List<Map<String, dynamic>> getRestantes(List<Map<String, dynamic>> negocios) {
     return negocios.skip(3).toList();
   }
 
+  // Agrega un producto al carrito
   void _addToCart(Map<String, dynamic> producto) {
     setState(() {
       final index = _carrito.indexWhere((item) => item['nombre'] == producto['nombre']);
@@ -77,6 +79,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
     );
   }
 
+  // Simula refresco (pull-to-refresh)
   Future<void> _onRefresh() async {
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
@@ -97,6 +100,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
     _scrollController.addListener(_onScroll);
   }
 
+  // Oculta la barra de categorías al hacer scroll
   void _onScroll() {
     final offset = _scrollController.offset;
     if (offset > _umbralOcultar && _showCategorias) {
@@ -122,6 +126,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
         title: const Text('Negocios'),
         centerTitle: true,
         actions: [
+          // Botón del carrito en la barra superior
           Stack(
             children: [
               IconButton(
@@ -159,6 +164,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
           ),
         ],
       ),
+      // StreamBuilder escucha los cambios en la colección de negocios en Firestore
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: getNegociosStream(),
         builder: (context, snapshot) {
@@ -246,6 +252,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
+                // Slider de negocios destacados
                 if (destacados.isNotEmpty)
                   SliverToBoxAdapter(
                     child: DestacadosSlider(
@@ -264,6 +271,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                       },
                     ),
                   ),
+                // Barra de categorías horizontal
                 SliverToBoxAdapter(
                   child: AnimatedSlide(
                     duration: const Duration(milliseconds: 300),
@@ -307,6 +315,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     ),
                   ),
                 ),
+                // Lista de negocios restantes (no destacados)
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -413,6 +422,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
   }
 }
 
+// Widget del slider de negocios destacados
 class DestacadosSlider extends StatefulWidget {
   final List<Map<String, dynamic>> destacados;
   final void Function(Map<String, dynamic> negocio) onTap;
