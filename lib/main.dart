@@ -1,3 +1,8 @@
+// main.dart - Punto de entrada de la aplicación Flutter
+// Esta app implementa un sistema multirol (Cliente, Repartidor, Dueño, Admin) con navegación dinámica y gestión de estado robusta.
+// Aquí se inicializa Firebase y se definen las rutas principales para cada tipo de usuario.
+// Cada pantalla principal está documentada y comentada para facilitar el onboarding de nuevos desarrolladores.
+
 import 'package:flutter/material.dart';
 import 'presentation/cliente/screens/login_screen.dart';
 import 'presentation/cliente/screens/menu_screen.dart';
@@ -8,14 +13,16 @@ import 'firebase_options.dart';
 // Importa las pantallas principales de cada rol si existen
 // Si no, usa un Scaffold temporal
 
+// Función principal: inicializa Firebase y ejecuta la app
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized(); // Necesario para inicializaciones asíncronas
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const MyApp());
 }
 
+// Widget raíz de la aplicación. Define el MaterialApp y las rutas principales por rol.
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -28,8 +35,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      initialRoute: '/login',
+      initialRoute: '/login', // Ruta inicial
       routes: {
+        // Rutas principales por rol
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
         '/cliente': (_) => const NegociosScreen(),
@@ -41,7 +49,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Pantalla de registro temporal
+// Pantalla de registro temporal (placeholder para futuros flujos de registro de usuario)
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
   @override
@@ -53,7 +61,7 @@ class RegisterScreen extends StatelessWidget {
   }
 }
 
-// Pantallas principales temporales para cada rol
+// Pantalla principal temporal para repartidor (se reemplazará por la vista real de repartidor)
 class RepartidorHomeScreen extends StatelessWidget {
   const RepartidorHomeScreen({super.key});
   @override
@@ -64,6 +72,7 @@ class RepartidorHomeScreen extends StatelessWidget {
     );
   }
 }
+// Pantalla principal temporal para dueño de negocio (se reemplazará por la vista real de dueño)
 class DuenioHomeScreen extends StatelessWidget {
   const DuenioHomeScreen({super.key});
   @override
@@ -74,6 +83,7 @@ class DuenioHomeScreen extends StatelessWidget {
     );
   }
 }
+// Pantalla principal temporal para admin (no se usa, se usa AdminDashboardScreen)
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
   @override

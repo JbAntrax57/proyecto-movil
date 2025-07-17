@@ -1,12 +1,18 @@
+// negocios_screen.dart - Pantalla principal del cliente para ver y explorar negocios
+// Incluye slider de destacados, barra de categorías, lista de negocios y carrito.
+// Implementa obtención de datos en tiempo real desde Firestore, filtrado por categoría y animaciones.
+
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'menu_screen.dart';
 import 'carrito_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 
 // Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
+  // Pantalla principal donde el cliente ve los negocios disponibles
   const NegociosScreen({super.key});
   @override
   State<NegociosScreen> createState() => _NegociosScreenState();
@@ -17,18 +23,18 @@ class _NegociosScreenState extends State<NegociosScreen> {
   late final PageController _pageController;
   late final ScrollController _scrollController;
   final RefreshController _refreshController = RefreshController();
-  int _currentPage = 0;
-  String? _categoriaSeleccionada;
-  final List<Map<String, dynamic>> _carrito = [];
-  bool _showCategorias = true;
-  double _lastOffset = 0;
+  int _currentPage = 0; // Página actual del slider
+  String? _categoriaSeleccionada; // Categoría seleccionada para filtrar
+  final List<Map<String, dynamic>> _carrito = []; // Carrito de compras
+  bool _showCategorias = true; // Controla visibilidad de la barra de categorías
+  double _lastOffset = 0; // Última posición de scroll
 
   // Altura del slider + barra de categorías (aprox)
   static const double _alturaSlider = 220;
   static const double _alturaCategorias = 82; // 70 + padding
   static const double _umbralOcultar = _alturaSlider + _alturaCategorias - 20;
 
-  // Lista de categorías disponibles
+  // Lista de categorías disponibles (nombre e ícono)
   final categorias = [
     {'nombre': 'Pizza', 'icon': Icons.local_pizza},
     {'nombre': 'Sushi', 'icon': Icons.rice_bowl},
@@ -54,16 +60,16 @@ class _NegociosScreenState extends State<NegociosScreen> {
     }).toList());
   }
 
-  // Devuelve los 3 primeros negocios como destacados (para el slider)
+  // Devuelve los negocios destacados (campo 'destacado' == true) para el slider
   List<Map<String, dynamic>> getDestacados(List<Map<String, dynamic>> negocios) {
-    return negocios.take(3).toList();
+    return negocios.where((n) => n['destacado'] == true).toList();
   }
   // Devuelve el resto de negocios para la lista principal
   List<Map<String, dynamic>> getRestantes(List<Map<String, dynamic>> negocios) {
-    return negocios.skip(3).toList();
+    return negocios.where((n) => n['destacado'] != true).toList();
   }
 
-  // Agrega un producto al carrito
+  // Agrega un producto al carrito y muestra un SnackBar
   void _addToCart(Map<String, dynamic> producto) {
     setState(() {
       final index = _carrito.indexWhere((item) => item['nombre'] == producto['nombre']);
@@ -79,7 +85,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
     );
   }
 
-  // Simula refresco (pull-to-refresh)
+  // Simula refresco (pull-to-refresh), aunque Firestore es reactivo
   Future<void> _onRefresh() async {
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
@@ -121,6 +127,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold principal con AppBar y StreamBuilder para negocios
     return Scaffold(
       appBar: AppBar(
         title: const Text('Negocios'),
@@ -177,11 +184,13 @@ class _NegociosScreenState extends State<NegociosScreen> {
           final negocios = snapshot.data ?? [];
           final destacados = getDestacados(negocios);
           final restantes = getRestantes(negocios);
+          // Widget de refresco y scroll
           return SmartRefresher(
             controller: _refreshController,
             onRefresh: _onRefresh,
             header: CustomHeader(
               builder: (context, mode) {
+                // Header personalizado para el pull-to-refresh
                 Widget body;
                 if (mode == RefreshStatus.idle) {
                   body = Column(
@@ -252,7 +261,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                // Slider de negocios destacados
+                // Slider de negocios destacados (loop infinito y scroll automático)
                 if (destacados.isNotEmpty)
                   SliverToBoxAdapter(
                     child: DestacadosSlider(
@@ -320,6 +329,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final negocio = restantes[index];
+                      // Animación de aparición para cada negocio
                       return TweenAnimationBuilder<double>(
                         tween: Tween(begin: 0, end: 1),
                         duration: Duration(milliseconds: 400 + index * 100),
@@ -354,6 +364,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                             },
                             child: Row(
                               children: [
+                                // Imagen del negocio
                                 ClipRRect(
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(18),
@@ -372,6 +383,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                     ),
                                   ),
                                 ),
+                                // Detalles del negocio
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -422,10 +434,11 @@ class _NegociosScreenState extends State<NegociosScreen> {
   }
 }
 
-// Widget del slider de negocios destacados
+// Widget del slider de negocios destacados (loop infinito y scroll automático)
 class DestacadosSlider extends StatefulWidget {
-  final List<Map<String, dynamic>> destacados;
-  final void Function(Map<String, dynamic> negocio) onTap;
+  // Lista de negocios destacados y callback al tocar un negocio
+  final List<Map<String, dynamic>> destacados; // Lista de negocios destacados
+  final void Function(Map<String, dynamic> negocio) onTap; // Callback al tocar un negocio
   const DestacadosSlider({super.key, required this.destacados, required this.onTap});
 
   @override
@@ -433,34 +446,53 @@ class DestacadosSlider extends StatefulWidget {
 }
 
 class _DestacadosSliderState extends State<DestacadosSlider> {
+  // Controlador de página y timer para scroll automático
   late final PageController _pageController;
   int _currentPage = 0;
+  Timer? _autoScrollTimer;
+  static const int _initialPage = 1000; // Para simular loop infinito
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: 0);
+    _pageController = PageController(initialPage: _initialPage);
+    _currentPage = _initialPage;
+    // Scroll automático cada 3 segundos
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (widget.destacados.isNotEmpty && mounted) {
+        _currentPage++;
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
+    _autoScrollTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final destacados = widget.destacados;
+    if (destacados.isEmpty) return const SizedBox.shrink();
+    // Slider de negocios destacados con animación y scroll infinito
     return SizedBox(
       height: 220,
       child: PageView.builder(
         scrollDirection: Axis.horizontal,
         controller: _pageController,
-        itemCount: widget.destacados.length,
+        itemCount: null, // infinito
         physics: const ClampingScrollPhysics(),
         onPageChanged: (i) => setState(() => _currentPage = i),
         itemBuilder: (context, index) {
-          final realIndex = widget.destacados.isNotEmpty ? index % widget.destacados.length : 0;
-          final negocio = widget.destacados[realIndex];
+          final realIndex = destacados.isNotEmpty ? index % destacados.length : 0;
+          final negocio = destacados[realIndex];
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
             child: Card(
@@ -475,6 +507,7 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                 onTap: () => widget.onTap(negocio),
                 child: Row(
                   children: [
+                    // Imagen del negocio destacado
                     ClipRRect(
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(24),
@@ -493,6 +526,7 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                         ),
                       ),
                     ),
+                    // Detalles del negocio destacado
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),

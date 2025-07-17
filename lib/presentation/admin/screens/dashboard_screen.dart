@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// dashboard_screen.dart - Pantalla principal del administrador
+// Muestra métricas clave, permite gestionar usuarios, negocios y pedidos, y poblar Firestore con datos de ejemplo.
+// Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
 class AdminDashboardScreen extends StatelessWidget {
+  // Pantalla principal del dashboard de administrador
   const AdminDashboardScreen({super.key});
   @override
   Widget build(BuildContext context) {
+    // Variables simuladas para métricas
     final usuarios = 10;
     final negocios = 3;
     final pedidos = 25;
+    // Scaffold principal con cards de métricas y acciones
     return Scaffold(
       appBar: AppBar(title: const Text('Dashboard Administrador'), centerTitle: true),
       body: TweenAnimationBuilder<double>(
@@ -25,6 +31,7 @@ class AdminDashboardScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Card de usuarios registrados
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -42,6 +49,7 @@ class AdminDashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              // Card de negocios activos
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -59,6 +67,7 @@ class AdminDashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              // Card de pedidos totales
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -76,11 +85,13 @@ class AdminDashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              // Botón para poblar Firestore con negocios y menús de ejemplo
               ElevatedButton.icon(
                 icon: const Icon(Icons.cloud_upload),
                 label: const Text('Poblar negocios de ejemplo'),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
                 onPressed: () async {
+                  // Lista de negocios y menús de ejemplo
                   final negocios = [
                     {
                       "nombre": "Pizzería Don Juan",
@@ -167,4 +178,6 @@ class AdminDashboardScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}
+// Fin de dashboard_screen.dart
+// Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión. 

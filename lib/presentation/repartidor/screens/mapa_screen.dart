@@ -1,10 +1,15 @@
+// mapa_screen.dart - Pantalla de mapa de entrega para el repartidor
+// Muestra un mapa simulado y permite volver a la lista de pedidos.
+// Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
 import 'package:flutter/material.dart';
 
 class MapaScreen extends StatelessWidget {
+  // Pantalla de mapa de entrega para el repartidor
   const MapaScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold principal con animación y visualización de mapa
     return Scaffold(
       appBar: AppBar(title: const Text('Mapa de entrega'), centerTitle: true),
       body: TweenAnimationBuilder<double>(
@@ -21,6 +26,7 @@ class MapaScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Contenedor que simula el mapa
               Container(
                 width: 260,
                 height: 260,
@@ -32,6 +38,7 @@ class MapaScreen extends StatelessWidget {
                 child: const Icon(Icons.map, size: 120, color: Colors.blueAccent),
               ),
               const SizedBox(height: 32),
+              // Botón para volver
               ElevatedButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back),
@@ -43,4 +50,6 @@ class MapaScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}
+// Fin de mapa_screen.dart
+// Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión. 

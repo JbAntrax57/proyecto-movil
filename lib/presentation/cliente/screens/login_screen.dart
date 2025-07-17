@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+// login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
+// Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
+// Incluye validación de formulario, feedback visual y navegación dinámica.
 class LoginScreen extends StatefulWidget {
+  // Pantalla de login principal para el usuario cliente (y demo para todos los roles)
   const LoginScreen({super.key});
 
   @override
@@ -8,13 +12,15 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // Llave para el formulario de login
   final _formKey = GlobalKey<FormState>();
+  // Variables para email y contraseña
   String email = '';
   String password = '';
-  String? error;
-  bool loading = false;
+  String? error; // Mensaje de error si el login falla
+  bool loading = false; // Estado de carga para mostrar spinner
 
-  // Usuarios demo por rol
+  // Usuarios demo por rol (Cliente, Repartidor, Dueño, Admin)
   final demoUsers = [
     {'email': 'cliente@demo.com', 'password': '1234', 'rol': 'Cliente'},
     {'email': 'repartidor@demo.com', 'password': '1234', 'rol': 'Repartidor'},
@@ -22,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     {'email': 'admin@demo.com', 'password': '1234', 'rol': 'Admin'},
   ];
 
+  // Lógica de login: valida usuario demo y navega según el rol
   void _login() async {
     setState(() { error = null; loading = true; });
     await Future.delayed(const Duration(milliseconds: 600));
@@ -50,12 +57,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Navega a la pantalla de registro (placeholder)
   void _goToRegister() {
     Navigator.pushNamed(context, '/register');
   }
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold principal con formulario de login y botones demo
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -70,10 +79,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Icono de login
                     const Icon(Icons.lock, size: 60, color: Colors.blue),
                     const SizedBox(height: 18),
+                    // Título
                     Text('Iniciar sesión', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 24),
+                    // Campo de email
                     TextFormField(
                       decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
                       keyboardType: TextInputType.emailAddress,
@@ -81,17 +93,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       validator: (v) => v == null || v.isEmpty ? 'Ingrese su email' : null,
                     ),
                     const SizedBox(height: 16),
+                    // Campo de contraseña
                     TextFormField(
                       decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock)),
                       obscureText: true,
                       onChanged: (v) => password = v.trim(),
                       validator: (v) => v == null || v.isEmpty ? 'Ingrese su contraseña' : null,
                     ),
+                    // Mensaje de error
                     if (error != null) ...[
                       const SizedBox(height: 12),
                       Text(error!, style: const TextStyle(color: Colors.red)),
                     ],
                     const SizedBox(height: 24),
+                    // Botón de login
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -109,6 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    // Botón para crear cuenta
                     TextButton(
                       onPressed: loading ? null : _goToRegister,
                       child: const Text('Crear cuenta'),
@@ -116,6 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 18),
                     const Divider(),
                     const SizedBox(height: 8),
+                    // Demo rápido para cada rol
                     const Text('Demo rápido:', style: TextStyle(color: Colors.grey)),
                     const SizedBox(height: 6),
                     ...demoUsers.map((u) => Padding(
@@ -140,4 +157,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-} 
+}
+// Fin de login_screen.dart
+// Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión. 

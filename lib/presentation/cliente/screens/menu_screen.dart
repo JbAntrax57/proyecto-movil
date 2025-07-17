@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// menu_screen.dart - Pantalla de menú de un negocio para el cliente
+// Muestra los productos del menú obtenidos en tiempo real desde Firestore.
+// Permite agregar productos al carrito y ver detalles de cada producto.
 class MenuScreen extends StatelessWidget {
+  // Recibe el ID y nombre del restaurante, y un callback para agregar al carrito
   final String restauranteId;
   final String restaurante;
   final void Function(Map<String, dynamic> producto)? onAddToCart;
@@ -13,6 +17,7 @@ class MenuScreen extends StatelessWidget {
     this.onAddToCart,
   });
 
+  // Obtiene el menú del restaurante en tiempo real desde Firestore
   Stream<List<Map<String, dynamic>>> getMenuStream() {
     return FirebaseFirestore.instance
       .collection('negocios')
@@ -28,6 +33,7 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold principal con AppBar y StreamBuilder para menú
     return Scaffold(
       appBar: AppBar(title: Text('Menú - $restaurante'), centerTitle: true),
       body: StreamBuilder<List<Map<String, dynamic>>>(
@@ -43,11 +49,13 @@ class MenuScreen extends StatelessWidget {
           if (productos.isEmpty) {
             return const Center(child: Text('No hay productos en el menú'));
           }
+          // Lista animada de productos
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: productos.length,
             itemBuilder: (context, index) {
               final producto = productos[index];
+              // Animación de aparición para cada producto
               return TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0, end: 1),
                 duration: Duration(milliseconds: 400 + index * 100),
@@ -69,6 +77,7 @@ class MenuScreen extends StatelessWidget {
                     splashColor: Colors.blue.withOpacity(0.08),
                     highlightColor: Colors.blue.withOpacity(0.04),
                     onTap: () {
+                      // Al tocar un producto, muestra modal para elegir cantidad y agregar al carrito
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
@@ -89,6 +98,7 @@ class MenuScreen extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
+                                    // Imagen del producto
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(22),
                                       child: Image.network(
@@ -105,18 +115,21 @@ class MenuScreen extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(height: 18),
+                                    // Nombre del producto
                                     Text(
                                       producto['nombre'] as String,
                                       style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.blue[900]),
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 8),
+                                    // Descripción
                                     Text(
                                       producto['descripcion'] as String? ?? 'Delicioso y recién hecho',
                                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.blueGrey[700]),
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 16),
+                                    // Precio
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                       decoration: BoxDecoration(
@@ -129,6 +142,7 @@ class MenuScreen extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(height: 18),
+                                    // Selector de cantidad
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
@@ -144,6 +158,7 @@ class MenuScreen extends StatelessWidget {
                                       ],
                                     ),
                                     const SizedBox(height: 18),
+                                    // Botón para agregar al carrito
                                     SizedBox(
                                       width: double.infinity,
                                       child: ElevatedButton.icon(
@@ -183,6 +198,7 @@ class MenuScreen extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Imagen miniatura
                           ClipRRect(
                             borderRadius: BorderRadius.circular(14),
                             child: Image.network(
@@ -199,6 +215,7 @@ class MenuScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 16),
+                          // Detalles del producto
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,6 +238,7 @@ class MenuScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
+                          // Precio
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -237,6 +255,7 @@ class MenuScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 10),
+                              // Botón alternativo para agregar al carrito (opcional)
                               ElevatedButton(
                                 onPressed: () async {
                                   int cantidad = 1;

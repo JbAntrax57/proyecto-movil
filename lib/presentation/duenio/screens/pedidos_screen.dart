@@ -1,19 +1,25 @@
+// pedidos_screen.dart - Pantalla de pedidos recibidos para el dueño de negocio
+// Permite ver pedidos, simular nuevos pedidos, actualizar estado y ver notificaciones.
+// Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
 import 'package:flutter/material.dart';
 import 'menu_screen.dart';
 
 class DuenioPedidosScreen extends StatefulWidget {
+  // Pantalla de pedidos recibidos para el dueño de negocio
   const DuenioPedidosScreen({super.key});
   @override
   State<DuenioPedidosScreen> createState() => _DuenioPedidosScreenState();
 }
 
 class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
+  // Lista simulada de pedidos
   List<Map<String, dynamic>> pedidos = [
     {'id': 1, 'cliente': 'Juan', 'estado': 'Pendiente'},
     {'id': 2, 'cliente': 'Ana', 'estado': 'En preparación'},
   ];
   final List<String> notificaciones = [];
 
+  // Simula la llegada de un nuevo pedido
   void _agregarPedidoSimulado() {
     setState(() {
       final nuevoId = (pedidos.isNotEmpty ? pedidos.last['id'] as int : 0) + 1;
@@ -22,6 +28,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
     });
   }
 
+  // Actualiza el estado de un pedido y notifica si está listo para entregar
   void _actualizarEstado(int index, String nuevoEstado) {
     setState(() {
       pedidos[index]['estado'] = nuevoEstado;
@@ -36,10 +43,12 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold principal con lista de pedidos y notificaciones
     return Scaffold(
       appBar: AppBar(title: const Text('Pedidos recibidos'), centerTitle: true),
       body: Column(
         children: [
+          // Notificaciones de nuevos pedidos o cambios de estado
           if (notificaciones.isNotEmpty)
             Container(
               width: double.infinity,
@@ -50,12 +59,14 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                 children: notificaciones.map((n) => Text('🔔 $n', style: const TextStyle(color: Colors.deepOrange))).toList(),
               ),
             ),
+          // Lista de pedidos
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: pedidos.length,
               itemBuilder: (context, index) {
                 final pedido = pedidos[index];
+                // Animación de aparición para cada pedido
                 return TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0, end: 1),
                   duration: Duration(milliseconds: 400 + index * 100),
@@ -83,6 +94,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                         children: [
                           Text(pedido['estado'] as String, style: const TextStyle(color: Colors.deepOrange)),
                           const SizedBox(height: 8),
+                          // Botón para actualizar estado
                           ElevatedButton(
                             onPressed: () async {
                               final nuevoEstado = await showDialog<String>(
@@ -123,6 +135,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
           ),
         ],
       ),
+      // Botones flotantes para simular pedido y ver menú
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -145,4 +158,6 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
       ),
     );
   }
-} 
+}
+// Fin de pedidos_screen.dart (dueño)
+// Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión. 

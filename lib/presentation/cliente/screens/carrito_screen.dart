@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+// carrito_screen.dart - Pantalla de carrito de compras para el cliente
+// Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
+// Incluye selección de ubicación (actual o manual) antes de enviar el pedido.
 class CarritoScreen extends StatefulWidget {
+  // Recibe la lista de productos en el carrito
   final List<Map<String, dynamic>> carrito;
   const CarritoScreen({super.key, required this.carrito});
 
@@ -10,12 +14,15 @@ class CarritoScreen extends StatefulWidget {
 }
 
 class _CarritoScreenState extends State<CarritoScreen> {
+  // Estado local del carrito
   late List<Map<String, dynamic>> carrito;
-  String? ubicacion;
-  bool pedidoRealizado = false;
+  String? ubicacion; // Ubicación seleccionada para el pedido
+  bool pedidoRealizado = false; // Indica si el pedido fue realizado
 
+  // Calcula el total del carrito
   int get total => carrito.fold(0, (int sum, item) => sum + (item['precio'] as int) * (item['cantidad'] as int));
 
+  // Lógica para realizar el pedido: solicita ubicación y limpia el carrito
   void _realizarPedido() async {
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -43,6 +50,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold principal con lista de productos y resumen de compra
     return Scaffold(
       appBar: AppBar(title: const Text('Carrito de compras'), centerTitle: true,
         leading: IconButton(
@@ -66,6 +74,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                     itemCount: carrito.length,
                     itemBuilder: (context, index) {
                       final item = carrito[index];
+                      // Animación de aparición para cada producto
                       return TweenAnimationBuilder<double>(
                         tween: Tween(begin: 0, end: 1),
                         duration: Duration(milliseconds: 400 + index * 100),
@@ -84,11 +93,13 @@ class _CarritoScreenState extends State<CarritoScreen> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Avatar con inicial del producto
                                 CircleAvatar(
                                   backgroundColor: Colors.blue[100],
                                   child: Text(item['nombre'].toString()[0]),
                                 ),
                                 const SizedBox(width: 12),
+                                // Detalles del producto
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,6 +108,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                       const SizedBox(height: 6),
                                       Row(
                                         children: [
+                                          // Botón para disminuir cantidad
                                           IconButton(
                                             icon: const Icon(Icons.remove),
                                             onPressed: item['cantidad'] > 1
@@ -108,6 +120,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                                 : null,
                                           ),
                                           Text('Cantidad: ${item['cantidad']}', style: const TextStyle(fontSize: 16)),
+                                          // Botón para aumentar cantidad
                                           IconButton(
                                             icon: const Icon(Icons.add),
                                             onPressed: () {
@@ -116,6 +129,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                               });
                                             },
                                           ),
+                                          // Botón para eliminar producto
                                           IconButton(
                                             icon: const Icon(Icons.delete, color: Colors.red),
                                             onPressed: () {
@@ -130,6 +144,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
+                                // Precio total del producto
                                 Align(
                                   alignment: Alignment.topRight,
                                   child: Text('\$${(item['precio'] as int) * (item['cantidad'] as int)}', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -142,6 +157,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                     },
                   ),
           ),
+          // Resumen y botón de pedido
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -163,6 +179,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
               ],
             ),
           ),
+          // Muestra la ubicación seleccionada si existe
           if (ubicacion != null)
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -174,6 +191,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
   }
 }
 
+// Modal para seleccionar ubicación (actual o manual)
 class UbicacionModal extends StatefulWidget {
   @override
   State<UbicacionModal> createState() => _UbicacionModalState();
@@ -184,6 +202,7 @@ class _UbicacionModalState extends State<UbicacionModal> {
   String? ubicacionActual;
   bool buscando = false;
 
+  // Obtiene la ubicación actual usando geolocator
   Future<void> _obtenerUbicacion() async {
     setState(() => buscando = true);
     try {
@@ -202,6 +221,7 @@ class _UbicacionModalState extends State<UbicacionModal> {
 
   @override
   Widget build(BuildContext context) {
+    // Modal con opciones para ubicación actual o dirección manual
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
@@ -212,6 +232,7 @@ class _UbicacionModalState extends State<UbicacionModal> {
             children: [
               const Text('Selecciona tu ubicación', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
+              // Botón para obtener ubicación actual
               ElevatedButton.icon(
                 onPressed: buscando ? null : _obtenerUbicacion,
                 icon: const Icon(Icons.my_location),
@@ -223,11 +244,13 @@ class _UbicacionModalState extends State<UbicacionModal> {
                   child: Text('Ubicación actual: $ubicacionActual', style: const TextStyle(color: Colors.green)),
                 ),
               const Divider(height: 32),
+              // Campo para dirección manual
               TextField(
                 decoration: const InputDecoration(labelText: 'Dirección manual'),
                 onChanged: (v) => setState(() => direccionManual = v),
               ),
               const SizedBox(height: 16),
+              // Botón para confirmar ubicación
               ElevatedButton.icon(
                 onPressed: () {
                   final ubic = ubicacionActual ?? direccionManual;
