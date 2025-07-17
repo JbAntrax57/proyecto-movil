@@ -25,27 +25,11 @@ Este proyecto es una base mínima creada con Flutter para probar en iOS.
 
 3. **CocoaPods** (si no lo tienes, sigue las instrucciones del README de React Native)
 
-## Verifica que estés en la carpeta correcta
+## Crear el proyecto (ya hecho si tienes esta carpeta)
 
-Antes de ejecutar la app, asegúrate de estar en la carpeta del proyecto Flutter. Puedes hacerlo con los siguientes comandos:
-
-1. Verifica tu ubicación actual:
-   ```bash
-   pwd
-   ```
-   Esto debe mostrar una ruta similar a:
-   `/Users/carloslopez/Downloads/movil/movil`
-
-2. Lista los archivos y carpetas en tu ubicación:
-   ```bash
-   ls
-   ```
-   Debes ver archivos como `pubspec.yaml` y la carpeta `lib`.
-
-3. Si no estás en la carpeta correcta, navega hasta ella:
-   ```bash
-   cd /Users/carloslopez/Downloads/movil/movil
-   ```
+```bash
+flutter create movil
+```
 
 ## Ejecutar en iOS (simulador)
 
@@ -56,7 +40,7 @@ Antes de ejecutar la app, asegúrate de estar en la carpeta del proyecto Flutter
    ```
    O desde Xcode: "Xcode" → "Open Developer Tool → Simulator"
 
-2. En el simulador, ve a Device → "iOS" y selecciona un iPhone
+2. En el simulador, ve a Device →iOS" y selecciona un iPhone
 
 3. Asegúrate de que el dispositivo esté disponible:
    ```bash
@@ -64,6 +48,7 @@ Antes de ejecutar la app, asegúrate de estar en la carpeta del proyecto Flutter
    ```
 4. Ejecuta la app:
    ```bash
+   cd movil
    flutter run -d ios
    ```
 
@@ -75,4 +60,4 @@ El archivo `movil/lib/main.dart` contiene un ejemplo simple para probar que todo
 
 ---
 
-Si tienes algún error, revisa que Xcode y CocoaPods estén correctamente instalados y actualizados.
+Si tienes algún error, revisa que Xcode y CocoaPods estén correctamente instalados y actualizados. 
