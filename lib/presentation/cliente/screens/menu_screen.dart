@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../providers/carrito_provider.dart';
 
 // menu_screen.dart - Pantalla de menú de un negocio para el cliente
 // Muestra los productos del menú obtenidos en tiempo real desde Firestore.
@@ -31,11 +34,35 @@ class MenuScreen extends StatelessWidget {
       }).toList());
   }
 
+  // 1. En MenuScreen, define un método para mostrar el MaterialBanner en el contexto del Scaffold principal
+  void _showBanner(BuildContext context, String mensaje) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearMaterialBanners();
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        content: Text(mensaje),
+        leading: const Icon(Icons.check_circle, color: Colors.green),
+        backgroundColor: Colors.blue[50],
+        actions: [
+          TextButton(
+            onPressed: () => messenger.hideCurrentMaterialBanner(),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+    Future.delayed(const Duration(seconds: 3), () {
+      messenger.hideCurrentMaterialBanner();
+    });
+  }
+
   // Función reutilizable para mostrar el modal de agregar al carrito
+  // 2. Pasa un callback onAddToCartBanner al modal
   Future<void> showAgregarCarritoModal({
     required BuildContext context,
     required Map<String, dynamic> producto,
     required void Function(Map<String, dynamic> productoConCantidad) onAddToCart,
+    void Function(Map<String, dynamic> productoConCantidad)? onAddToCartBanner,
   }) async {
     int cantidad = 1;
     await showModalBottomSheet(
@@ -134,6 +161,7 @@ class MenuScreen extends StatelessWidget {
                         final productoConCantidad = Map<String, dynamic>.from(producto);
                         productoConCantidad['cantidad'] = cantidad;
                         onAddToCart(productoConCantidad);
+                        if (onAddToCartBanner != null) onAddToCartBanner(productoConCantidad);
                         Navigator.pop(context);
                       },
                     ),
@@ -149,6 +177,8 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Guarda el contexto raíz
+    final rootContext = context;
     // Scaffold principal con AppBar y StreamBuilder para menú
     return Scaffold(
       appBar: AppBar(title: Text('Menú - $restaurante'), centerTitle: true),
@@ -197,11 +227,14 @@ class MenuScreen extends StatelessWidget {
                       showAgregarCarritoModal(
                         context: context,
                         producto: producto,
-                        onAddToCart: onAddToCart ?? (p) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${producto['nombre']} x${p['cantidad']} añadido al carrito')),
-                          );
+                        onAddToCart: (productoConCantidad) {
+                          context.read<CarritoProvider>().agregarProducto({
+                            ...productoConCantidad,
+                            'restauranteId': restauranteId,
+                            'restaurante': restaurante,
+                          });
                         },
+                        onAddToCartBanner: (p) => _showBanner(rootContext, '${p['nombre']} x${p['cantidad']} añadido al carrito'),
                       );
                     },
                     child: Padding(
@@ -272,11 +305,14 @@ class MenuScreen extends StatelessWidget {
                                   showAgregarCarritoModal(
                                     context: context,
                                     producto: producto,
-                                    onAddToCart: onAddToCart ?? (p) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('${producto['nombre']} x${p['cantidad']} añadido al carrito')),
-                                      );
+                                    onAddToCart: (productoConCantidad) {
+                                      context.read<CarritoProvider>().agregarProducto({
+                                        ...productoConCantidad,
+                                        'restauranteId': restauranteId,
+                                        'restaurante': restaurante,
+                                      });
                                     },
+                                    onAddToCartBanner: (p) => _showBanner(rootContext, '${p['nombre']} x${p['cantidad']} añadido al carrito'),
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(

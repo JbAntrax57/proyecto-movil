@@ -172,6 +172,45 @@ class AdminDashboardScreen extends StatelessWidget {
                   }
                 },
               ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.person_add),
+                label: const Text('Agregar clientes demo'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                onPressed: () async {
+                  final clientes = [
+                    {
+                      'email': 'cliente1@demo.com',
+                      'password': '1234',
+                      'nombre': 'Cliente Demo 1',
+                      'rol': 'cliente',
+                      'carrito': [],
+                    },
+                    {
+                      'email': 'cliente2@demo.com',
+                      'password': '1234',
+                      'nombre': 'Cliente Demo 2',
+                      'rol': 'cliente',
+                      'carrito': [],
+                    },
+                  ];
+                  try {
+                    final batch = FirebaseFirestore.instance.batch();
+                    for (final cliente in clientes) {
+                      final doc = FirebaseFirestore.instance.collection('usuarios').doc(cliente['email'] as String);
+                      batch.set(doc, cliente);
+                    }
+                    await batch.commit();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Clientes demo agregados correctamente.')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al agregar clientes: $e')),
+                    );
+                  }
+                },
+              ),
             ],
           ),
         ),

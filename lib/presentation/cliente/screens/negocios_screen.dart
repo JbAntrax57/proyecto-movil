@@ -9,6 +9,8 @@ import 'menu_screen.dart';
 import 'carrito_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import '../providers/carrito_provider.dart';
 
 // Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
@@ -153,6 +155,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final carrito = context.watch<CarritoProvider>().carrito;
     // Elimino super.build(context); porque no es necesario ni válido
     return Scaffold(
       backgroundColor: Colors.blue[50],
@@ -167,25 +170,15 @@ class _NegociosScreenState extends State<NegociosScreen> {
               IconButton(
                 icon: const Icon(Icons.shopping_cart),
                 onPressed: () async {
-                  // Navegar a CarritoScreen y actualizar carrito al volver
-                  final result = await Navigator.push(
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => CarritoScreen(
-                        carrito: List<Map<String, dynamic>>.from(_carrito),
-                      ),
+                      builder: (_) => const CarritoScreen(),
                     ),
                   );
-                  if (result is List<Map<String, dynamic>>) {
-                    setState(() {
-                      _carrito
-                        ..clear()
-                        ..addAll(result);
-                    });
-                  }
                 },
               ),
-              if (_carrito.isNotEmpty)
+              if (carrito.isNotEmpty)
                 Positioned(
                   right: 8,
                   top: 8,
@@ -193,7 +186,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     radius: 10,
                     backgroundColor: Colors.red,
                     child: Text(
-                      '${_carrito.length}',
+                      '${carrito.length}',
                       style: const TextStyle(fontSize: 12, color: Colors.white),
                     ),
                   ),

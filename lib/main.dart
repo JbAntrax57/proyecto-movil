@@ -10,6 +10,8 @@ import 'presentation/cliente/screens/negocios_screen.dart';
 import 'presentation/admin/screens/dashboard_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:provider/provider.dart';
+import 'presentation/cliente/providers/carrito_provider.dart';
 // Importa las pantallas principales de cada rol si existen
 // Si no, usa un Scaffold temporal
 
@@ -19,7 +21,12 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CarritoProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 // Widget raíz de la aplicación. Define el MaterialApp y las rutas principales por rol.

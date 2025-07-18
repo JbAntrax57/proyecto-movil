@@ -9,6 +9,7 @@ import '../presentation/cliente/screens/login_screen.dart';
 import '../presentation/repartidor/screens/repartidor_home.dart';
 import '../presentation/duenio/screens/duenio_home.dart';
 import '../presentation/admin/screens/admin_home.dart';
+import '../presentation/cliente/screens/carrito_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/login',
@@ -20,6 +21,10 @@ final router = GoRouter(
     GoRoute(
       path: '/cliente',
       builder: (context, state) => const NegociosScreen(),
+    ),
+    GoRoute(
+      path: '/cliente/carrito',
+      builder: (context, state) => CarritoScreen(carrito: const []),
     ),
     GoRoute(
       path: '/repartidor',

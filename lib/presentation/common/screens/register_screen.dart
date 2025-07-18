@@ -1,17 +1,131 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // register_screen.dart (común) - Pantalla de registro genérica
 // Muestra un formulario de registro simple para cualquier rol.
 // Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
-class RegisterScreen extends StatelessWidget {
-  // Pantalla de registro genérica
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
   @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
+  String email = '';
+  String password = '';
+  String nombre = '';
+  String rol = 'cliente';
+  String? error;
+  bool loading = false;
+
+  Future<void> _register() async {
+    setState(() { error = null; loading = true; });
+    try {
+      final doc = await FirebaseFirestore.instance.collection('usuarios').doc(email).get();
+      if (doc.exists) {
+        setState(() { loading = false; error = 'El email ya está registrado.'; });
+        return;
+      }
+      await FirebaseFirestore.instance.collection('usuarios').doc(email).set({
+        'email': email,
+        'password': password,
+        'nombre': nombre,
+        'rol': rol,
+        'carrito': [],
+      });
+      setState(() { loading = false; });
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registro exitoso. Ahora puedes iniciar sesión.')),
+        );
+      }
+    } catch (e) {
+      setState(() { loading = false; error = 'Error de conexión: $e'; });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Scaffold principal con AppBar y mensaje de registro
     return Scaffold(
       appBar: AppBar(title: const Text('Registro')),
-      body: const Center(child: Text('Formulario de registro aquí')),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: Card(
+            elevation: 8,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.person_add, size: 60, color: Colors.blue),
+                    const SizedBox(height: 18),
+                    Text('Crear cuenta', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: 'Nombre completo', prefixIcon: Icon(Icons.person)),
+                      onChanged: (v) => nombre = v.trim(),
+                      validator: (v) => v == null || v.isEmpty ? 'Ingrese su nombre' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
+                      keyboardType: TextInputType.emailAddress,
+                      onChanged: (v) => email = v.trim(),
+                      validator: (v) => v == null || v.isEmpty ? 'Ingrese su email' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock)),
+                      obscureText: true,
+                      onChanged: (v) => password = v.trim(),
+                      validator: (v) => v == null || v.isEmpty ? 'Ingrese su contraseña' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: rol,
+                      decoration: const InputDecoration(labelText: 'Rol'),
+                      items: const [
+                        DropdownMenuItem(value: 'cliente', child: Text('Cliente')),
+                        DropdownMenuItem(value: 'repartidor', child: Text('Repartidor')),
+                        DropdownMenuItem(value: 'duenio', child: Text('Dueño')),
+                        DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                      ],
+                      onChanged: (v) => setState(() { rol = v ?? 'cliente'; }),
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(error!, style: const TextStyle(color: Colors.red)),
+                    ],
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : () {
+                          if (_formKey.currentState!.validate()) _register();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          textStyle: const TextStyle(fontSize: 18),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: loading
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Registrarse'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

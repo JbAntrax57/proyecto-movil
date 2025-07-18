@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import '../../cliente/providers/carrito_provider.dart';
 
 // login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
 // Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
@@ -22,38 +25,50 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Usuarios demo por rol (Cliente, Repartidor, Dueño, Admin)
   final demoUsers = [
-    {'email': 'cliente@demo.com', 'password': '1234', 'rol': 'Cliente'},
+    {'email': 'cliente1@demo.com', 'password': '1234', 'rol': 'Cliente'},
+    {'email': 'cliente2@demo.com', 'password': '1234', 'rol': 'Cliente'},
     {'email': 'repartidor@demo.com', 'password': '1234', 'rol': 'Repartidor'},
     {'email': 'duenio@demo.com', 'password': '1234', 'rol': 'Duenio'},
     {'email': 'admin@demo.com', 'password': '1234', 'rol': 'Admin'},
   ];
 
-  // Lógica de login: valida usuario demo y navega según el rol
+  // Lógica de login: consulta Firestore y navega según el rol
   void _login() async {
     setState(() { error = null; loading = true; });
-    await Future.delayed(const Duration(milliseconds: 600));
-    final user = demoUsers.cast<Map<String, String>>().firstWhere(
-      (u) => u['email'] == email && u['password'] == password,
-      orElse: () => <String, String>{},
-    );
-    if (user.isEmpty) {
-      setState(() { loading = false; error = 'Usuario o contraseña incorrectos'; });
-      return;
-    }
-    // Navegar según rol
-    switch (user['rol']) {
-      case 'Cliente':
-        Navigator.pushReplacementNamed(context, '/cliente');
-        break;
-      case 'Repartidor':
-        Navigator.pushReplacementNamed(context, '/repartidor');
-        break;
-      case 'Duenio':
-        Navigator.pushReplacementNamed(context, '/duenio');
-        break;
-      case 'Admin':
-        Navigator.pushReplacementNamed(context, '/admin');
-        break;
+    try {
+      final doc = await FirebaseFirestore.instance.collection('usuarios').doc(email).get();
+      if (!doc.exists) {
+        setState(() { loading = false; error = 'Usuario no encontrado'; });
+        return;
+      }
+      final data = doc.data()!;
+      if (data['password'] != password) {
+        setState(() { loading = false; error = 'Contraseña incorrecta'; });
+        return;
+      }
+      // Configura el carrito global para este usuario
+      context.read<CarritoProvider>().setUserEmail(email);
+      // Navega según el rol
+      final rol = (data['rol'] as String).toLowerCase();
+      setState(() { loading = false; });
+      switch (rol) {
+        case 'cliente':
+          Navigator.pushReplacementNamed(context, '/cliente');
+          break;
+        case 'repartidor':
+          Navigator.pushReplacementNamed(context, '/repartidor');
+          break;
+        case 'duenio':
+          Navigator.pushReplacementNamed(context, '/duenio');
+          break;
+        case 'admin':
+          Navigator.pushReplacementNamed(context, '/admin');
+          break;
+        default:
+          setState(() { error = 'Rol no soportado'; });
+      }
+    } catch (e) {
+      setState(() { loading = false; error = 'Error de conexión: $e'; });
     }
   }
 
@@ -132,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 18),
                     const Divider(),
                     const SizedBox(height: 8),
-                    // Demo rápido para cada rol
+                    // Demo rápido para cada usuario demo real de Firestore
                     const Text('Demo rápido:', style: TextStyle(color: Colors.grey)),
                     const SizedBox(height: 6),
                     ...demoUsers.map((u) => Padding(
