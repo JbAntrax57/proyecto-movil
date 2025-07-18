@@ -49,5 +49,13 @@
 	<string>Necesitamos tu ubicación para mostrarla en el mapa.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Necesitamos tu ubicación para mostrarla en el mapa.</string>
+	<!-- Permisos para notificaciones locales -->
+	<key>NSUserNotificationUsageDescription</key>
+	<string>Necesitamos enviarte notificaciones sobre nuevos pedidos.</string>
+	<!-- Permisos para notificaciones push (opcional) -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>
