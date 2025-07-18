@@ -14,7 +14,11 @@ class CarritoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final carrito = context.watch<CarritoProvider>().carrito;
-    final total = carrito.fold(0, (int sum, item) => sum + (item['precio'] as int) * (item['cantidad'] as int));
+    final total = carrito.fold(
+      0,
+      (int sum, item) =>
+          sum + (item['precio'] as int) * (item['cantidad'] as int),
+    );
     String? ubicacion; // Ubicación seleccionada para el pedido
     bool pedidoRealizado = false; // Indica si el pedido fue realizado
 
@@ -86,17 +90,20 @@ class CarritoScreen extends StatelessWidget {
         );
         return;
       }
-      final result = await showModalBottomSheet<String>(
+      final result = await showModalBottomSheet<Map<String, String>>(
         context: context,
         isScrollControlled: true,
         builder: (context) => UbicacionModal(),
       );
-      if (result != null && result.isNotEmpty) {
+      if (result != null &&
+          result['ubicacion'] != null &&
+          result['detallesAdicionales'] != null) {
         // Agrupar productos por restaurante
         final productosPorRestaurante = <String, List<Map<String, dynamic>>>{};
         final restauranteInfo = <String, Map<String, dynamic>>{};
         for (final producto in carrito) {
-          final restauranteId = producto['restauranteId'] as String? ?? 'sin_id';
+          final restauranteId =
+              producto['restauranteId'] as String? ?? 'sin_id';
           if (!productosPorRestaurante.containsKey(restauranteId)) {
             productosPorRestaurante[restauranteId] = [];
             restauranteInfo[restauranteId] = {
@@ -107,11 +114,17 @@ class CarritoScreen extends StatelessWidget {
           productosPorRestaurante[restauranteId]!.add(producto);
         }
         // Obtener datos del usuario actual
-        final userProvider = Provider.of<CarritoProvider>(context, listen: false);
+        final userProvider = Provider.of<CarritoProvider>(
+          context,
+          listen: false,
+        );
         final usuarioId = userProvider.userEmail ?? 'sin_uid';
         String usuarioNombre = '';
         try {
-          final userDoc = await FirebaseFirestore.instance.collection('usuarios').doc(usuarioId).get();
+          final userDoc = await FirebaseFirestore.instance
+              .collection('usuarios')
+              .doc(usuarioId)
+              .get();
           usuarioNombre = userDoc.data()?['nombre'] ?? '';
         } catch (_) {}
         // Crear un pedido por restaurante
@@ -120,7 +133,11 @@ class CarritoScreen extends StatelessWidget {
           final restauranteId = entry.key;
           final productos = entry.value;
           final info = restauranteInfo[restauranteId]!;
-          final total = productos.fold(0, (int sum, item) => sum + (item['precio'] as int) * (item['cantidad'] as int));
+          final total = productos.fold(
+            0,
+            (int sum, item) =>
+                sum + (item['precio'] as int) * (item['cantidad'] as int),
+          );
           try {
             await FirebaseFirestore.instance.collection('pedidos').add({
               'usuarioId': usuarioId,
@@ -129,7 +146,8 @@ class CarritoScreen extends StatelessWidget {
               'restauranteNombre': info['restauranteNombre'],
               'productos': productos,
               'total': total,
-              'ubicacion': result,
+              'ubicacion': result['ubicacion'],
+              'detallesAdicionales': result['detallesAdicionales'],
               'estado': 'pendiente',
               'timestamp': FieldValue.serverTimestamp(),
             });
@@ -144,7 +162,9 @@ class CarritoScreen extends StatelessWidget {
           context.read<CarritoProvider>().limpiarCarrito();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('¡Pedido realizado! El negocio ha sido notificado.'),
+              content: Text(
+                '¡Pedido realizado! El negocio ha sido notificado.',
+              ),
             ),
           );
         }
@@ -228,7 +248,12 @@ class CarritoScreen extends StatelessWidget {
                                             icon: const Icon(Icons.remove),
                                             onPressed: item['cantidad'] > 1
                                                 ? () {
-                                                    context.read<CarritoProvider>().modificarCantidad(index, -1);
+                                                    context
+                                                        .read<CarritoProvider>()
+                                                        .modificarCantidad(
+                                                          index,
+                                                          -1,
+                                                        );
                                                   }
                                                 : null,
                                           ),
@@ -242,7 +267,9 @@ class CarritoScreen extends StatelessWidget {
                                           IconButton(
                                             icon: const Icon(Icons.add),
                                             onPressed: () {
-                                              context.read<CarritoProvider>().modificarCantidad(index, 1);
+                                              context
+                                                  .read<CarritoProvider>()
+                                                  .modificarCantidad(index, 1);
                                             },
                                           ),
                                           // Botón para eliminar producto
@@ -346,11 +373,14 @@ class _UbicacionModalState extends State<UbicacionModal> {
     try {
       final pos = await Geolocator.getCurrentPosition();
       // Geocoding inverso
-      final placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+      final placemarks = await placemarkFromCoordinates(
+        pos.latitude,
+        pos.longitude,
+      );
       if (placemarks.isNotEmpty) {
         final p = placemarks.first;
         ubicacionActual =
-          '${p.street ?? ''}, ${p.subLocality ?? ''}, ${p.locality ?? ''}, ${p.administrativeArea ?? ''}, ${p.country ?? ''}';
+            '${p.street ?? ''}, ${p.subLocality ?? ''}, ${p.locality ?? ''}, ${p.administrativeArea ?? ''}, ${p.country ?? ''}';
       } else {
         ubicacionActual = 'Lat: ${pos.latitude}, Lng: ${pos.longitude}';
       }
@@ -397,27 +427,56 @@ class _UbicacionModalState extends State<UbicacionModal> {
                 ),
               const Divider(height: 32),
               // Campo para dirección manual
+              Padding(
+                padding: EdgeInsets.only(left: 8, bottom: 6),
+                child: Text(
+                  'Detalles adicionales',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey[950],
+                  ),
+                ),
+              ),
               TextField(
                 decoration: const InputDecoration(
-                  labelText: 'Dirección manual',
+                  labelText: 'Color de casa, nombre de la calle, etc.',
                 ),
                 onChanged: (v) => setState(() => direccionManual = v),
               ),
               const SizedBox(height: 16),
               // Botón para confirmar ubicación
               ElevatedButton.icon(
-                onPressed: () {
-                  final ubic = ubicacionActual ?? direccionManual;
-                  if (ubic == null || ubic.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Debes ingresar o seleccionar una ubicación.',
+                onPressed: () async {
+                  // Obtenemos la ubicación y los detalles adicionales ingresados por el usuario
+                  final ubic = ubicacionActual;
+                  final detallesAdicionales = direccionManual ?? '';
+                  // Validamos que ambos campos no estén vacíos
+                  if (ubic == null ||
+                      ubic.isEmpty ||
+                      detallesAdicionales.isEmpty) {
+                    // Mostramos un AlertDialog si faltan los detalles
+                    await showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Faltan detalles'),
+                        content: const Text(
+                          'Debes ingresar los detalles adicionales.',
                         ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('OK'),
+                          ),
+                        ],
                       ),
                     );
                   } else {
-                    Navigator.pop(context, ubic);
+                    // Si todo está correcto, cerramos el modal y devolvemos la ubicación y los detalles adicionales como string
+                    Navigator.pop(context, {
+                      'ubicacion': ubic,
+                      'detallesAdicionales': detallesAdicionales,
+                    });
                   }
                 },
                 icon: const Icon(Icons.check),

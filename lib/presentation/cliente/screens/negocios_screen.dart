@@ -172,9 +172,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                 onPressed: () async {
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const CarritoScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const CarritoScreen()),
                   );
                 },
               ),
