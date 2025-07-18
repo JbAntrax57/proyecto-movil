@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
+import 'package:geocoding/geocoding.dart';
 
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
@@ -339,15 +340,21 @@ class _UbicacionModalState extends State<UbicacionModal> {
   String? ubicacionActual;
   bool buscando = false;
 
-  // Obtiene la ubicación actual usando geolocator
+  // Obtiene la ubicación actual usando geolocator y la convierte a dirección legible
   Future<void> _obtenerUbicacion() async {
     setState(() => buscando = true);
     try {
       final pos = await Geolocator.getCurrentPosition();
-      setState(() {
+      // Geocoding inverso
+      final placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        ubicacionActual =
+          '${p.street ?? ''}, ${p.subLocality ?? ''}, ${p.locality ?? ''}, ${p.administrativeArea ?? ''}, ${p.country ?? ''}';
+      } else {
         ubicacionActual = 'Lat: ${pos.latitude}, Lng: ${pos.longitude}';
-        buscando = false;
-      });
+      }
+      setState(() => buscando = false);
     } catch (e) {
       setState(() => buscando = false);
       ScaffoldMessenger.of(
