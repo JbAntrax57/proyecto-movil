@@ -61,22 +61,29 @@ class _NegociosScreenState extends State<NegociosScreen> {
     Query query = FirebaseFirestore.instance.collection('negocios');
     // El filtro de categoría solo se aplicará a los negocios NO destacados
     // Para el Stream general, no se filtra por categoría
-    return query.snapshots().map((snapshot) => snapshot.docs.map((doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      data['id'] = doc.id;
-      return data;
-    }).toList());
+    return query.snapshots().map(
+      (snapshot) => snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return data;
+      }).toList(),
+    );
   }
 
   // Devuelve los negocios destacados (campo 'destacado' == true) para el slider
-  List<Map<String, dynamic>> getDestacados(List<Map<String, dynamic>> negocios) {
+  List<Map<String, dynamic>> getDestacados(
+    List<Map<String, dynamic>> negocios,
+  ) {
     return negocios.where((n) => n['destacado'] == true).toList();
   }
+
   // Devuelve el resto de negocios para la lista principal, aplicando filtro de categoría
   List<Map<String, dynamic>> getRestantes(List<Map<String, dynamic>> negocios) {
     final noDestacados = negocios.where((n) => n['destacado'] != true);
     if (_categoriaSeleccionada != null) {
-      return noDestacados.where((n) => n['categoria'] == _categoriaSeleccionada).toList();
+      return noDestacados
+          .where((n) => n['categoria'] == _categoriaSeleccionada)
+          .toList();
     }
     return noDestacados.toList();
   }
@@ -84,16 +91,21 @@ class _NegociosScreenState extends State<NegociosScreen> {
   // Agrega un producto al carrito y muestra un SnackBar
   void _addToCart(Map<String, dynamic> producto) {
     setState(() {
-      final index = _carrito.indexWhere((item) => item['nombre'] == producto['nombre']);
+      final index = _carrito.indexWhere(
+        (item) => item['nombre'] == producto['nombre'],
+      );
       if (index != -1) {
-        _carrito[index]['cantidad'] = (_carrito[index]['cantidad'] ?? 1) + (producto['cantidad'] ?? 1);
+        _carrito[index]['cantidad'] =
+            (_carrito[index]['cantidad'] ?? 1) + (producto['cantidad'] ?? 1);
       } else {
         _carrito.add(producto);
       }
     });
     final cantidad = producto['cantidad'] ?? 1;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${producto['nombre']} x$cantidad añadido al carrito')),
+      SnackBar(
+        content: Text('${producto['nombre']} x$cantidad añadido al carrito'),
+      ),
     );
   }
 
@@ -104,9 +116,9 @@ class _NegociosScreenState extends State<NegociosScreen> {
       // No hay estado para actualizar en Firestore, la lista es dinámica
     });
     _refreshController.refreshCompleted();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Negocios actualizados')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Negocios actualizados')));
   }
 
   @override
@@ -145,6 +157,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
     return Scaffold(
       backgroundColor: Colors.blue[50],
       appBar: AppBar(
+        backgroundColor: Colors.blue[50],
         title: const Text('Negocios'),
         centerTitle: true,
         actions: [
@@ -179,7 +192,10 @@ class _NegociosScreenState extends State<NegociosScreen> {
                   child: CircleAvatar(
                     radius: 10,
                     backgroundColor: Colors.red,
-                    child: Text('${_carrito.length}', style: const TextStyle(fontSize: 12, color: Colors.white)),
+                    child: Text(
+                      '${_carrito.length}',
+                      style: const TextStyle(fontSize: 12, color: Colors.white),
+                    ),
                   ),
                 ),
             ],
@@ -252,8 +268,14 @@ class _NegociosScreenState extends State<NegociosScreen> {
                   return Center(child: Text('Error al cargar negocios'));
                 }
                 final negocios = snapshot.data ?? [];
-                final destacados = getDestacados(negocios);
-                final restantes = getRestantes(negocios);
+                // Filtrado por búsqueda (nombre, insensible a mayúsculas)
+                final filtro = _searchText.trim().toLowerCase();
+                final destacados = getDestacados(negocios)
+                  .where((n) => filtro.isEmpty || (n['nombre'] as String).toLowerCase().contains(filtro))
+                  .toList();
+                final restantes = getRestantes(negocios)
+                  .where((n) => filtro.isEmpty || (n['nombre'] as String).toLowerCase().contains(filtro))
+                  .toList();
                 // Widget de refresco y scroll
                 return SmartRefresher(
                   controller: _refreshController,
@@ -276,7 +298,10 @@ class _NegociosScreenState extends State<NegociosScreen> {
                               ),
                             ),
                             SizedBox(height: 8),
-                            Text('Desliza para refrescar', style: TextStyle(color: Colors.blue)),
+                            Text(
+                              'Desliza para refrescar',
+                              style: TextStyle(color: Colors.blue),
+                            ),
                           ],
                         );
                       } else if (mode == RefreshStatus.canRefresh) {
@@ -293,7 +318,10 @@ class _NegociosScreenState extends State<NegociosScreen> {
                               ),
                             ),
                             SizedBox(height: 8),
-                            Text('Suelta para refrescar', style: TextStyle(color: Colors.green)),
+                            Text(
+                              'Suelta para refrescar',
+                              style: TextStyle(color: Colors.green),
+                            ),
                           ],
                         );
                       } else if (mode == RefreshStatus.refreshing) {
@@ -306,25 +334,32 @@ class _NegociosScreenState extends State<NegociosScreen> {
                               child: CircularProgressIndicator(strokeWidth: 3),
                             ),
                             SizedBox(height: 8),
-                            Text('Actualizando...', style: TextStyle(color: Colors.blue)),
+                            Text(
+                              'Actualizando...',
+                              style: TextStyle(color: Colors.blue),
+                            ),
                           ],
                         );
                       } else if (mode == RefreshStatus.completed) {
                         body = Column(
                           mainAxisSize: MainAxisSize.min,
                           children: const [
-                            Icon(Icons.check_circle, color: Colors.green, size: 36),
+                            Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 36,
+                            ),
                             SizedBox(height: 8),
-                            Text('¡Actualizado!', style: TextStyle(color: Colors.green)),
+                            Text(
+                              '¡Actualizado!',
+                              style: TextStyle(color: Colors.green),
+                            ),
                           ],
                         );
                       } else {
                         body = const SizedBox.shrink();
                       }
-                      return SizedBox(
-                        height: 80,
-                        child: Center(child: body),
-                      );
+                      return SizedBox(height: 80, child: Center(child: body));
                     },
                   ),
                   child: CustomScrollView(
@@ -354,37 +389,62 @@ class _NegociosScreenState extends State<NegociosScreen> {
                       SliverToBoxAdapter(
                         child: AnimatedSlide(
                           duration: const Duration(milliseconds: 300),
-                          offset: _showCategorias ? Offset.zero : const Offset(0, -1),
+                          offset: _showCategorias
+                              ? Offset.zero
+                              : const Offset(0, -1),
                           child: AnimatedOpacity(
                             duration: const Duration(milliseconds: 300),
                             opacity: _showCategorias ? 1 : 0,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 8,
+                              ),
                               child: SizedBox(
                                 height: 70,
                                 child: ListView.separated(
                                   key: _categoriasKey, // <-- Aquí
                                   scrollDirection: Axis.horizontal,
                                   itemCount: categorias.length,
-                                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(width: 12),
                                   itemBuilder: (context, index) {
                                     final cat = categorias[index];
-                                    final selected = _categoriaSeleccionada == cat['nombre'];
+                                    final selected =
+                                        _categoriaSeleccionada == cat['nombre'];
                                     return GestureDetector(
                                       onTap: () {
                                         setState(() {
-                                          _categoriaSeleccionada = selected ? null : cat['nombre'] as String;
+                                          _categoriaSeleccionada = selected
+                                              ? null
+                                              : cat['nombre'] as String;
                                         });
                                       },
                                       child: Column(
                                         children: [
                                           CircleAvatar(
                                             radius: 24,
-                                            backgroundColor: selected ? Colors.blue : Colors.blue[50],
-                                            child: Icon(cat['icon'] as IconData, color: selected ? Colors.white : Colors.blue, size: 28),
+                                            backgroundColor: selected
+                                                ? Colors.blue
+                                                : Colors.blue[50],
+                                            child: Icon(
+                                              cat['icon'] as IconData,
+                                              color: selected
+                                                  ? Colors.white
+                                                  : Colors.blue,
+                                              size: 28,
+                                            ),
                                           ),
                                           const SizedBox(height: 4),
-                                          Text(cat['nombre'] as String, style: TextStyle(fontSize: 12, color: selected ? Colors.blue : null)),
+                                          Text(
+                                            cat['nombre'] as String,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: selected
+                                                  ? Colors.blue
+                                                  : null,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     );
@@ -398,104 +458,133 @@ class _NegociosScreenState extends State<NegociosScreen> {
                       // Lista de negocios restantes (no destacados)
                       SliverList(
                         key: _negociosKey, // <-- Aquí
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final negocio = restantes[index];
-                            // Animación de aparición para cada negocio
-                            return TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0, end: 1),
-                              duration: Duration(milliseconds: 400 + index * 100),
-                              builder: (context, value, child) => Opacity(
-                                opacity: value,
-                                child: Transform.translate(
-                                  offset: Offset(0, 30 * (1 - value)),
-                                  child: child,
-                                ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final negocio = restantes[index];
+                          // Animación de aparición para cada negocio
+                          return TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 1),
+                            duration: Duration(milliseconds: 400 + index * 100),
+                            builder: (context, value, child) => Opacity(
+                              opacity: value,
+                              child: Transform.translate(
+                                offset: Offset(0, 30 * (1 - value)),
+                                child: child,
                               ),
-                              child: Card(
-                                elevation: 6,
-                                color: Colors.white,
-                                shadowColor: Colors.blue.withOpacity(0.10),
-                                margin: const EdgeInsets.only(bottom: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(18),
-                                  splashColor: Colors.blue.withOpacity(0.08),
-                                  highlightColor: Colors.blue.withOpacity(0.04),
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => MenuScreen(
-                                          restauranteId: negocio['id'] as String,
-                                          restaurante: negocio['nombre'] as String,
-                                          onAddToCart: _addToCart,
-                                        ),
+                            ),
+                            child: Card(
+                              elevation: 6,
+                              color: Colors.white,
+                              shadowColor: Colors.blue.withOpacity(0.10),
+                              margin: const EdgeInsets.only(bottom: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(18),
+                                splashColor: Colors.blue.withOpacity(0.08),
+                                highlightColor: Colors.blue.withOpacity(0.04),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => MenuScreen(
+                                        restauranteId: negocio['id'] as String,
+                                        restaurante:
+                                            negocio['nombre'] as String,
+                                        onAddToCart: _addToCart,
                                       ),
-                                    );
-                                  },
-                                  child: Row(
-                                    children: [
-                                      // Imagen del negocio
-                                      ClipRRect(
-                                        borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(18),
-                                          bottomLeft: Radius.circular(18),
-                                        ),
-                                        child: Image.network(
-                                          negocio['img'] as String,
-                                          width: 80,
-                                          height: 80,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) => Container(
-                                            width: 80,
-                                            height: 80,
-                                            color: Colors.grey[300],
-                                            child: const Icon(Icons.store, size: 32, color: Colors.grey),
-                                          ),
-                                        ),
+                                    ),
+                                  );
+                                },
+                                child: Row(
+                                  children: [
+                                    // Imagen del negocio
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(18),
+                                        bottomLeft: Radius.circular(18),
                                       ),
-                                      // Detalles del negocio
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                negocio['nombre'] as String,
-                                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.blue[900],
-                                                ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Row(
-                                                children: [
-                                                  const Icon(Icons.location_on, size: 16, color: Colors.redAccent),
-                                                  const SizedBox(width: 4),
-                                                  Expanded(
-                                                    child: Text(
-                                                      negocio['direccion'] as String,
-                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.blueGrey[700]),
-                                                      overflow: TextOverflow.ellipsis,
-                                                    ),
+                                      child: Image.network(
+                                        negocio['img'] as String,
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Container(
+                                                  width: 80,
+                                                  height: 80,
+                                                  color: Colors.grey[300],
+                                                  child: const Icon(
+                                                    Icons.store,
+                                                    size: 32,
+                                                    color: Colors.grey,
                                                   ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
+                                                ),
+                                      ),
+                                    ),
+                                    // Detalles del negocio
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 18,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              negocio['nombre'] as String,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.blue[900],
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.location_on,
+                                                  size: 16,
+                                                  color: Colors.redAccent,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    negocio['direccion']
+                                                        as String,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: Colors
+                                                              .blueGrey[700],
+                                                        ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const Icon(Icons.chevron_right, color: Colors.grey, size: 28),
-                                    ],
-                                  ),
+                                    ),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.grey,
+                                      size: 28,
+                                    ),
+                                  ],
                                 ),
                               ),
-                            );
-                          },
-                          childCount: restantes.length,
-                        ),
+                            ),
+                          );
+                        }, childCount: restantes.length),
                       ),
                     ],
                   ),
@@ -513,8 +602,13 @@ class _NegociosScreenState extends State<NegociosScreen> {
 class DestacadosSlider extends StatefulWidget {
   // Lista de negocios destacados y callback al tocar un negocio
   final List<Map<String, dynamic>> destacados; // Lista de negocios destacados
-  final void Function(Map<String, dynamic> negocio) onTap; // Callback al tocar un negocio
-  const DestacadosSlider({super.key, required this.destacados, required this.onTap});
+  final void Function(Map<String, dynamic> negocio)
+  onTap; // Callback al tocar un negocio
+  const DestacadosSlider({
+    super.key,
+    required this.destacados,
+    required this.onTap,
+  });
 
   @override
   State<DestacadosSlider> createState() => _DestacadosSliderState();
@@ -566,7 +660,9 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
         physics: const ClampingScrollPhysics(),
         onPageChanged: (i) => setState(() => _currentPage = i),
         itemBuilder: (context, index) {
-          final realIndex = destacados.isNotEmpty ? index % destacados.length : 0;
+          final realIndex = destacados.isNotEmpty
+              ? index % destacados.length
+              : 0;
           final negocio = destacados[realIndex];
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
@@ -574,7 +670,9 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
               elevation: 10,
               color: Colors.white,
               shadowColor: Colors.blue.withOpacity(0.12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               child: InkWell(
                 borderRadius: BorderRadius.circular(24),
                 splashColor: Colors.blue.withOpacity(0.08),
@@ -597,34 +695,49 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                           width: 120,
                           height: 200,
                           color: Colors.grey[300],
-                          child: const Icon(Icons.store, size: 40, color: Colors.grey),
+                          child: const Icon(
+                            Icons.store,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                     ),
                     // Detalles del negocio destacado
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 24,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               negocio['nombre'] as String,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[900],
-                              ),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[900],
+                                  ),
                             ),
                             const SizedBox(height: 12),
                             Row(
                               children: [
-                                const Icon(Icons.location_on, size: 18, color: Colors.redAccent),
+                                const Icon(
+                                  Icons.location_on,
+                                  size: 18,
+                                  color: Colors.redAccent,
+                                ),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     negocio['direccion'] as String,
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.blueGrey[700]),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: Colors.blueGrey[700]),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -644,4 +757,4 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
       ),
     );
   }
-} 
+}
