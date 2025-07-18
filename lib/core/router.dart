@@ -6,8 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import '../presentation/cliente/screens/negocios_screen.dart';
 import '../presentation/cliente/screens/login_screen.dart';
-import '../presentation/repartidor/screens/repartidor_home.dart';
-import '../presentation/duenio/screens/duenio_home.dart';
+import '../presentation/duenio/screens/dashboard_screen.dart';
 import '../presentation/admin/screens/admin_home.dart';
 import '../presentation/cliente/screens/carrito_screen.dart';
 
@@ -24,15 +23,11 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/cliente/carrito',
-      builder: (context, state) => CarritoScreen(carrito: const []),
-    ),
-    GoRoute(
-      path: '/repartidor',
-      builder: (context, state) => const RepartidorHomeScreen(),
+      builder: (context, state) => const CarritoScreen(),
     ),
     GoRoute(
       path: '/duenio',
-      builder: (context, state) => const DuenioHomeScreen(),
+      builder: (context, state) => const DuenioDashboardScreen(),
     ),
     GoRoute(
       path: '/admin',

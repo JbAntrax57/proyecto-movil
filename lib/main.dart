@@ -8,10 +8,16 @@ import 'presentation/cliente/screens/login_screen.dart';
 import 'presentation/cliente/screens/menu_screen.dart';
 import 'presentation/cliente/screens/negocios_screen.dart';
 import 'presentation/admin/screens/dashboard_screen.dart';
+import 'presentation/duenio/screens/dashboard_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'presentation/cliente/providers/carrito_provider.dart';
+import 'core/router.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:io';
+import 'package:permission_handler/permission_handler.dart';
+import 'presentation/duenio/providers/notificaciones_pedidos_provider.dart';
 // Importa las pantallas principales de cada rol si existen
 // Si no, usa un Scaffold temporal
 
@@ -22,36 +28,57 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => CarritoProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CarritoProvider()),
+        ChangeNotifierProvider(create: (_) => NotificacionesPedidosProvider()),
+      ],
       child: const MyApp(),
     ),
   );
 }
 
 // Widget raíz de la aplicación. Define el MaterialApp y las rutas principales por rol.
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _solicitarPermisosNotificaciones();
+  }
+
+  Future<void> _solicitarPermisosNotificaciones() async {
+    if (Platform.isAndroid) {
+      // Android 13+ requiere pedir el permiso en tiempo de ejecución
+      final status = await Permission.notification.status;
+      if (!status.isGranted) {
+        await Permission.notification.request();
+      }
+    } else if (Platform.isIOS) {
+      final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+      await flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'App Demo Multirol',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      initialRoute: '/login', // Ruta inicial
-      routes: {
-        // Rutas principales por rol
-        '/login': (_) => const LoginScreen(),
-        '/register': (_) => const RegisterScreen(),
-        '/cliente': (_) => const NegociosScreen(),
-        '/repartidor': (_) => const RepartidorHomeScreen(),
-        '/duenio': (_) => const DuenioHomeScreen(),
-        '/admin': (_) => const AdminDashboardScreen(),
-      },
+      routerConfig: router, // Usar GoRouter centralizado
     );
   }
 }
@@ -76,17 +103,6 @@ class RepartidorHomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Inicio Repartidor')), 
       body: const Center(child: Text('Vista principal Repartidor')), 
-    );
-  }
-}
-// Pantalla principal temporal para dueño de negocio (se reemplazará por la vista real de dueño)
-class DuenioHomeScreen extends StatelessWidget {
-  const DuenioHomeScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Inicio Dueño')), 
-      body: const Center(child: Text('Vista principal Dueño')), 
     );
   }
 }

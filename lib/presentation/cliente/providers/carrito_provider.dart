@@ -4,18 +4,26 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class CarritoProvider extends ChangeNotifier {
   final List<Map<String, dynamic>> _carrito = [];
   String? _userEmail;
+  String? _restauranteId; // ID del restaurante asociado al usuario dueño
   Stream<List<Map<String, dynamic>>>? _carritoStream;
   Stream<List<Map<String, dynamic>>>? get carritoStream => _carritoStream;
 
   List<Map<String, dynamic>> get carrito => List.unmodifiable(_carrito);
 
   String? get userEmail => _userEmail;
+  String? get restauranteId => _restauranteId;
 
   void setUserEmail(String email) {
     if (_userEmail != email) {
       _userEmail = email;
       _listenToCarrito();
     }
+  }
+
+  // Método para establecer el restauranteId (usado al login del dueño)
+  void setRestauranteId(String? id) {
+    _restauranteId = id;
+    notifyListeners();
   }
 
   void _listenToCarrito() {

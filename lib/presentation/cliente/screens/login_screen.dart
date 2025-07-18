@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../cliente/providers/carrito_provider.dart';
+import 'package:go_router/go_router.dart';
+import '../../duenio/providers/notificaciones_pedidos_provider.dart';
 
 // login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
 // Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
@@ -34,41 +36,69 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Lógica de login: consulta Firestore y navega según el rol
   void _login() async {
-    setState(() { error = null; loading = true; });
+    setState(() {
+      error = null;
+      loading = true;
+    });
     try {
-      final doc = await FirebaseFirestore.instance.collection('usuarios').doc(email).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(email)
+          .get();
       if (!doc.exists) {
-        setState(() { loading = false; error = 'Usuario no encontrado'; });
+        setState(() {
+          loading = false;
+          error = 'Usuario no encontrado';
+        });
         return;
       }
       final data = doc.data()!;
       if (data['password'] != password) {
-        setState(() { loading = false; error = 'Contraseña incorrecta'; });
+        setState(() {
+          loading = false;
+          error = 'Contraseña incorrecta';
+        });
         return;
       }
       // Configura el carrito global para este usuario
       context.read<CarritoProvider>().setUserEmail(email);
-      // Navega según el rol
       final rol = (data['rol'] as String).toLowerCase();
-      setState(() { loading = false; });
+      // Si es dueño, configura el restauranteId en el provider y activa notificaciones globales
+      if (rol == 'duenio' && data['restauranteId'] != null) {
+        context.read<CarritoProvider>().setRestauranteId(data['restauranteId'] as String);
+        // Inicializa el sistema global de notificaciones de pedidos
+        context.read<NotificacionesPedidosProvider>().inicializar(
+          data['restauranteId'] as String,
+          context,
+        );
+      }
+      // Navega según el rol
+      setState(() {
+        loading = false;
+      });
       switch (rol) {
         case 'cliente':
-          Navigator.pushReplacementNamed(context, '/cliente');
+          context.go('/cliente');
           break;
         case 'repartidor':
-          Navigator.pushReplacementNamed(context, '/repartidor');
+          context.go('/repartidor');
           break;
         case 'duenio':
-          Navigator.pushReplacementNamed(context, '/duenio');
+          context.go('/duenio');
           break;
         case 'admin':
-          Navigator.pushReplacementNamed(context, '/admin');
+          context.go('/admin');
           break;
         default:
-          setState(() { error = 'Rol no soportado'; });
+          setState(() {
+            error = 'Rol no soportado';
+          });
       }
     } catch (e) {
-      setState(() { loading = false; error = 'Error de conexión: $e'; });
+      setState(() {
+        loading = false;
+        error = 'Error de conexión: $e';
+      });
     }
   }
 
@@ -86,7 +116,9 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           child: Card(
             elevation: 8,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(28),
               child: Form(
@@ -98,22 +130,36 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Icon(Icons.lock, size: 60, color: Colors.blue),
                     const SizedBox(height: 18),
                     // Título
-                    Text('Iniciar sesión', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      'Iniciar sesión',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     // Campo de email
                     TextFormField(
-                      decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email),
+                      ),
                       keyboardType: TextInputType.emailAddress,
                       onChanged: (v) => email = v.trim(),
-                      validator: (v) => v == null || v.isEmpty ? 'Ingrese su email' : null,
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Ingrese su email' : null,
                     ),
                     const SizedBox(height: 16),
                     // Campo de contraseña
                     TextFormField(
-                      decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock)),
+                      decoration: const InputDecoration(
+                        labelText: 'Contraseña',
+                        prefixIcon: Icon(Icons.lock),
+                      ),
                       obscureText: true,
                       onChanged: (v) => password = v.trim(),
-                      validator: (v) => v == null || v.isEmpty ? 'Ingrese su contraseña' : null,
+                      validator: (v) => v == null || v.isEmpty
+                          ? 'Ingrese su contraseña'
+                          : null,
                     ),
                     // Mensaje de error
                     if (error != null) ...[
@@ -125,17 +171,28 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: loading ? null : () {
-                          if (_formKey.currentState!.validate()) _login();
-                        },
+                        onPressed: loading
+                            ? null
+                            : () {
+                                if (_formKey.currentState!.validate()) _login();
+                              },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           textStyle: const TextStyle(fontSize: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: loading
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Entrar'),
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Entrar'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -148,21 +205,30 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Divider(),
                     const SizedBox(height: 8),
                     // Demo rápido para cada usuario demo real de Firestore
-                    const Text('Demo rápido:', style: TextStyle(color: Colors.grey)),
+                    const Text(
+                      'Demo rápido:',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                     const SizedBox(height: 6),
-                    ...demoUsers.map((u) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: OutlinedButton(
-                        onPressed: loading ? null : () {
-                          setState(() {
-                            email = u['email']!;
-                            password = u['password']!;
-                          });
-                          _login();
-                        },
-                        child: Text('${u['rol']}: ${u['email']} / ${u['password']}'),
+                    ...demoUsers.map(
+                      (u) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: OutlinedButton(
+                          onPressed: loading
+                              ? null
+                              : () {
+                                  setState(() {
+                                    email = u['email']!;
+                                    password = u['password']!;
+                                  });
+                                  _login();
+                                },
+                          child: Text(
+                            '${u['rol']}: ${u['email']} / ${u['password']}',
+                          ),
+                        ),
                       ),
-                    )),
+                    ),
                   ],
                 ),
               ),
