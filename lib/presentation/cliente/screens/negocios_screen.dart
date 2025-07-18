@@ -158,7 +158,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
       backgroundColor: Colors.blue[50],
       appBar: AppBar(
         backgroundColor: Colors.blue[50],
-        title: const Text('Negocios'),
+        title: const Text('Negocios destacados'),
         centerTitle: true,
         actions: [
           // Botón del carrito en la barra superior
@@ -271,11 +271,23 @@ class _NegociosScreenState extends State<NegociosScreen> {
                 // Filtrado por búsqueda (nombre, insensible a mayúsculas)
                 final filtro = _searchText.trim().toLowerCase();
                 final destacados = getDestacados(negocios)
-                  .where((n) => filtro.isEmpty || (n['nombre'] as String).toLowerCase().contains(filtro))
-                  .toList();
+                    .where(
+                      (n) =>
+                          filtro.isEmpty ||
+                          (n['nombre'] as String).toLowerCase().contains(
+                            filtro,
+                          ),
+                    )
+                    .toList();
                 final restantes = getRestantes(negocios)
-                  .where((n) => filtro.isEmpty || (n['nombre'] as String).toLowerCase().contains(filtro))
-                  .toList();
+                    .where(
+                      (n) =>
+                          filtro.isEmpty ||
+                          (n['nombre'] as String).toLowerCase().contains(
+                            filtro,
+                          ),
+                    )
+                    .toList();
                 // Widget de refresco y scroll
                 return SmartRefresher(
                   controller: _refreshController,
@@ -400,56 +412,76 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                 vertical: 12,
                                 horizontal: 8,
                               ),
-                              child: SizedBox(
-                                height: 70,
-                                child: ListView.separated(
-                                  key: _categoriasKey, // <-- Aquí
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: categorias.length,
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(width: 12),
-                                  itemBuilder: (context, index) {
-                                    final cat = categorias[index];
-                                    final selected =
-                                        _categoriaSeleccionada == cat['nombre'];
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _categoriaSeleccionada = selected
-                                              ? null
-                                              : cat['nombre'] as String;
-                                        });
-                                      },
-                                      child: Column(
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 24,
-                                            backgroundColor: selected
-                                                ? Colors.blue
-                                                : Colors.blue[50],
-                                            child: Icon(
-                                              cat['icon'] as IconData,
-                                              color: selected
-                                                  ? Colors.white
-                                                  : Colors.blue,
-                                              size: 28,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            cat['nombre'] as String,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: selected
-                                                  ? Colors.blue
-                                                  : null,
-                                            ),
-                                          ),
-                                        ],
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      left: 8,
+                                      bottom: 6,
+                                    ),
+                                    child: Text(
+                                      'Categorías',
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blueGrey[950],
                                       ),
-                                    );
-                                  },
-                                ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 70,
+                                    child: ListView.separated(
+                                      key: _categoriasKey, // <-- Aquí
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: categorias.length,
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(width: 12),
+                                      itemBuilder: (context, index) {
+                                        final cat = categorias[index];
+                                        final selected =
+                                            _categoriaSeleccionada ==
+                                            cat['nombre'];
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _categoriaSeleccionada = selected
+                                                  ? null
+                                                  : cat['nombre'] as String;
+                                            });
+                                          },
+                                          child: Column(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 24,
+                                                backgroundColor: selected
+                                                    ? Colors.blueGrey[800]
+                                                    : Colors.blue[50],
+                                                child: Icon(
+                                                  cat['icon'] as IconData,
+                                                  color: selected
+                                                      ? Colors.white
+                                                      : Colors.blueGrey[800],
+                                                  size: 28,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                cat['nombre'] as String,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: selected
+                                                      ? Colors.blue
+                                                      : null,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -475,7 +507,11 @@ class _NegociosScreenState extends State<NegociosScreen> {
                               elevation: 6,
                               color: Colors.white,
                               shadowColor: Colors.blue.withOpacity(0.10),
-                              margin: const EdgeInsets.only(bottom: 16),
+                              margin: const EdgeInsets.only(
+                                bottom: 16,
+                                left: 16,
+                                right: 16,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(18),
                               ),
@@ -541,7 +577,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                   .titleMedium
                                                   ?.copyWith(
                                                     fontWeight: FontWeight.bold,
-                                                    color: Colors.blue[900],
+                                                    color: Colors.blueGrey[800],
                                                   ),
                                             ),
                                             const SizedBox(height: 8),
