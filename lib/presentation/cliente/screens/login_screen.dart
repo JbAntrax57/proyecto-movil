@@ -66,8 +66,8 @@ class _LoginScreenState extends State<LoginScreen> {
       // Si es dueño, configura el restauranteId en el provider y activa notificaciones globales
       if (rol == 'duenio' && data['restauranteId'] != null) {
         context.read<CarritoProvider>().setRestauranteId(data['restauranteId'] as String);
-        // Inicializa el sistema global de notificaciones de pedidos
-        context.read<NotificacionesPedidosProvider>().inicializar(
+        // Configura el restaurante específico para las notificaciones
+        context.read<NotificacionesPedidosProvider>().configurarRestaurante(
           data['restauranteId'] as String,
           context,
         );

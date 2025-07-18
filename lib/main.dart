@@ -49,7 +49,18 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _solicitarPermisosNotificaciones();
+    _inicializarApp();
+  }
+
+  Future<void> _inicializarApp() async {
+    // Solicitar permisos de notificaciones
+    await _solicitarPermisosNotificaciones();
+    
+    // Inicializar sistema de notificaciones global
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final notificacionesProvider = Provider.of<NotificacionesPedidosProvider>(context, listen: false);
+      notificacionesProvider.inicializarSistema();
+    });
   }
 
   Future<void> _solicitarPermisosNotificaciones() async {
