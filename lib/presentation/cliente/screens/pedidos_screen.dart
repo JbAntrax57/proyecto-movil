@@ -116,9 +116,9 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
           
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: pedidos.length,
-            itemBuilder: (context, index) {
-              final pedido = pedidos[index];
+        itemCount: pedidos.length,
+        itemBuilder: (context, index) {
+          final pedido = pedidos[index];
               final productos = List<Map<String, dynamic>>.from(pedido['productos'] ?? []);
               final estado = pedido['estado'] as String;
               final total = pedido['total'] as int;

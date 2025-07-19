@@ -1,24 +1,21 @@
+// menu_screen.dart - Pantalla de menú de un negocio para el cliente
+// Muestra los productos del menú obtenidos desde Supabase
+// Permite agregar productos al carrito con un diseño sencillo y bonito
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'carrito_screen.dart';
 
-// menu_screen.dart - Pantalla de menú de un negocio para el cliente
-// Muestra los productos del menú obtenidos en tiempo real desde Firestore.
-// Permite agregar productos al carrito y ver detalles de cada producto.
 class MenuScreen extends StatefulWidget {
-  // Recibe el ID y nombre del restaurante, y un callback para agregar al carrito
   final String restauranteId;
   final String restaurante;
-  final void Function(Map<String, dynamic> producto)? onAddToCart;
 
   const MenuScreen({
     super.key,
     required this.restauranteId,
     required this.restaurante,
-    this.onAddToCart,
   });
 
   @override
@@ -35,182 +32,37 @@ class _MenuScreenState extends State<MenuScreen> {
     super.dispose();
   }
 
-  // Obtiene el menú del restaurante en tiempo real desde Supabase
+  // Obtiene el menú del restaurante desde Supabase
   Future<List<Map<String, dynamic>>> obtenerMenu(String restauranteId) async {
-    final data = await Supabase.instance.client
-        .from('productos')
-        .select()
-        .eq('negocioId', restauranteId);
-    return List<Map<String, dynamic>>.from(data);
+    try {
+      final data = await Supabase.instance.client
+          .from('productos')
+          .select()
+          .eq('negocioid', restauranteId);
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('❌ Error al obtener menú: $e');
+      return [];
+    }
   }
 
-  // 1. En MenuScreen, define un método para mostrar el MaterialBanner en el contexto del Scaffold principal
-  void _showBanner(BuildContext context, String mensaje) {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.clearMaterialBanners();
-    messenger.showMaterialBanner(
-      MaterialBanner(
-        content: Text(mensaje),
-        leading: const Icon(Icons.check_circle, color: Colors.green),
-        backgroundColor: Colors.blue[50],
-        actions: [
-          TextButton(
-            onPressed: () => messenger.hideCurrentMaterialBanner(),
-            child: const Text('Cerrar'),
-          ),
-        ],
+  // Agregar producto al carrito
+  void _agregarAlCarrito(Map<String, dynamic> producto) {
+    final productoConCantidad = Map<String, dynamic>.from(producto);
+    productoConCantidad['cantidad'] = 1;
+    
+    context.read<CarritoProvider>().agregarProducto(productoConCantidad);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${producto['nombre']} agregado al carrito'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
-    );
-    Future.delayed(const Duration(seconds: 3), () {
-      messenger.hideCurrentMaterialBanner();
-    });
-  }
-
-  // Función reutilizable para mostrar el modal de agregar al carrito
-  // 2. Pasa un callback onAddToCartBanner al modal
-  Future<void> showAgregarCarritoModal({
-    required BuildContext context,
-    required Map<String, dynamic> producto,
-    required void Function(Map<String, dynamic> productoConCantidad)
-    onAddToCart,
-    void Function(Map<String, dynamic> productoConCantidad)? onAddToCartBanner,
-  }) async {
-    int cantidad = 1;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Imagen del producto
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Image.network(
-                      producto['img'] as String,
-                      width: 180,
-                      height: 180,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 180,
-                        height: 180,
-                        color: Colors.blue[50],
-                        child: const Icon(
-                          Icons.fastfood,
-                          color: Colors.blueGrey,
-                          size: 70,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  // Nombre del producto
-                  Text(
-                    producto['nombre'] as String,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[900],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  // Descripción
-                  Text(
-                    producto['descripcion'] as String? ??
-                        'Delicioso y recién hecho',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.blueGrey[700],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  // Precio
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '\$${producto['precio']}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                        fontSize: 22,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  // Selector de cantidad
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove),
-                        onPressed: cantidad > 1
-                            ? () => setState(() => cantidad--)
-                            : null,
-                      ),
-                      Text('$cantidad', style: const TextStyle(fontSize: 20)),
-                      IconButton(
-                        icon: const Icon(Icons.add),
-                        onPressed: () => setState(() => cantidad++),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  // Botón para agregar al carrito
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add_shopping_cart),
-                      label: const Text('Agregar al carrito'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () {
-                        final productoConCantidad = Map<String, dynamic>.from(
-                          producto,
-                        );
-                        productoConCantidad['cantidad'] = cantidad;
-                        onAddToCart(productoConCantidad);
-                        if (onAddToCartBanner != null)
-                          onAddToCartBanner(productoConCantidad);
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 
@@ -219,17 +71,24 @@ class _MenuScreenState extends State<MenuScreen> {
     return Scaffold(
       backgroundColor: Colors.blue[50],
       appBar: AppBar(
-        backgroundColor: Colors.blue[50],
-        title: Text(widget.restaurante),
+        backgroundColor: Colors.white,
+        elevation: 2,
+        title: Text(
+          widget.restaurante,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
         actions: [
-          // Botón del carrito en la barra superior
+          // Botón del carrito
           Consumer<CarritoProvider>(
             builder: (context, carritoProvider, child) {
               return Stack(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.shopping_cart),
+                    icon: const Icon(Icons.shopping_cart, color: Colors.black87),
                     onPressed: () async {
                       await Navigator.push(
                         context,
@@ -243,15 +102,24 @@ class _MenuScreenState extends State<MenuScreen> {
                     Positioned(
                       right: 8,
                       top: 8,
-                      child: CircleAvatar(
-                        radius: 10,
-                        backgroundColor: Colors.red,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
                         child: Text(
                           '${carritoProvider.carrito.length}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
@@ -264,202 +132,269 @@ class _MenuScreenState extends State<MenuScreen> {
       body: Column(
         children: [
           // Barra de búsqueda
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          Container(
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Buscar productos...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                filled: true,
-                fillColor: Colors.white,
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                suffixIcon: _searchText.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchText = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
               ),
               onChanged: (value) {
-                setState(() {
-                  _searchText = value;
-                });
+                setState(() => _searchText = value);
               },
             ),
           ),
+          
           // Lista de productos
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: obtenerMenu(widget.restauranteId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                final productos = snapshot.data ?? [];
-                if (productos.isEmpty) {
                   return const Center(
-                    child: Text('No hay productos disponibles'),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    ),
                   );
                 }
                 
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error al cargar el menú',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
+                final productos = snapshot.data ?? [];
+                if (productos.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.restaurant_menu,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No hay productos disponibles',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 // Filtrado por búsqueda
                 final productosFiltrados = productos.where((producto) {
-                  final nombre = (producto['nombre'] as String).toLowerCase();
-                  final descripcion = (producto['descripcion'] as String? ?? '').toLowerCase();
+                  final nombre = (producto['nombre']?.toString() ?? '').toLowerCase();
+                  final descripcion = (producto['descripcion']?.toString() ?? '').toLowerCase();
                   final busqueda = _searchText.toLowerCase();
                   return nombre.contains(busqueda) || descripcion.contains(busqueda);
                 }).toList();
-                
+
                 if (productosFiltrados.isEmpty) {
-                  return const Center(
-                    child: Text('No se encontraron productos'),
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No se encontraron productos',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Intenta con otro término de búsqueda',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 }
-                
-                return GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: productosFiltrados.length,
                   itemBuilder: (context, index) {
                     final producto = productosFiltrados[index];
-                    return Card(
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () {
-                          showAgregarCarritoModal(
-                            context: context,
-                            producto: producto,
-                            onAddToCart: (productoConCantidad) {
-                              // Agregar al carrito local
-                              if (widget.onAddToCart != null) {
-                                widget.onAddToCart!(productoConCantidad);
-                              }
-                              // Agregar al carrito global
-                              context.read<CarritoProvider>().agregarProducto(
-                                productoConCantidad,
-                              );
-                              // Mostrar banner
-                              _showBanner(
-                                context,
-                                '${productoConCantidad['nombre']} agregado al carrito',
-                              );
-                            },
-                          );
-                        },
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Imagen del producto
-                            Expanded(
-                              flex: 3,
-                              child: ClipRRect(
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(16),
-                                  topRight: Radius.circular(16),
-                                ),
-                                child: Image.network(
-                                  producto['img'] as String,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                    color: Colors.grey[300],
-                                    child: const Icon(
-                                      Icons.fastfood,
-                                      size: 50,
-                                      color: Colors.grey,
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => _agregarAlCarrito(producto),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                // Imagen del producto
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    producto['img']?.toString() ?? 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80',
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      width: 80,
+                                      height: 80,
+                                      color: Colors.grey[200],
+                                      child: Icon(
+                                        Icons.fastfood,
+                                        size: 32,
+                                        color: Colors.grey[400],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ),
-                            // Información del producto
-                            Expanded(
-                              flex: 2,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Nombre del producto
-                                    Text(
-                                      producto['nombre'] as String,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    // Descripción
-                                    Text(
-                                      producto['descripcion'] as String? ??
-                                          'Delicioso y recién hecho',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const Spacer(),
-                                    // Precio
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          '\$${producto['precio']}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.blue,
-                                            fontSize: 18,
-                                          ),
+                                
+                                const SizedBox(width: 16),
+                                
+                                // Información del producto
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Nombre del producto
+                                      Text(
+                                        producto['nombre']?.toString() ?? 'Sin nombre',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.black87,
                                         ),
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.add_shopping_cart,
-                                            color: Colors.blue,
-                                          ),
-                                          onPressed: () {
-                                            final productoConCantidad =
-                                                Map<String, dynamic>.from(
-                                              producto,
-                                            );
-                                            productoConCantidad['cantidad'] = 1;
-                                            if (widget.onAddToCart != null) {
-                                              widget.onAddToCart!(
-                                                productoConCantidad,
-                                              );
-                                            }
-                                            context
-                                                .read<CarritoProvider>()
-                                                .agregarProducto(
-                                                  productoConCantidad,
-                                                );
-                                            _showBanner(
-                                              context,
-                                              '${productoConCantidad['nombre']} agregado al carrito',
-                                            );
-                                          },
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      
+                                      const SizedBox(height: 4),
+                                      
+                                      // Descripción
+                                      Text(
+                                        producto['descripcion']?.toString() ?? 'Delicioso y recién hecho',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 14,
                                         ),
-                                      ],
-                                    ),
-                                  ],
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      
+                                      const SizedBox(height: 8),
+                                      
+                                      // Precio y botón
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          // Precio
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue[50],
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              '\$${producto['precio']?.toString() ?? '0'}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blue,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                          
+                                          // Botón agregar
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue,
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: IconButton(
+                                              icon: const Icon(
+                                                Icons.add,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                              onPressed: () => _agregarAlCarrito(producto),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 40,
+                                                minHeight: 40,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     );

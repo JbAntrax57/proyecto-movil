@@ -32,6 +32,11 @@ class _NegociosScreenState extends State<NegociosScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   String _searchText = '';
 
+  // Cache de datos para evitar recargas
+  List<Map<String, dynamic>> _todosLosNegocios = [];
+  bool _isLoading = true;
+  String? _error;
+
   // Lista de categorías disponibles (nombre e ícono)
   final categorias = [
     {'nombre': 'Pizza', 'icon': Icons.local_pizza},
@@ -60,6 +65,30 @@ class _NegociosScreenState extends State<NegociosScreen> {
     }
   }
 
+  // Cargar todos los negocios una sola vez
+  Future<void> _cargarNegocios() async {
+    if (_todosLosNegocios.isNotEmpty) return; // Ya están cargados
+    
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final data = await Supabase.instance.client.from('negocios').select();
+      setState(() {
+        _todosLosNegocios = List<Map<String, dynamic>>.from(data);
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Error al cargar negocios: $e');
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
   // Devuelve los negocios destacados (campo 'destacado' == true) para el slider
   List<Map<String, dynamic>> getDestacados(
     List<Map<String, dynamic>> negocios,
@@ -81,9 +110,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
   // Simula refresco (pull-to-refresh)
   Future<void> _onRefresh() async {
     await Future.delayed(const Duration(seconds: 1));
-    setState(() {
-      // No hay estado para actualizar en Supabase, la lista es dinámica
-    });
+    await _cargarNegocios(); // Recargar datos
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Negocios actualizados')),
     );
@@ -95,6 +122,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
     _pageController = PageController(initialPage: 0);
     _currentPage = 0;
     _scrollController = ScrollController();
+    _cargarNegocios(); // Cargar datos al inicializar
   }
 
   @override
@@ -117,32 +145,50 @@ class _NegociosScreenState extends State<NegociosScreen> {
         title: const Text('Negocios destacados'),
         centerTitle: true,
         actions: [
-          // Botón del carrito en la barra superior
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.shopping_cart),
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CarritoScreen()),
-                  );
-                },
-              ),
-              if (carrito.isNotEmpty)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: CircleAvatar(
-                    radius: 10,
-                    backgroundColor: Colors.red,
-                    child: Text(
-                      '${carrito.length}',
-                      style: const TextStyle(fontSize: 12, color: Colors.white),
-                    ),
+          // Botón del carrito
+          Consumer<CarritoProvider>(
+            builder: (context, carritoProvider, child) {
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart, color: Colors.black87),
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CarritoScreen(),
+                        ),
+                      );
+                    },
                   ),
-                ),
-            ],
+                  if (carritoProvider.carrito.isNotEmpty)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Text(
+                          carritoProvider.carrito.length > 99 ? '99+' : '${carritoProvider.carrito.length}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -190,279 +236,321 @@ class _NegociosScreenState extends State<NegociosScreen> {
           ),
           // El resto del contenido (slider, lista, etc.)
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: obtenerNegocios(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                final negocios = snapshot.data ?? [];
-                if (negocios.isEmpty) {
-                  return const Center(child: Text('No hay negocios disponibles'));
-                }
-                
-                // Filtrado por búsqueda (nombre, insensible a mayúsculas)
-                final filtro = _searchText.trim().toLowerCase();
-                final destacados = getDestacados(negocios)
-                    .where(
-                      (n) =>
-                          filtro.isEmpty ||
-                          (n['nombre']?.toString() ?? '').toLowerCase().contains(
-                            filtro,
-                          ),
-                    )
-                    .toList();
-                final restantes = getRestantes(negocios)
-                    .where(
-                      (n) =>
-                          filtro.isEmpty ||
-                          (n['nombre']?.toString() ?? '').toLowerCase().contains(
-                            filtro,
-                          ),
-                    )
-                    .toList();
-                
-                // Widget de refresco y scroll
-                return RefreshIndicator(
-                  onRefresh: _onRefresh,
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
-                      children: [
-                        // Slider de negocios destacados (loop infinito y scroll automático)
-                        if (destacados.isNotEmpty)
-                          DestacadosSlider(
-                            destacados: destacados,
-                            onTap: (negocio) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => MenuScreen(
-                                    restauranteId: negocio['id']?.toString() ?? '',
-                                    restaurante: negocio['nombre']?.toString() ?? 'Sin nombre',
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        // Barra de categorías horizontal
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 8,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 8,
-                                  bottom: 6,
-                                ),
-                                child: Text(
-                                  'Categorías',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blueGrey[950],
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                height: 70,
-                                child: ListView.separated(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: categorias.length,
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(width: 12),
-                                  itemBuilder: (context, index) {
-                                    final cat = categorias[index];
-                                    final selected =
-                                        _categoriaSeleccionada ==
-                                        cat['nombre'];
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _categoriaSeleccionada = selected
-                                              ? null
-                                              : cat['nombre'] as String;
-                                        });
-                                      },
-                                      child: Column(
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 24,
-                                            backgroundColor: selected
-                                                ? Colors.blueGrey[800]
-                                                : Colors.blue[50],
-                                            child: Icon(
-                                              cat['icon'] as IconData,
-                                              color: selected
-                                                  ? Colors.white
-                                                  : Colors.blueGrey[800],
-                                              size: 28,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            cat['nombre'] as String,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: selected
-                                                  ? Colors.blue
-                                                  : null,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Lista de negocios restantes (no destacados)
-                        ...restantes.map((negocio) {
-                          final index = restantes.indexOf(negocio);
-                          return TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0, end: 1),
-                            duration: Duration(milliseconds: 400 + index * 100),
-                            builder: (context, value, child) => Opacity(
-                              opacity: value,
-                              child: Transform.translate(
-                                offset: Offset(0, 30 * (1 - value)),
-                                child: child,
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    ),
+                  )
+                : _error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error al cargar negocios',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            child: Card(
-                              elevation: 6,
-                              color: Colors.white,
-                              shadowColor: Colors.blue.withOpacity(0.10),
-                              margin: const EdgeInsets.only(
-                                bottom: 16,
-                                left: 16,
-                                right: 16,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(18),
-                                splashColor: Colors.blue.withOpacity(0.08),
-                                highlightColor: Colors.blue.withOpacity(0.04),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => MenuScreen(
-                                        restauranteId: negocio['id']?.toString() ?? '',
-                                        restaurante:
-                                            negocio['nombre']?.toString() ?? 'Sin nombre',
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Row(
-                                  children: [
-                                    // Imagen del negocio
-                                    ClipRRect(
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(18),
-                                        bottomLeft: Radius.circular(18),
-                                      ),
-                                      child: Image.network(
-                                        negocio['img']?.toString() ?? 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
-                                        width: 80,
-                                        height: 80,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Container(
-                                                  width: 80,
-                                                  height: 80,
-                                                  color: Colors.grey[300],
-                                                  child: const Icon(
-                                                    Icons.store,
-                                                    size: 32,
-                                                    color: Colors.grey,
-                                                  ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: _cargarNegocios,
+                              child: const Text('Reintentar'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _todosLosNegocios.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.store_mall_directory,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No hay negocios disponibles',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _onRefresh,
+                            child: SingleChildScrollView(
+                              controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Builder(
+                                builder: (context) {
+                                  // Filtrado por búsqueda (nombre, insensible a mayúsculas)
+                                  final filtro = _searchText.trim().toLowerCase();
+                                  final destacados = getDestacados(_todosLosNegocios)
+                                      .where(
+                                        (n) =>
+                                            filtro.isEmpty ||
+                                            (n['nombre']?.toString() ?? '').toLowerCase().contains(
+                                              filtro,
+                                            ),
+                                      )
+                                      .toList();
+                                  final restantes = getRestantes(_todosLosNegocios)
+                                      .where(
+                                        (n) =>
+                                            filtro.isEmpty ||
+                                            (n['nombre']?.toString() ?? '').toLowerCase().contains(
+                                              filtro,
+                                            ),
+                                      )
+                                      .toList();
+                                  
+                                  return Column(
+                                    children: [
+                                      // Slider de negocios destacados (loop infinito y scroll automático)
+                                      if (destacados.isNotEmpty)
+                                        DestacadosSlider(
+                                          destacados: destacados,
+                                          onTap: (negocio) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => MenuScreen(
+                                                  restauranteId: negocio['id']?.toString() ?? '',
+                                                  restaurante: negocio['nombre']?.toString() ?? 'Sin nombre',
                                                 ),
-                                      ),
-                                    ),
-                                    // Detalles del negocio
-                                    Expanded(
-                                      child: Padding(
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      // Barra de categorías horizontal
+                                      Padding(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 18,
+                                          vertical: 12,
+                                          horizontal: 8,
                                         ),
                                         child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              negocio['nombre']?.toString() ?? 'Sin nombre',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.blueGrey[800],
-                                                  ),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                left: 8,
+                                                bottom: 6,
+                                              ),
+                                              child: Text(
+                                                'Categorías',
+                                                style: TextStyle(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.blueGrey[950],
+                                                ),
+                                              ),
                                             ),
-                                            const SizedBox(height: 8),
-                                            Row(
-                                              children: [
-                                                const Icon(
-                                                  Icons.location_on,
-                                                  size: 16,
-                                                  color: Colors.redAccent,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Expanded(
-                                                  child: Text(
-                                                    negocio['direccion']
-                                                        ?.toString() ?? 'Sin dirección',
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: Colors
-                                                              .blueGrey[700],
+                                            SizedBox(
+                                              height: 70,
+                                              child: ListView.separated(
+                                                scrollDirection: Axis.horizontal,
+                                                itemCount: categorias.length,
+                                                separatorBuilder: (_, __) =>
+                                                    const SizedBox(width: 12),
+                                                itemBuilder: (context, index) {
+                                                  final cat = categorias[index];
+                                                  final selected =
+                                                      _categoriaSeleccionada ==
+                                                      cat['nombre'];
+                                                  return GestureDetector(
+                                                    onTap: () {
+                                                      setState(() {
+                                                        _categoriaSeleccionada = selected
+                                                            ? null
+                                                            : cat['nombre'] as String;
+                                                      });
+                                                    },
+                                                    child: Column(
+                                                      children: [
+                                                        CircleAvatar(
+                                                          radius: 24,
+                                                          backgroundColor: selected
+                                                              ? Colors.blueGrey[800]
+                                                              : Colors.blue[50],
+                                                          child: Icon(
+                                                            cat['icon'] as IconData,
+                                                            color: selected
+                                                                ? Colors.white
+                                                                : Colors.blueGrey[800],
+                                                            size: 28,
+                                                          ),
                                                         ),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              ],
+                                                        const SizedBox(height: 4),
+                                                        Text(
+                                                          cat['nombre'] as String,
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            color: selected
+                                                                ? Colors.blue
+                                                                : null,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                              ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                    ),
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      color: Colors.grey,
-                                      size: 28,
-                                    ),
-                                  ],
-                                ),
+                                      // Lista de negocios restantes (no destacados)
+                                      ...restantes.map((negocio) {
+                                        final index = restantes.indexOf(negocio);
+                                        return TweenAnimationBuilder<double>(
+                                          tween: Tween(begin: 0, end: 1),
+                                          duration: Duration(milliseconds: 400 + index * 100),
+                                          builder: (context, value, child) => Opacity(
+                                            opacity: value,
+                                            child: Transform.translate(
+                                              offset: Offset(0, 30 * (1 - value)),
+                                              child: child,
+                                            ),
+                                          ),
+                                          child: Card(
+                                            elevation: 6,
+                                            color: Colors.white,
+                                            shadowColor: Colors.blue.withOpacity(0.10),
+                                            margin: const EdgeInsets.only(
+                                              bottom: 16,
+                                              left: 16,
+                                              right: 16,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(18),
+                                            ),
+                                            child: InkWell(
+                                              borderRadius: BorderRadius.circular(18),
+                                              splashColor: Colors.blue.withOpacity(0.08),
+                                              highlightColor: Colors.blue.withOpacity(0.04),
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => MenuScreen(
+                                                      restauranteId: negocio['id']?.toString() ?? '',
+                                                      restaurante:
+                                                          negocio['nombre']?.toString() ?? 'Sin nombre',
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Row(
+                                                children: [
+                                                  // Imagen del negocio
+                                                  ClipRRect(
+                                                    borderRadius: const BorderRadius.only(
+                                                      topLeft: Radius.circular(18),
+                                                      bottomLeft: Radius.circular(18),
+                                                    ),
+                                                    child: Image.network(
+                                                      negocio['img']?.toString() ?? 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
+                                                      width: 80,
+                                                      height: 80,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (context, error, stackTrace) =>
+                                                              Container(
+                                                                width: 80,
+                                                                height: 80,
+                                                                color: Colors.grey[300],
+                                                                child: const Icon(
+                                                                  Icons.store,
+                                                                  size: 32,
+                                                                  color: Colors.grey,
+                                                                ),
+                                                              ),
+                                                    ),
+                                                  ),
+                                                  // Detalles del negocio
+                                                  Expanded(
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 16,
+                                                        vertical: 18,
+                                                      ),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            negocio['nombre']?.toString() ?? 'Sin nombre',
+                                                            style: Theme.of(context)
+                                                                .textTheme
+                                                                .titleMedium
+                                                                ?.copyWith(
+                                                                  fontWeight: FontWeight.bold,
+                                                                  color: Colors.blueGrey[800],
+                                                                ),
+                                                          ),
+                                                          const SizedBox(height: 8),
+                                                          Row(
+                                                            children: [
+                                                              const Icon(
+                                                                Icons.location_on,
+                                                                size: 16,
+                                                                color: Colors.redAccent,
+                                                              ),
+                                                              const SizedBox(width: 4),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  negocio['direccion']
+                                                                      ?.toString() ?? 'Sin dirección',
+                                                                  style: Theme.of(context)
+                                                                      .textTheme
+                                                                      .bodySmall
+                                                                      ?.copyWith(
+                                                                        color: Colors
+                                                                            .blueGrey[700],
+                                                                      ),
+                                                                  overflow:
+                                                                      TextOverflow.ellipsis,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Icon(
+                                                    Icons.chevron_right,
+                                                    color: Colors.grey,
+                                                    size: 28,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      const SizedBox(height: 20),
+                                    ],
+                                  );
+                                },
                               ),
                             ),
-                          );
-                        }).toList(),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                          ),
           ),
         ],
       ),
@@ -470,7 +558,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
   }
 }
 
-// Widget para el slider de negocios destacados
+// Widget para el slider de negocios destacados con loop infinito real
 class DestacadosSlider extends StatefulWidget {
   final List<Map<String, dynamic>> destacados;
   final Function(Map<String, dynamic>) onTap;
@@ -486,26 +574,24 @@ class DestacadosSlider extends StatefulWidget {
 }
 
 class _DestacadosSliderState extends State<DestacadosSlider> {
-  PageController? _pageController;
+  late PageController _pageController;
   int _currentPage = 0;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: 0);
+    // Inicializar en el medio para permitir scroll infinito
+    _pageController = PageController(initialPage: 1000);
     _startAutoScroll();
   }
 
   void _startAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (_currentPage < widget.destacados.length - 1) {
-        _currentPage++;
-      } else {
-        _currentPage = 0;
-      }
-      _pageController?.animateToPage(
-        _currentPage,
+      if (widget.destacados.isEmpty) return;
+      
+      // Simplemente ir a la siguiente página
+      _pageController.nextPage(
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
@@ -515,12 +601,16 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
   @override
   void dispose() {
     _timer?.cancel();
-    _pageController?.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.destacados.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       height: 200,
       margin: const EdgeInsets.symmetric(vertical: 16),
@@ -530,11 +620,13 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
             child: PageView.builder(
               controller: _pageController,
               onPageChanged: (index) {
-                setState(() => _currentPage = index);
+                setState(() => _currentPage = index % widget.destacados.length);
               },
-              itemCount: widget.destacados.length,
               itemBuilder: (context, index) {
-                final negocio = widget.destacados[index];
+                // Usar módulo para obtener el índice real del negocio
+                final realIndex = index % widget.destacados.length;
+                final negocio = widget.destacados[realIndex];
+                
                 return GestureDetector(
                   onTap: () => widget.onTap(negocio),
                   child: Container(
