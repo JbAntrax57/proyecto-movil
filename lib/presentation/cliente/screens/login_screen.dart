@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../cliente/providers/carrito_provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../duenio/providers/notificaciones_pedidos_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 
 // login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
 // Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
@@ -34,48 +34,47 @@ class _LoginScreenState extends State<LoginScreen> {
     {'email': 'admin@demo.com', 'password': '1234', 'rol': 'Admin'},
   ];
 
-  // Lógica de login: consulta Firestore y navega según el rol
+  // Lógica de login: consulta Supabase y navega según el rol
   void _login() async {
     setState(() {
       error = null;
       loading = true;
     });
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(email)
-          .get();
-      if (!doc.exists) {
+      // Consulta el usuario directamente en la tabla 'usuarios' de Supabase
+      final userData = await Supabase.instance.client
+          .from('usuarios')
+          .select()
+          .eq('email', email)
+          .eq('password', password)
+          .single();
+      
+      if (userData == null) {
         setState(() {
           loading = false;
-          error = 'Usuario no encontrado';
+          error = 'Usuario o contraseña incorrectos';
         });
         return;
       }
-      final data = doc.data()!;
-      if (data['password'] != password) {
-        setState(() {
-          loading = false;
-          error = 'Contraseña incorrecta';
-        });
-        return;
-      }
+      
       // Configura el carrito global para este usuario
       context.read<CarritoProvider>().setUserEmail(email);
-      final rol = (data['rol'] as String).toLowerCase();
+      final rol = (userData['rol'] as String).toLowerCase();
+      
       // Si es dueño, configura el restauranteId en el provider y activa notificaciones globales
-      if (rol == 'duenio' && data['restauranteId'] != null) {
-        context.read<CarritoProvider>().setRestauranteId(data['restauranteId'] as String);
-        // Configura el restaurante específico para las notificaciones
+      if (rol == 'duenio' && userData['restauranteId'] != null) {
+        context.read<CarritoProvider>().setRestauranteId(userData['restauranteId'] as String);
         context.read<NotificacionesPedidosProvider>().configurarRestaurante(
-          data['restauranteId'] as String,
+          userData['restauranteId'] as String,
           context,
         );
       }
-      // Navega según el rol
+      
       setState(() {
         loading = false;
       });
+      
+      // Navega según el rol
       switch (rol) {
         case 'cliente':
           context.go('/cliente');
@@ -97,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() {
         loading = false;
-        error = 'Error de conexión: $e';
+        error = 'Usuario o contraseña incorrectos';
       });
     }
   }

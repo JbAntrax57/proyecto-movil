@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 
 // register_screen.dart (común) - Pantalla de registro genérica
 // Muestra un formulario de registro simple para cualquier rol.
@@ -19,22 +19,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? error;
   bool loading = false;
 
-  Future<void> _register() async {
-    setState(() { error = null; loading = true; });
+  // Lógica de registro: crea usuario en Supabase Auth y en la tabla 'usuarios'
+  void _register() async {
+    setState(() {
+      error = null;
+      loading = true;
+    });
     try {
-      final doc = await FirebaseFirestore.instance.collection('usuarios').doc(email).get();
-      if (doc.exists) {
-        setState(() { loading = false; error = 'El email ya está registrado.'; });
+      // Crea el usuario en Supabase Auth
+      final response = await Supabase.instance.client.auth.signUp(
+        email: email,
+        password: password,
+      );
+      if (response.user == null) {
+        setState(() {
+          loading = false;
+          error = 'No se pudo registrar el usuario';
+        });
         return;
       }
-      await FirebaseFirestore.instance.collection('usuarios').doc(email).set({
+      // Inserta el perfil en la tabla 'usuarios'
+      await Supabase.instance.client.from('usuarios').insert({
         'email': email,
-        'password': password,
+        'rol': rol, // Debes definir cómo se selecciona el rol
         'nombre': nombre,
-        'rol': rol,
-        'carrito': [],
+        'telefono': telefono,
+        'direccion': direccion,
+        'fechaRegistro': DateTime.now().toIso8601String(),
       });
-      setState(() { loading = false; });
+      setState(() {
+        loading = false;
+      });
+      // Navega o muestra mensaje de éxito
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -42,7 +58,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     } catch (e) {
-      setState(() { loading = false; error = 'Error de conexión: $e'; });
+      setState(() {
+        loading = false;
+        error = 'Error al registrar: ${e.toString()}';
+      });
     }
   }
 

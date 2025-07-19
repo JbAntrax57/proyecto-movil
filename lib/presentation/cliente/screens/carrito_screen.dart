@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
@@ -82,97 +82,40 @@ class CarritoScreen extends StatelessWidget {
       }
     }
 
-    // Lógica para realizar el pedido: solicita ubicación y limpia el carrito
+    // Lógica para realizar el pedido usando Supabase
     void _realizarPedido() async {
       if (carrito.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('El carrito está vacío')), // Validación
+          const SnackBar(content: Text('El carrito está vacío')),
         );
         return;
       }
-      final result = await showModalBottomSheet<Map<String, String>>(
-        context: context,
-        isScrollControlled: true,
-        builder: (context) => UbicacionModal(),
-      );
-      if (result != null &&
-          result['ubicacion'] != null &&
-          result['detallesAdicionales'] != null) {
-        // Agrupar productos por restaurante
-        final productosPorRestaurante = <String, List<Map<String, dynamic>>>{};
-        final restauranteInfo = <String, Map<String, dynamic>>{};
-        for (final producto in carrito) {
-          final restauranteId =
-              producto['restauranteId'] as String? ?? 'sin_id';
-          if (!productosPorRestaurante.containsKey(restauranteId)) {
-            productosPorRestaurante[restauranteId] = [];
-            restauranteInfo[restauranteId] = {
-              'restauranteNombre': producto['restaurante'] ?? 'Restaurante',
-              'restauranteId': restauranteId,
-            };
-          }
-          productosPorRestaurante[restauranteId]!.add(producto);
-        }
-        // Obtener datos del usuario actual
-        final userProvider = Provider.of<CarritoProvider>(
-          context,
-          listen: false,
+      // Aquí implementarías la lógica para crear el pedido en Supabase
+      try {
+        // Crear el pedido en Supabase
+        await Supabase.instance.client.from('pedidos').insert({
+          'usuarioId': context.read<CarritoProvider>().userEmail,
+          'productos': carrito,
+          'total': total,
+          'estado': 'pendiente',
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+        // Limpiar el carrito
+        context.read<CarritoProvider>().limpiarCarrito();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('¡Pedido realizado con éxito!')),
         );
-        final usuarioId = userProvider.userEmail ?? 'sin_uid';
-        String usuarioNombre = '';
-        try {
-          final userDoc = await FirebaseFirestore.instance
-              .collection('usuarios')
-              .doc(usuarioId)
-              .get();
-          usuarioNombre = userDoc.data()?['nombre'] ?? '';
-        } catch (_) {}
-        // Crear un pedido por restaurante
-        bool allOk = true;
-        for (final entry in productosPorRestaurante.entries) {
-          final restauranteId = entry.key;
-          final productos = entry.value;
-          final info = restauranteInfo[restauranteId]!;
-          final total = productos.fold(
-            0,
-            (int sum, item) =>
-                sum + (item['precio'] as int) * (item['cantidad'] as int),
-          );
-          try {
-            await FirebaseFirestore.instance.collection('pedidos').add({
-              'usuarioId': usuarioId,
-              'usuarioNombre': usuarioNombre,
-              'restauranteId': restauranteId,
-              'restauranteNombre': info['restauranteNombre'],
-              'productos': productos,
-              'total': total,
-              'ubicacion': result['ubicacion'],
-              'detallesAdicionales': result['detallesAdicionales'],
-              'estado': 'pendiente',
-              'timestamp': FieldValue.serverTimestamp(),
-            });
-          } catch (e) {
-            allOk = false;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error al crear pedido: $e')),
-            );
-          }
-        }
-        if (allOk) {
-          context.read<CarritoProvider>().limpiarCarrito();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                '¡Pedido realizado! El negocio ha sido notificado.',
-              ),
-            ),
-          );
-        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al realizar el pedido: $e')),
+        );
       }
     }
 
     return Scaffold(
+      backgroundColor: Colors.blue[50],
       appBar: AppBar(
+        backgroundColor: Colors.blue[50],
         title: const Text('Carrito de compras'),
         centerTitle: true,
         leading: IconButton(
@@ -181,17 +124,47 @@ class CarritoScreen extends StatelessWidget {
             Navigator.pop(context, carrito);
           },
         ),
+        actions: [
+          if (carrito.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep),
+              onPressed: _limpiarCarrito,
+              tooltip: 'Vaciar carrito',
+            ),
+        ],
       ),
       body: Column(
         children: [
           Expanded(
             child: carrito.isEmpty
                 ? Center(
-                    child: pedidoRealizado
-                        ? const Text(
-                            '¡Pedido realizado! Espera la confirmación del negocio.',
-                          )
-                        : const Text('El carrito está vacío'),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.shopping_cart_outlined,
+                          size: 80,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tu carrito está vacío',
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Agrega algunos productos para comenzar',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -210,42 +183,95 @@ class CarritoScreen extends StatelessWidget {
                           ),
                         ),
                         child: Card(
+                          elevation: 4,
                           margin: const EdgeInsets.only(bottom: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 8,
-                            ),
+                            padding: const EdgeInsets.all(16),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Avatar con inicial del producto
-                                CircleAvatar(
-                                  backgroundColor: Colors.blue[100],
-                                  child: Text(item['nombre'].toString()[0]),
+                                // Imagen del producto
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    item['img'] as String,
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        Container(
+                                      width: 80,
+                                      height: 80,
+                                      color: Colors.grey[300],
+                                      child: const Icon(
+                                        Icons.fastfood,
+                                        size: 40,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 16),
                                 // Detalles del producto
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         item['nombre'] as String,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
+                                          fontSize: 18,
                                         ),
                                       ),
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        children: [
-                                          // Botón para disminuir cantidad
-                                          IconButton(
-                                            icon: const Icon(Icons.remove),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        item['descripcion'] as String? ??
+                                            'Delicioso y recién hecho',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 14,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '\$${item['precio']}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Controles de cantidad
+                                Column(
+                                  children: [
+                                    // Botón para eliminar
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () => _eliminarProducto(index),
+                                      tooltip: 'Eliminar producto',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // Controles de cantidad
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Botón para disminuir cantidad
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[200],
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(Icons.remove, size: 18),
                                             onPressed: item['cantidad'] > 1
                                                 ? () {
                                                     context
@@ -256,46 +282,48 @@ class CarritoScreen extends StatelessWidget {
                                                         );
                                                   }
                                                 : null,
-                                          ),
-                                          Text(
-                                            'Cantidad: ${item['cantidad']}',
-                                            style: const TextStyle(
-                                              fontSize: 16,
+                                            constraints: const BoxConstraints(
+                                              minWidth: 36,
+                                              minHeight: 36,
                                             ),
                                           ),
-                                          // Botón para aumentar cantidad
-                                          IconButton(
-                                            icon: const Icon(Icons.add),
+                                        ),
+                                        // Cantidad
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                                          child: Text(
+                                            '${item['cantidad']}',
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        // Botón para aumentar cantidad
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue[100],
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(Icons.add, size: 18),
                                             onPressed: () {
                                               context
                                                   .read<CarritoProvider>()
-                                                  .modificarCantidad(index, 1);
+                                                  .modificarCantidad(
+                                                    index,
+                                                    1,
+                                                  );
                                             },
-                                          ),
-                                          // Botón para eliminar producto
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.delete,
-                                              color: Colors.red,
+                                            constraints: const BoxConstraints(
+                                              minWidth: 36,
+                                              minHeight: 36,
                                             ),
-                                            onPressed: () =>
-                                                _eliminarProducto(index),
                                           ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // Precio total del producto
-                                Align(
-                                  alignment: Alignment.topRight,
-                                  child: Text(
-                                    '\$${(item['precio'] as int) * (item['cantidad'] as int)}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                        ),
+                                      ],
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -305,49 +333,65 @@ class CarritoScreen extends StatelessWidget {
                     },
                   ),
           ),
-          // Resumen y botón de pedido
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.blueGrey[50],
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(18),
-              ),
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Total:', style: Theme.of(context).textTheme.titleMedium),
-                Text(
-                  '\$$total',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+          // Resumen del pedido y botón de realizar pedido
+          if (carrito.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
                   ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: carrito.isEmpty ? null : _realizarPedido,
-                  icon: const Icon(Icons.send),
-                  label: const Text('Realizar pedido'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Resumen del total
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total:',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '\$$total',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // Botón para realizar pedido
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _realizarPedido,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Realizar Pedido'),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Muestra la ubicación seleccionada si existe
-          if (ubicacion != null)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Ubicación: $ubicacion',
-                style: const TextStyle(color: Colors.green),
+                ],
               ),
             ),
         ],

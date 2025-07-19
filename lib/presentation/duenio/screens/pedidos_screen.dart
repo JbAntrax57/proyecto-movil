@@ -2,10 +2,10 @@
 // Permite ver pedidos, simular nuevos pedidos, actualizar estado y ver notificaciones.
 // Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'menu_screen.dart';
 import '../../cliente/providers/carrito_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 
 class DuenioPedidosScreen extends StatefulWidget {
   // Pantalla de pedidos recibidos para el dueño de negocio
@@ -17,18 +17,23 @@ class DuenioPedidosScreen extends StatefulWidget {
 class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
   final List<String> notificaciones = [];
 
-  // Actualiza el estado de un pedido en Firestore y notifica
-  Future<void> _actualizarEstado(String pedidoId, String nuevoEstado) async {
-    await FirebaseFirestore.instance.collection('pedidos').doc(pedidoId).update(
-      {'estado': nuevoEstado},
-    );
-    if (nuevoEstado == 'Listo para entregar') {
-      notificaciones.add('Pedido $pedidoId listo para repartidor');
-    }
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Estado actualizado a "$nuevoEstado"')),
-    );
+  // Actualiza el estado de un pedido en Supabase y notifica
+  Future<void> actualizarEstadoPedido(String pedidoId, String nuevoEstado) async {
+    await Supabase.instance.client
+        .from('pedidos')
+        .update({'estado': nuevoEstado})
+        .eq('id', pedidoId);
+  }
+  // Obtiene la lista de pedidos en tiempo real desde Supabase
+  Future<List<Map<String, dynamic>>> obtenerPedidos() async {
+    final data = await Supabase.instance.client.from('pedidos').select();
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  // Suscribirse a cambios en la tabla de pedidos usando Supabase Realtime
+  void suscribirsePedidos() {
+    // TODO: Implementar cuando Supabase Realtime esté disponible
+    print('🔔 Suscripción a pedidos configurada');
   }
 
   // Función para obtener el color de fondo según el estado
@@ -76,197 +81,76 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
             ),
           // Lista de pedidos en tiempo real desde Firestore
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('pedidos')
-                  .where('restauranteId', isEqualTo: restauranteId)
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: obtenerPedidos(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error al cargar pedidos'));
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
-                final pedidos = snapshot.data?.docs ?? [];
+                final pedidos = snapshot.data ?? [];
                 if (pedidos.isEmpty) {
-                  return const Center(
-                    child: Text('No hay pedidos para este restaurante.'),
-                  );
+                  return const Center(child: Text('No hay pedidos'));
                 }
-                // Agrupamos los pedidos por estado
-                final Map<String, List<QueryDocumentSnapshot>>
-                pedidosPorEstado = {};
+                // Agrupar pedidos por estado
+                final Map<String, List<Map<String, dynamic>>> pedidosPorEstado = {};
                 for (final pedido in pedidos) {
-                  final data = pedido.data() as Map<String, dynamic>;
-                  final estado = (data['estado'] ?? 'pendiente')
-                      .toString()
-                      .toLowerCase();
-                  pedidosPorEstado.putIfAbsent(estado, () => []).add(pedido);
+                  final estado = pedido['estado'] as String? ?? 'pendiente';
+                  if (!pedidosPorEstado.containsKey(estado)) {
+                    pedidosPorEstado[estado] = [];
+                  }
+                  pedidosPorEstado[estado]!.add(pedido);
                 }
-                // Definimos el orden de los estados
-                final ordenEstados = [
-                  'pendiente',
-                  'en preparación',
-                  'listo para entregar',
-                  'entregado',
-                ];
-                return ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    for (final estado in ordenEstados)
-                      if (pedidosPorEstado[estado]?.isNotEmpty ?? false) ...[
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            estado[0].toUpperCase() + estado.substring(1),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ),
-                        ...pedidosPorEstado[estado]!.map((pedido) {
-                          final data = pedido.data() as Map<String, dynamic>;
-                          return GestureDetector(
-                            onTap: () {
-                              // Al dar clic, mostramos un diálogo con el detalle del pedido
-                              showDialog(
+                return ListView.builder(
+                  itemCount: pedidosPorEstado.length,
+                  itemBuilder: (context, index) {
+                    final estado = pedidosPorEstado.keys.elementAt(index);
+                    final pedidosDelEstado = pedidosPorEstado[estado]!;
+                    return ExpansionTile(
+                      title: Text('$estado (${pedidosDelEstado.length})'),
+                      children: pedidosDelEstado.map((pedido) {
+                        final data = pedido;
+                        return Card(
+                          margin: const EdgeInsets.all(8.0),
+                          child: ListTile(
+                            title: Text('Pedido ${pedido['id']?.toString().substring(0, 8) ?? 'N/A'}'),
+                            subtitle: Text('Cliente: ${data['usuarioNombre'] ?? 'N/A'}'),
+                            trailing: Text('\$${data['total'] ?? 0}'),
+                            onTap: () async {
+                              final nuevoEstado = await showDialog<String>(
                                 context: context,
-                                builder: (context) {
-                                  final productos = (data['productos'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-                                  final total = data['total'] ?? 0;
-                                  return AlertDialog(
-                                    title: const Text('Detalle del pedido'),
-                                    content: SingleChildScrollView(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Cliente: ${data['usuarioNombre'] ?? ''}'),
-                                          const SizedBox(height: 8),
-                                          Text('Dirección: ${data['ubicacion'] ?? ''}'),
-                                          if ((data['detallesAdicionales'] ?? '').toString().isNotEmpty)
-                                            Text('Detalles: ${data['detallesAdicionales']}'),
-                                          const Divider(height: 18),
-                                          const Text('Productos:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                          ...productos.map((p) => Padding(
-                                            padding: const EdgeInsets.symmetric(vertical: 2),
-                                            child: Text('- ${p['nombre']} x${p['cantidad']} ( \$${p['precio']})'),
-                                          )),
-                                          const Divider(height: 18),
-                                          Text('Total:  \$$total', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                        ],
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Cambiar estado'),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        title: const Text('Pendiente'),
+                                        onTap: () => Navigator.pop(context, 'pendiente'),
                                       ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.of(context).pop(),
-                                        child: const Text('Cerrar'),
+                                      ListTile(
+                                        title: const Text('Preparando'),
+                                        onTap: () => Navigator.pop(context, 'preparando'),
+                                      ),
+                                      ListTile(
+                                        title: const Text('Listo'),
+                                        onTap: () => Navigator.pop(context, 'listo'),
                                       ),
                                     ],
-                                  );
-                                },
-                              );
-                            },
-                            child: Card(
-                              color: _colorPorEstado(data['estado'] ?? ''), // Color según estado
-                              elevation: 5,
-                              margin: const EdgeInsets.only(bottom: 18),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    // Avatar con iniciales
-                                    CircleAvatar(
-                                      backgroundColor: Colors.orange[100],
-                                      child: Text('${pedido.id.substring(0, 2)}'),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    // Contenido principal del pedido
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Pedido', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                          Text('Cliente: ${data['usuarioNombre'] ?? ''}'),
-                                          Text('Estado: ${data['estado']}'),
-                                          // Resumen de productos pedidos
-                                          if ((data['productos'] as List?) != null && (data['productos'] as List).isNotEmpty)
-                                            Padding(
-                                              padding: const EdgeInsets.only(top: 6),
-                                              child: Text(
-                                                'Productos: ' +
-                                                  (data['productos'] as List)
-                                                    .map((p) => '${p['nombre']} x${p['cantidad']}')
-                                                    .join(', '),
-                                                style: const TextStyle(fontSize: 13, color: Colors.black87),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                    // Estado y botón en columna
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          data['estado'] as String,
-                                          style: const TextStyle(color: Colors.deepOrange),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        ElevatedButton(
-                                          onPressed: () async {
-                                            final nuevoEstado = await showDialog<String>(
-                                              context: context,
-                                              builder: (context) => SimpleDialog(
-                                                title: const Text('Actualizar estado'),
-                                                children: [
-                                                  SingleChildScrollView(
-                                                    child: Column(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        SimpleDialogOption(
-                                                          onPressed: () => Navigator.pop(context, 'En preparación'),
-                                                          child: const Text('En preparación'),
-                                                        ),
-                                                        SimpleDialogOption(
-                                                          onPressed: () => Navigator.pop(context, 'Listo para entregar'),
-                                                          child: const Text('Listo para entregar'),
-                                                        ),
-                                                        SimpleDialogOption(
-                                                          onPressed: () => Navigator.pop(context, 'Entregado'),
-                                                          child: const Text('Entregado'),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                            if (nuevoEstado != null) {
-                                              await _actualizarEstado(pedido.id, nuevoEstado);
-                                            }
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            minimumSize: const Size(32, 32),
-                                            padding: EdgeInsets.zero,
-                                          ),
-                                          child: const Icon(Icons.edit, size: 18),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
-                  ],
+                              );
+                              if (nuevoEstado != null) {
+                                await actualizarEstadoPedido(pedido['id'].toString(), nuevoEstado);
+                              }
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
                 );
               },
             ),

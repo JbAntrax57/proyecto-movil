@@ -7,10 +7,10 @@ import 'dart:math' as math;
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'menu_screen.dart';
 import 'carrito_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 
 // Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
@@ -58,18 +58,14 @@ class _NegociosScreenState extends State<NegociosScreen> {
   final PageStorageKey _categoriasKey = const PageStorageKey('categoriasList');
   final PageStorageKey _negociosKey = const PageStorageKey('negociosList');
 
-  // Obtiene los negocios desde Firestore, filtrando por categoría si aplica
-  Stream<List<Map<String, dynamic>>> getNegociosStream() {
-    Query query = FirebaseFirestore.instance.collection('negocios');
-    // El filtro de categoría solo se aplicará a los negocios NO destacados
-    // Para el Stream general, no se filtra por categoría
-    return query.snapshots().map(
-      (snapshot) => snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return data;
-      }).toList(),
-    );
+  // Obtiene los negocios desde Supabase, filtrando por categoría si aplica
+  Future<List<Map<String, dynamic>>> obtenerNegocios({String? categoria}) async {
+    final query = Supabase.instance.client.from('negocios').select();
+    if (categoria != null && categoria.isNotEmpty) {
+      query.eq('categoria', categoria);
+    }
+    final data = await query;
+    return List<Map<String, dynamic>>.from(data);
   }
 
   // Devuelve los negocios destacados (campo 'destacado' == true) para el slider
@@ -202,63 +198,55 @@ class _NegociosScreenState extends State<NegociosScreen> {
               duration: const Duration(milliseconds: 300),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(25),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      decoration: InputDecoration(
-                        hintText: 'Buscar negocios...',
-                        prefixIcon: Icon(Icons.search, color: Colors.blue),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 14),
-                        // El icono de limpiar se agrega aparte
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchText = value;
-                          // Aquí puedes filtrar la lista de negocios según el valor
-                        });
-                      },
-                    ),
-                  ),
-                  if (_searchText.isNotEmpty)
-                    IconButton(
-                      icon: Icon(Icons.clear, color: Colors.grey),
-                      onPressed: () {
-                        setState(() {
-                          _searchController.clear();
-                          _searchText = '';
-                        });
-                        _searchFocusNode.unfocus();
-                      },
-                    ),
-                ],
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                decoration: InputDecoration(
+                  hintText: 'Buscar negocios...',
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: _searchText.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.grey),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchText = '');
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                ),
+                onChanged: (value) {
+                  setState(() => _searchText = value);
+                },
               ),
             ),
           ),
           // El resto del contenido (slider, lista, etc.)
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: getNegociosStream(),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: obtenerNegocios(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error al cargar negocios'));
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
                 final negocios = snapshot.data ?? [];
+                if (negocios.isEmpty) {
+                  return const Center(child: Text('No hay negocios disponibles'));
+                }
+                
                 // Filtrado por búsqueda (nombre, insensible a mayúsculas)
                 final filtro = _searchText.trim().toLowerCase();
                 final destacados = getDestacados(negocios)
@@ -279,6 +267,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                           ),
                     )
                     .toList();
+                
                 // Widget de refresco y scroll
                 return SmartRefresher(
                   controller: _refreshController,
@@ -423,7 +412,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                   SizedBox(
                                     height: 70,
                                     child: ListView.separated(
-                                      key: _categoriasKey, // <-- Aquí
+                                      key: _categoriasKey,
                                       scrollDirection: Axis.horizontal,
                                       itemCount: categorias.length,
                                       separatorBuilder: (_, __) =>
@@ -480,7 +469,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                       ),
                       // Lista de negocios restantes (no destacados)
                       SliverList(
-                        key: _negociosKey, // <-- Aquí
+                        key: _negociosKey,
                         delegate: SliverChildBuilderDelegate((context, index) {
                           final negocio = restantes[index];
                           // Animación de aparición para cada negocio
@@ -625,12 +614,11 @@ class _NegociosScreenState extends State<NegociosScreen> {
   }
 }
 
-// Widget del slider de negocios destacados (loop infinito y scroll automático)
+// Widget para el slider de negocios destacados
 class DestacadosSlider extends StatefulWidget {
-  // Lista de negocios destacados y callback al tocar un negocio
-  final List<Map<String, dynamic>> destacados; // Lista de negocios destacados
-  final void Function(Map<String, dynamic> negocio)
-  onTap; // Callback al tocar un negocio
+  final List<Map<String, dynamic>> destacados;
+  final Function(Map<String, dynamic>) onTap;
+
   const DestacadosSlider({
     super.key,
     required this.destacados,
@@ -642,145 +630,183 @@ class DestacadosSlider extends StatefulWidget {
 }
 
 class _DestacadosSliderState extends State<DestacadosSlider> {
-  // Controlador de página y timer para scroll automático
-  late final PageController _pageController;
+  late PageController _pageController;
   int _currentPage = 0;
-  Timer? _autoScrollTimer;
-  static const int _initialPage = 1000; // Para simular loop infinito
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: _initialPage);
-    _currentPage = _initialPage;
-    // Scroll automático cada 3 segundos
-    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (widget.destacados.isNotEmpty && mounted) {
+    _pageController = PageController(initialPage: 0);
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_currentPage < widget.destacados.length - 1) {
         _currentPage++;
-        _pageController.animateToPage(
-          _currentPage,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
+      } else {
+        _currentPage = 0;
       }
+      _pageController.animateToPage(
+        _currentPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
     });
   }
 
   @override
   void dispose() {
-    _autoScrollTimer?.cancel();
+    _timer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final destacados = widget.destacados;
-    if (destacados.isEmpty) return const SizedBox.shrink();
-    // Slider de negocios destacados con animación y scroll infinito
-    return SizedBox(
-      height: 220,
-      child: PageView.builder(
-        scrollDirection: Axis.horizontal,
-        controller: _pageController,
-        itemCount: null, // infinito
-        physics: const ClampingScrollPhysics(),
-        onPageChanged: (i) => setState(() => _currentPage = i),
-        itemBuilder: (context, index) {
-          final realIndex = destacados.isNotEmpty
-              ? index % destacados.length
-              : 0;
-          final negocio = destacados[realIndex];
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            child: Card(
-              elevation: 10,
-              color: Colors.white,
-              shadowColor: Colors.blue.withOpacity(0.12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(24),
-                splashColor: Colors.blue.withOpacity(0.08),
-                highlightColor: Colors.blue.withOpacity(0.04),
-                onTap: () => widget.onTap(negocio),
-                child: Row(
-                  children: [
-                    // Imagen del negocio destacado
-                    ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(24),
-                        bottomLeft: Radius.circular(24),
-                      ),
-                      child: Image.network(
-                        negocio['img'] as String,
-                        width: 120,
-                        height: 200,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 120,
-                          height: 200,
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.store,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
+    return Container(
+      height: 200,
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: [
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() => _currentPage = index);
+              },
+              itemCount: widget.destacados.length,
+              itemBuilder: (context, index) {
+                final negocio = widget.destacados[index];
+                return GestureDetector(
+                  onTap: () => widget.onTap(negocio),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
                         ),
-                      ),
+                      ],
                     ),
-                    // Detalles del negocio destacado
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 24,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              negocio['nombre'] as String,
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue[900],
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Stack(
+                        children: [
+                          // Imagen de fondo
+                          Image.network(
+                            negocio['img'] as String,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(
+                                    Icons.store,
+                                    size: 64,
+                                    color: Colors.grey,
                                   ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.location_on,
-                                  size: 18,
-                                  color: Colors.redAccent,
                                 ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    negocio['direccion'] as String,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(color: Colors.blueGrey[700]),
-                                    overflow: TextOverflow.ellipsis,
+                          ),
+                          // Gradiente oscuro para el texto
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.7),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Contenido del negocio
+                          Positioned(
+                            bottom: 20,
+                            left: 20,
+                            right: 20,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  negocio['nombre'] as String,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  negocio['direccion'] as String,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.8),
+                                    fontSize: 16,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 18),
-                          ],
-                        ),
+                          ),
+                          // Badge de destacado
+                          Positioned(
+                            top: 16,
+                            right: 16,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                'Destacado',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                );
+              },
+            ),
+          ),
+          // Indicadores de página
+          if (widget.destacados.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  widget.destacados.length,
+                  (index) => Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _currentPage == index
+                          ? Colors.blue
+                          : Colors.grey.withOpacity(0.3),
+                    ),
+                  ),
                 ),
               ),
             ),
-          );
-        },
+        ],
       ),
     );
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 
 class CarritoProvider extends ChangeNotifier {
   final List<Map<String, dynamic>> _carrito = [];
@@ -28,30 +28,29 @@ class CarritoProvider extends ChangeNotifier {
 
   void _listenToCarrito() {
     if (_userEmail == null) return;
-    _carritoStream = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(_userEmail)
-        .snapshots()
-        .map((doc) {
-      final data = doc.data();
-      if (data == null || data['carrito'] == null) return <Map<String, dynamic>>[];
-      final raw = data['carrito'] as List<dynamic>;
-      return raw.map((e) => Map<String, dynamic>.from(e)).toList();
-    });
-    _carritoStream!.listen((carritoDb) {
-      _carrito
-        ..clear()
-        ..addAll(carritoDb);
+    // Obtener el carrito inicial desde Supabase
+    obtenerCarrito(_userEmail!).then((carritoDb) {
+      _carrito.clear();
+      _carrito.addAll(carritoDb);
       notifyListeners();
     });
   }
 
-  Future<void> _updateCarritoDb() async {
-    if (_userEmail == null) return;
-    await FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(_userEmail)
-        .update({'carrito': _carrito});
+  // Obtiene el carrito del usuario desde Supabase
+  Future<List<Map<String, dynamic>>> obtenerCarrito(String email) async {
+    final data = await Supabase.instance.client
+        .from('carritos')
+        .select()
+        .eq('email', email);
+    if (data.isEmpty) return [];
+    return List<Map<String, dynamic>>.from(data);
+  }
+  
+  // Actualiza el carrito en Supabase
+  Future<void> actualizarCarrito(String email, List<Map<String, dynamic>> carrito) async {
+    await Supabase.instance.client
+        .from('carritos')
+        .upsert({'email': email, 'carrito': carrito});
   }
 
   void agregarProducto(Map<String, dynamic> producto) {
@@ -61,19 +60,19 @@ class CarritoProvider extends ChangeNotifier {
     } else {
       _carrito.add(Map<String, dynamic>.from(producto));
     }
-    _updateCarritoDb();
+    actualizarCarrito(_userEmail!, _carrito);
     notifyListeners();
   }
 
   void eliminarProducto(int index) {
     _carrito.removeAt(index);
-    _updateCarritoDb();
+    actualizarCarrito(_userEmail!, _carrito);
     notifyListeners();
   }
 
   void limpiarCarrito() {
     _carrito.clear();
-    _updateCarritoDb();
+    actualizarCarrito(_userEmail!, _carrito);
     notifyListeners();
   }
 
@@ -83,7 +82,7 @@ class CarritoProvider extends ChangeNotifier {
       if (_carrito[index]['cantidad'] < 1) {
         _carrito[index]['cantidad'] = 1;
       }
-      _updateCarritoDb();
+      actualizarCarrito(_userEmail!, _carrito);
       notifyListeners();
     }
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 
 // dashboard_screen.dart - Pantalla principal del administrador
 // Muestra métricas clave, permite gestionar usuarios, negocios y pedidos, y poblar Firestore con datos de ejemplo.
@@ -151,7 +151,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   ];
                   try {
                     for (final negocio in negocios) {
-                      final docRef = await FirebaseFirestore.instance.collection('negocios').add({
+                      final docRef = await Supabase.instance.client.from('negocios').insert({
                         "nombre": negocio["nombre"],
                         "direccion": negocio["direccion"],
                         "img": negocio["img"],
@@ -159,7 +159,7 @@ class AdminDashboardScreen extends StatelessWidget {
                       });
                       final menu = negocio["menu"] as List;
                       for (final producto in menu) {
-                        await docRef.collection('menu').add(producto);
+                        await Supabase.instance.client.from('menu').insert(producto);
                       }
                     }
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -195,18 +195,15 @@ class AdminDashboardScreen extends StatelessWidget {
                     },
                   ];
                   try {
-                    final batch = FirebaseFirestore.instance.batch();
                     for (final cliente in clientes) {
-                      final doc = FirebaseFirestore.instance.collection('usuarios').doc(cliente['email'] as String);
-                      batch.set(doc, cliente);
+                      await Supabase.instance.client.from('usuarios').insert(cliente);
                     }
-                    await batch.commit();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Clientes demo agregados correctamente.')),
+                      const SnackBar(content: Text('Usuarios demo agregados')),
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al agregar clientes: $e')),
+                      SnackBar(content: Text('Error: $e')),
                     );
                   }
                 },
@@ -216,6 +213,20 @@ class AdminDashboardScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Obtiene métricas y datos de Supabase para el dashboard
+  Future<int> contarUsuarios() async {
+    final data = await Supabase.instance.client.from('usuarios').select();
+    return data.length;
+  }
+  Future<int> contarNegocios() async {
+    final data = await Supabase.instance.client.from('negocios').select();
+    return data.length;
+  }
+  Future<int> contarPedidos() async {
+    final data = await Supabase.instance.client.from('pedidos').select();
+    return data.length;
   }
 }
 // Fin de dashboard_screen.dart

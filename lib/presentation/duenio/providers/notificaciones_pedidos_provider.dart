@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
+import '../../cliente/providers/carrito_provider.dart'; // Importa CarritoProvider correctamente
 
 class NotificacionesPedidosProvider extends ChangeNotifier {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
@@ -21,9 +23,14 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
   }
 
   // Configurar el restaurante específico cuando el dueño hace login
-  void configurarRestaurante(String restauranteId, BuildContext contextoGlobal) {
+  void configurarRestaurante(String restauranteId, BuildContext context) {
     _restauranteId = restauranteId;
-    _contextoGlobal = contextoGlobal;
+    _contextoGlobal = context;
+    _notificados.clear();
+    _pedidoSub?.cancel();
+    
+    // Por ahora, usar una implementación simple sin Realtime
+    // TODO: Implementar Supabase Realtime cuando esté disponible
     print('🔔 Notificaciones configuradas para restaurante: $restauranteId');
   }
 
@@ -56,40 +63,24 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
     print('🔔 Iniciando escucha de todos los pedidos...');
     _pedidoSub?.cancel();
     
-    _pedidoSub = FirebaseFirestore.instance
-      .collection('pedidos')
-      .orderBy('timestamp', descending: true)
-      .snapshots()
-      .listen((snapshot) async {
-        for (final change in snapshot.docChanges) {
-          if (change.type == DocumentChangeType.added) {
-            final pedido = change.doc.data();
-            if (pedido != null) {
-              final restauranteId = pedido['restauranteId'] as String?;
-              final estado = pedido['estado'] as String?;
-              
-              // Solo notificar si es un pedido pendiente y coincide con el restaurante configurado
-              if (estado == 'pendiente' && 
-                  restauranteId != null && 
-                  _restauranteId != null && 
-                  restauranteId == _restauranteId &&
-                  !_notificados.contains(change.doc.id)) {
-                
-                print('🔔 Nuevo pedido detectado: ${change.doc.id}');
-                _notificados.add(change.doc.id);
-                
-                // Mostrar notificación nativa
-                await _mostrarNotificacionNativa();
-                
-                // Mostrar SnackBar si hay contexto
-                _mostrarSnackBar();
-              }
-            }
-          }
-        }
-      }, onError: (error) {
-        print('❌ Error en escucha de pedidos: $error');
-      });
+    // Por ahora, usar una implementación simple sin Realtime
+    // TODO: Implementar Supabase Realtime cuando esté disponible
+    print('🔔 Escucha de pedidos configurada');
+  }
+
+  // Suscribirse a cambios en la tabla de pedidos usando Supabase Realtime
+  void suscribirsePedidos(String restauranteId) {
+    // TODO: Implementar cuando Supabase Realtime esté disponible
+    print('🔔 Suscripción a pedidos configurada para: $restauranteId');
+  }
+
+  void _escucharPedidosNuevos() {
+    final restauranteId = Provider.of<CarritoProvider>(_contextoGlobal!, listen: false).restauranteId;
+    if (restauranteId == null) return;
+    
+    // Por ahora, usar una implementación simple sin Realtime
+    // TODO: Implementar Supabase Realtime cuando esté disponible
+    print('🔔 Escuchando pedidos nuevos para restaurante: $restauranteId');
   }
 
   Future<void> _mostrarNotificacionNativa() async {

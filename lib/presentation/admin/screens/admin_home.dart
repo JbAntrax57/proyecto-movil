@@ -1,38 +1,53 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
 
+  // Obtiene los usuarios desde Supabase
+  Future<List<Map<String, dynamic>>> obtenerUsuarios() async {
+    final data = await Supabase.instance.client.from('usuarios').select();
+    return List<Map<String, dynamic>>.from(data);
+  }
+  // Actualiza un usuario en Supabase
+  Future<void> actualizarUsuario(String email, Map<String, dynamic> datos) async {
+    await Supabase.instance.client
+        .from('usuarios')
+        .update(datos)
+        .eq('email', email);
+  }
+
   Future<void> _agregarClientesDemo(BuildContext context) async {
+    final clientes = [
+      {
+        'email': 'cliente1@demo.com',
+        'password': '1234',
+        'nombre': 'Juan Pérez',
+        'rol': 'cliente',
+        'telefono': '123456789',
+        'direccion': 'Calle Principal 123',
+        'fechaRegistro': DateTime.now().toIso8601String(),
+      },
+      {
+        'email': 'cliente2@demo.com',
+        'password': '1234',
+        'nombre': 'María García',
+        'rol': 'cliente',
+        'telefono': '987654321',
+        'direccion': 'Avenida Central 456',
+        'fechaRegistro': DateTime.now().toIso8601String(),
+      },
+    ];
     try {
-      // Lógica para agregar clientes demo
-      final clientes = [
-        {
-          'email': 'cliente1@demo.com',
-          'password': '1234',
-          'nombre': 'Cliente Demo 1',
-          'rol': 'Cliente',
-          'carrito': [],
-        },
-        {
-          'email': 'cliente2@demo.com',
-          'password': '1234',
-          'nombre': 'Cliente Demo 2',
-          'rol': 'Cliente',
-          'carrito': [],
-        },
-      ];
       for (final cliente in clientes) {
-        final doc = FirebaseFirestore.instance.collection('usuarios').doc(cliente['email'] as String);
-        await doc.set(cliente);
+        await Supabase.instance.client.from('usuarios').insert(cliente);
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Clientes demo agregados correctamente.')),
+        const SnackBar(content: Text('Clientes demo agregados')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al agregar clientes: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }

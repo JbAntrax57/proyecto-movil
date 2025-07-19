@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'pedidos_screen.dart';
 import 'menu_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../cliente/providers/carrito_provider.dart';
 import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
+import '../providers/notificaciones_pedidos_provider.dart'; // Importa el provider de notificaciones
 
 /// dashboard_screen.dart - Pantalla principal (dashboard) para el dueño
 /// Muestra un menú con las opciones principales para la gestión del restaurante.
@@ -25,6 +26,7 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
   void initState() {
     super.initState();
     _initNotifications();
+    _configurarNotificaciones(); // Llamar a la nueva función
     WidgetsBinding.instance.addPostFrameCallback((_) => _escucharPedidosNuevos());
   }
 
@@ -58,27 +60,41 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
   void _escucharPedidosNuevos() {
     final restauranteId = Provider.of<CarritoProvider>(context, listen: false).restauranteId;
     if (restauranteId == null) return;
-    _pedidoSub = FirebaseFirestore.instance
-      .collection('pedidos')
-      .where('restauranteId', isEqualTo: restauranteId)
-      .where('estado', isEqualTo: 'pendiente')
-      .orderBy('timestamp', descending: true)
-      .snapshots()
-      .listen((snapshot) async {
-        for (final doc in snapshot.docs) {
-          if (!_notificados.contains(doc.id)) {
-            _notificados.add(doc.id);
-            // Mostrar notificación visual
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('¡Nuevo pedido recibido!')),
-              );
-            }
-            // Notificación nativa con sonido del sistema
-            await _notificarNuevoPedido();
-          }
-        }
-      });
+    
+    // Por ahora, usar una implementación simple sin streams
+    // TODO: Implementar Supabase Realtime cuando esté disponible
+    print('🔔 Escuchando pedidos nuevos para restaurante: $restauranteId');
+  }
+
+  void _configurarNotificaciones() {
+    final restauranteId = Provider.of<CarritoProvider>(context, listen: false).restauranteId;
+    if (restauranteId == null) return;
+    
+    // Configurar notificaciones para el restaurante específico
+    context.read<NotificacionesPedidosProvider>().configurarRestaurante(restauranteId, context);
+  }
+
+  // Obtiene métricas y datos de Supabase para el dashboard
+  Future<int> contarUsuarios() async {
+    final data = await Supabase.instance.client.from('usuarios').select();
+    return data.length;
+  }
+  Future<int> contarNegocios() async {
+    final data = await Supabase.instance.client.from('negocios').select();
+    return data.length;
+  }
+  Future<int> contarPedidos() async {
+    final data = await Supabase.instance.client.from('pedidos').select();
+    return data.length;
+  }
+
+  // Agrega un negocio demo usando Supabase
+  Future<void> agregarNegocioDemo(Map<String, dynamic> negocio) async {
+    await Supabase.instance.client.from('negocios').insert(negocio);
+  }
+  // Agrega un usuario demo usando Supabase
+  Future<void> agregarUsuarioDemo(Map<String, dynamic> usuario) async {
+    await Supabase.instance.client.from('usuarios').insert(usuario);
   }
 
   @override

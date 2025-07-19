@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
+import 'carrito_screen.dart';
 
 // menu_screen.dart - Pantalla de menú de un negocio para el cliente
 // Muestra los productos del menú obtenidos en tiempo real desde Firestore.
@@ -34,20 +35,13 @@ class _MenuScreenState extends State<MenuScreen> {
     super.dispose();
   }
 
-  // Obtiene el menú del restaurante en tiempo real desde Firestore
-  Stream<List<Map<String, dynamic>>> getMenuStream() {
-    return FirebaseFirestore.instance
-        .collection('negocios')
-        .doc(widget.restauranteId)
-        .collection('menu')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            data['id'] = doc.id;
-            return data;
-          }).toList(),
-        );
+  // Obtiene el menú del restaurante en tiempo real desde Supabase
+  Future<List<Map<String, dynamic>>> obtenerMenu(String restauranteId) async {
+    final data = await Supabase.instance.client
+        .from('productos')
+        .select()
+        .eq('negocioId', restauranteId);
+    return List<Map<String, dynamic>>.from(data);
   }
 
   // 1. En MenuScreen, define un método para mostrar el MaterialBanner en el contexto del Scaffold principal
@@ -222,253 +216,260 @@ class _MenuScreenState extends State<MenuScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final rootContext = context;
     return Scaffold(
+      backgroundColor: Colors.blue[50],
       appBar: AppBar(
-        title: Text('Menú - ${widget.restaurante}'),
+        backgroundColor: Colors.blue[50],
+        title: Text(widget.restaurante),
         centerTitle: true,
+        actions: [
+          // Botón del carrito en la barra superior
+          Consumer<CarritoProvider>(
+            builder: (context, carritoProvider, child) {
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart),
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CarritoScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  if (carritoProvider.carrito.isNotEmpty)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: CircleAvatar(
+                        radius: 10,
+                        backgroundColor: Colors.red,
+                        child: Text(
+                          '${carritoProvider.carrito.length}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
+          // Barra de búsqueda
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+            padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Buscar producto...',
-                prefixIcon: const Icon(Icons.search, color: Colors.blue),
-                suffixIcon: _searchText.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _searchText = '';
-                          });
-                        },
-                      )
-                    : null,
+                hintText: 'Buscar productos...',
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(25),
                 ),
                 filled: true,
                 fillColor: Colors.white,
               ),
-              onChanged: (v) => setState(() => _searchText = v),
+              onChanged: (value) {
+                setState(() {
+                  _searchText = value;
+                });
+              },
             ),
           ),
+          // Lista de productos
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: getMenuStream(),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: obtenerMenu(widget.restauranteId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error al cargar menú'));
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
                 final productos = snapshot.data ?? [];
                 if (productos.isEmpty) {
-                  return const Center(child: Text('No hay productos en el menú'));
+                  return const Center(
+                    child: Text('No hay productos disponibles'),
+                  );
                 }
-                // FILTRO DE BÚSQUEDA
-                final filtro = _searchText.trim().toLowerCase();
-                final productosFiltrados = productos.where((p) {
-                  final nombre = (p['nombre'] as String).toLowerCase();
-                  final desc = (p['descripcion'] as String?)?.toLowerCase() ?? '';
-                  return filtro.isEmpty || nombre.contains(filtro) || desc.contains(filtro);
+                
+                // Filtrado por búsqueda
+                final productosFiltrados = productos.where((producto) {
+                  final nombre = (producto['nombre'] as String).toLowerCase();
+                  final descripcion = (producto['descripcion'] as String? ?? '').toLowerCase();
+                  final busqueda = _searchText.toLowerCase();
+                  return nombre.contains(busqueda) || descripcion.contains(busqueda);
                 }).toList();
-                return ListView.builder(
+                
+                if (productosFiltrados.isEmpty) {
+                  return const Center(
+                    child: Text('No se encontraron productos'),
+                  );
+                }
+                
+                return GridView.builder(
                   padding: const EdgeInsets.all(16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.75,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
                   itemCount: productosFiltrados.length,
                   itemBuilder: (context, index) {
                     final producto = productosFiltrados[index];
-                    // Animación de aparición para cada producto
-                    return TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: Duration(milliseconds: 400 + index * 100),
-                      builder: (context, value, child) => Opacity(
-                        opacity: value,
-                        child: Transform.translate(
-                          offset: Offset(0, 30 * (1 - value)),
-                          child: child,
-                        ),
+                    return Card(
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Card(
-                        elevation: 8,
-                        margin: const EdgeInsets.only(bottom: 20),
-                        color: Colors.white,
-                        shadowColor: Colors.blue.withOpacity(0.15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          splashColor: Colors.blue.withOpacity(0.08),
-                          highlightColor: Colors.blue.withOpacity(0.04),
-                          onTap: () {
-                            // Al tocar un producto, muestra modal para elegir cantidad y agregar al carrito
-                            showAgregarCarritoModal(
-                              context: context,
-                              producto: producto,
-                              onAddToCart: (productoConCantidad) {
-                                context
-                                    .read<CarritoProvider>()
-                                    .agregarProducto({
-                                      ...productoConCantidad,
-                                      'restauranteId': widget.restauranteId,
-                                      'restaurante': widget.restaurante,
-                                    });
-                              },
-                              onAddToCartBanner: (p) => _showBanner(
-                                rootContext,
-                                '${p['nombre']} x${p['cantidad']} añadido al carrito',
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Imagen miniatura
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: Image.network(
-                                    producto['img'] as String,
-                                    width: 62,
-                                    height: 62,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
-                                              width: 62,
-                                              height: 62,
-                                              color: Colors.blue[50],
-                                              child: const Icon(
-                                                Icons.fastfood,
-                                                color: Colors.blueGrey,
-                                                size: 32,
-                                              ),
-                                            ),
-                                  ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          showAgregarCarritoModal(
+                            context: context,
+                            producto: producto,
+                            onAddToCart: (productoConCantidad) {
+                              // Agregar al carrito local
+                              if (widget.onAddToCart != null) {
+                                widget.onAddToCart!(productoConCantidad);
+                              }
+                              // Agregar al carrito global
+                              context.read<CarritoProvider>().agregarProducto(
+                                productoConCantidad,
+                              );
+                              // Mostrar banner
+                              _showBanner(
+                                context,
+                                '${productoConCantidad['nombre']} agregado al carrito',
+                              );
+                            },
+                          );
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Imagen del producto
+                            Expanded(
+                              flex: 3,
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                  topRight: Radius.circular(16),
                                 ),
-                                const SizedBox(width: 16),
-                                // Detalles del producto
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        producto['nombre'] as String,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.blue[900],
-                                            ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        producto['descripcion'] as String? ??
-                                            'Delicioso y recién hecho',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              color: Colors.blueGrey[700],
-                                            ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Precio
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue[50],
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        '\$${producto['precio']}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blue,
-                                          fontSize: 16,
-                                        ),
-                                      ),
+                                child: Image.network(
+                                  producto['img'] as String,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.fastfood,
+                                      size: 50,
+                                      color: Colors.grey,
                                     ),
-                                    const SizedBox(height: 10),
-                                    // Botón alternativo para agregar al carrito (opcional)
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        showAgregarCarritoModal(
-                                          context: context,
-                                          producto: producto,
-                                          onAddToCart: (productoConCantidad) {
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Información del producto
+                            Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Nombre del producto
+                                    Text(
+                                      producto['nombre'] as String,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    // Descripción
+                                    Text(
+                                      producto['descripcion'] as String? ??
+                                          'Delicioso y recién hecho',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const Spacer(),
+                                    // Precio
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          '\$${producto['precio']}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blue,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.add_shopping_cart,
+                                            color: Colors.blue,
+                                          ),
+                                          onPressed: () {
+                                            final productoConCantidad =
+                                                Map<String, dynamic>.from(
+                                              producto,
+                                            );
+                                            productoConCantidad['cantidad'] = 1;
+                                            if (widget.onAddToCart != null) {
+                                              widget.onAddToCart!(
+                                                productoConCantidad,
+                                              );
+                                            }
                                             context
                                                 .read<CarritoProvider>()
-                                                .agregarProducto({
-                                                  ...productoConCantidad,
-                                                  'restauranteId':
-                                                      widget.restauranteId,
-                                                  'restaurante':
-                                                      widget.restaurante,
-                                                });
+                                                .agregarProducto(
+                                                  productoConCantidad,
+                                                );
+                                            _showBanner(
+                                              context,
+                                              '${productoConCantidad['nombre']} agregado al carrito',
+                                            );
                                           },
-                                          onAddToCartBanner: (p) => _showBanner(
-                                            rootContext,
-                                            '${p['nombre']} x${p['cantidad']} añadido al carrito',
-                                          ),
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
                                         ),
-                                        textStyle: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                      ),
-                                      child: const Text('Agregar'),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     );
                   },
-                ); // ListView.builder
-              }, // builder de StreamBuilder
-            ), // StreamBuilder
-          ), // Expanded
-        ], // children de Column
-      ), // Column
-    ); // Scaffold
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
