@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../cliente/providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/services.dart'; // Para personalizar la status bar
 
 class DuenioPedidosScreen extends StatefulWidget {
   const DuenioPedidosScreen({super.key});
@@ -15,6 +16,17 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
   List<Map<String, dynamic>> _pedidos = [];
   bool _isLoading = true;
   String? _error;
+  String? _filtroEstado; // Estado seleccionado para filtrar
+
+  // Lista de estados para los badges
+  final List<Map<String, dynamic>> _estados = [
+    {'label': 'Pendiente', 'color': Colors.orange},
+    {'label': 'Preparando', 'color': Colors.blue},
+    {'label': 'En camino', 'color': Colors.purple},
+    {'label': 'Listo', 'color': Colors.green},
+    {'label': 'Entregado', 'color': Colors.teal},
+    {'label': 'Cancelado', 'color': Colors.red},
+  ];
 
   @override
   void initState() {
@@ -103,7 +115,10 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
   }
 
   // Actualiza el estado de un pedido en Supabase
-  Future<void> _actualizarEstadoPedido(String pedidoId, String nuevoEstado) async {
+  Future<void> _actualizarEstadoPedido(
+    String pedidoId,
+    String nuevoEstado,
+  ) async {
     await Supabase.instance.client
         .from('pedidos')
         .update({'estado': nuevoEstado})
@@ -112,332 +127,463 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.blue[50],
-        appBar: AppBar(
-      backgroundColor: Colors.blue[50],
-          title: const Text('Pedidos del negocio'),
-          centerTitle: true,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _cargarPedidos,
-              tooltip: 'Actualizar',
-            ),
-          ],
-        ),
-        body: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                ),
-              )
-            : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.blue[50], // Fondo azul claro para la status bar
+        statusBarIconBrightness: Brightness.dark, // Iconos oscuros
+      ),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.blue[50],
+          appBar: AppBar(
+            backgroundColor: Colors.blue[50],
+            title: const Text('Pedidos del negocio'),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _cargarPedidos,
+                tooltip: 'Actualizar',
+              ),
+            ],
+          ),
+          body: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  ),
+                )
+              : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error al cargar pedidos',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _error!,
+                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _cargarPedidos,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
+                )
+              : _pedidos.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.receipt_long,
+                        size: 80,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No hay pedidos aún',
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Cuando recibas pedidos aparecerán aquí',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[500]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
                   children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error al cargar pedidos',
-                          style: TextStyle(
-                              fontSize: 18,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                                          const SizedBox(height: 8),
-                        Text(
-                          _error!,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _cargarPedidos,
-                          child: const Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  )
-                : _pedidos.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.receipt_long,
-                              size: 80,
-                              color: Colors.grey[400],
+                    // Fila de badges para filtrar por estado
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _estados.map((estado) {
+                          final selected = _filtroEstado == estado['label'];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 10,
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No hay pedidos aún',
-                              style: TextStyle(
-                                fontSize: 20,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
+                            child: ChoiceChip(
+                              label: Text(estado['label']),
+                              selected: selected,
+                              selectedColor: (estado['color'] as Color)
+                                  .withOpacity(0.18),
+                              backgroundColor: Colors.white,
+                              labelStyle: TextStyle(
+                                color: selected
+                                    ? estado['color'] as Color
+                                    : Colors.black87,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Cuando recibas pedidos aparecerán aquí',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _cargarPedidos,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _pedidos.length,
-                          itemBuilder: (context, index) {
-                            final pedido = _pedidos[index];
-                            final productos = List<Map<String, dynamic>>.from(
-                              pedido['productos'] ?? [],
-                            );
-                            final total = productos.fold<double>(
-                              0,
-                              (sum, producto) {
-                                final precio = double.tryParse(
-                                  producto['precio']?.toString() ?? '0',
-                                ) ?? 0;
-                                final cantidad = int.tryParse(
-                                  producto['cantidad']?.toString() ?? '1',
-                                ) ?? 1;
-                                return sum + (precio * cantidad);
+                              onSelected: (_) {
+                                setState(() {
+                                  _filtroEstado = selected
+                                      ? null
+                                      : estado['label'] as String;
+                                });
                               },
-                            );
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    // Lista filtrada de pedidos
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount:
+                            (_filtroEstado == null
+                                    ? _pedidos
+                                    : _pedidos
+                                          .where(
+                                            (p) =>
+                                                (p['estado'] ?? '')
+                                                    .toLowerCase() ==
+                                                _filtroEstado!.toLowerCase(),
+                                          )
+                                          .toList())
+                                .length,
+                        itemBuilder: (context, index) {
+                          final pedidosFiltrados = _filtroEstado == null
+                              ? _pedidos
+                              : _pedidos
+                                    .where(
+                                      (p) =>
+                                          (p['estado'] ?? '').toLowerCase() ==
+                                          _filtroEstado!.toLowerCase(),
+                                    )
+                                    .toList();
+                          final pedido = pedidosFiltrados[index];
+                          final productos = List<Map<String, dynamic>>.from(
+                            pedido['productos'] ?? [],
+                          );
+                          final total = productos.fold<double>(0, (
+                            sum,
+                            producto,
+                          ) {
+                            final precio =
+                                double.tryParse(
+                                  producto['precio']?.toString() ?? '0',
+                                ) ??
+                                0;
+                            final cantidad =
+                                int.tryParse(
+                                  producto['cantidad']?.toString() ?? '1',
+                                ) ??
+                                1;
+                            return sum + (precio * cantidad);
+                          });
 
-                            return Card(
-                              elevation: 4,
-                              margin: const EdgeInsets.only(bottom: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                    // Header con estado y fecha
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
+                          return Card(
+                            elevation: 4,
+                            margin: const EdgeInsets.only(bottom: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Header con estado y fecha
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _getEstadoColor(
+                                            pedido['estado']?.toString() ??
+                                                'pendiente',
+                                          ).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
                                           ),
-                                          decoration: BoxDecoration(
+                                          border: Border.all(
                                             color: _getEstadoColor(
-                                              pedido['estado']?.toString() ?? 'pendiente',
-                                            ).withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(20),
-                                            border: Border.all(
-                                              color: _getEstadoColor(
-                                                pedido['estado']?.toString() ?? 'pendiente',
-                                              ),
+                                              pedido['estado']?.toString() ??
+                                                  'pendiente',
                                             ),
                                           ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                _getEstadoIcon(
-                                                  pedido['estado']?.toString() ?? 'pendiente',
-                                                ),
-                                                size: 16,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              _getEstadoIcon(
+                                                pedido['estado']?.toString() ??
+                                                    'pendiente',
+                                              ),
+                                              size: 16,
+                                              color: _getEstadoColor(
+                                                pedido['estado']?.toString() ??
+                                                    'pendiente',
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              pedido['estado']
+                                                      ?.toString()
+                                                      .toUpperCase() ??
+                                                  'PENDIENTE',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
                                                 color: _getEstadoColor(
-                                                  pedido['estado']?.toString() ?? 'pendiente',
+                                                  pedido['estado']
+                                                          ?.toString() ??
+                                                      'pendiente',
                                                 ),
                                               ),
-                                              const SizedBox(width: 4),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        _formatearFecha(
+                                          pedido['created_at']?.toString() ??
+                                              '',
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Productos
+                                  Text(
+                                    'Productos:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ...productos
+                                      .take(3)
+                                      .map(
+                                        (producto) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 4,
+                                          ),
+                                          child: Row(
+                                            children: [
                                               Text(
-                                                pedido['estado']?.toString().toUpperCase() ?? 'PENDIENTE',
+                                                '• ${producto['nombre']?.toString() ?? 'Sin nombre'}',
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              Text(
+                                                'x${producto['cantidad']?.toString() ?? '1'}',
                                                 style: TextStyle(
                                                   fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: _getEstadoColor(
-                                                    pedido['estado']?.toString() ?? 'pendiente',
-                                                  ),
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                  if (productos.length > 3)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        '... y ${productos.length - 3} más',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ),
+
+                                  const SizedBox(height: 12),
+                                  const Divider(),
+
+                                  // Total y ubicación
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Total: \$${total.toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                          if (pedido['direccion_entrega'] !=
+                                              null)
+                                            SizedBox(
+                                              width: 200,
+                                              child: Text(
+                                                '📍 ${pedido['direccion_entrega']}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                         ],
                                       ),
-                                    ),
-                                        Text(
-                                          _formatearFecha(
-                                            pedido['created_at']?.toString() ?? '',
-                                          ),
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-
-                                    // Productos
-                                    Text(
-                                      'Productos:',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.grey[700],
-                                      ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                    ...productos.take(3).map((producto) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Row(
-                                                children: [
-                                          Text(
-                                            '• ${producto['nombre']?.toString() ?? 'Sin nombre'}',
-                                            style: const TextStyle(fontSize: 14),
-                                          ),
-                                          const Spacer(),
-                                          Text(
-                                            'x${producto['cantidad']?.toString() ?? '1'}',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                    )),
-                                    if (productos.length > 3)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Text(
-                                          '... y ${productos.length - 3} más',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                        ),
-                                      ),
-
-                                    const SizedBox(height: 12),
-                                    const Divider(),
-
-                                    // Total y ubicación
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Total: \$${total.toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: Colors.blue,
-                                              ),
-                                            ),
-                                            if (pedido['direccion_entrega'] != null)
-                                              SizedBox(
-                                                width: 200,
-                                                child: Text(
-                                                  '📍 ${pedido['direccion_entrega']}',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.info_outline),
-                                          onPressed: () {
-                                            _mostrarDetallesPedido(pedido);
-                                          },
-                                          tooltip: 'Ver detalles',
-                                        ),
-                                      ],
-                                    ),
-
-                                    // Botón para cambiar estado debajo de la card
-                                    const SizedBox(height: 16),
-                                    Center(
-                                      child: ElevatedButton.icon(
-                                        icon: const Icon(Icons.edit),
-                                        label: const Text('Cambiar estado'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                        ),
-                                        onPressed: () async {
-                                          final nuevoEstado = await showModalBottomSheet<String>(
-                                            context: context,
-                                            shape: const RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                                            ),
-                                            builder: (context) {
-                                              final estados = [
-                                                'pendiente',
-                                                'preparando',
-                                                'en camino',
-                                                'entregado',
-                                                'cancelado',
-                                              ];
-                                              return Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const SizedBox(height: 16),
-                                                  const Text('Selecciona el nuevo estado', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                                  const SizedBox(height: 12),
-                                                  ...estados.map((estado) => ListTile(
-                                                        leading: Icon(_getEstadoIcon(estado), color: _getEstadoColor(estado)),
-                                                        title: Text(estado.toUpperCase()),
-                                                        onTap: () => Navigator.pop(context, estado),
-                                                      )),
-                                                  const SizedBox(height: 16),
-                                                ],
-                                              );
-                                            },
-                                          );
-                                          if (nuevoEstado != null && nuevoEstado != pedido['estado']) {
-                                            await _actualizarEstadoPedido(pedido['id'].toString(), nuevoEstado);
-                                            _cargarPedidos(); // Refresca la lista
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Estado actualizado a $nuevoEstado')),
-                                            );
-                                          }
+                                      IconButton(
+                                        icon: const Icon(Icons.info_outline),
+                                        onPressed: () {
+                                          _mostrarDetallesPedido(pedido);
                                         },
+                                        tooltip: 'Ver detalles',
                                       ),
+                                    ],
+                                  ),
+
+                                  // Botón para cambiar estado debajo de la card
+                                  const SizedBox(height: 16),
+                                  Center(
+                                    child: ElevatedButton.icon(
+                                      icon: const Icon(Icons.edit),
+                                      label: const Text('Cambiar estado'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      onPressed: () async {
+                                        final nuevoEstado =
+                                            await showModalBottomSheet<String>(
+                                              context: context,
+                                              shape:
+                                                  const RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.vertical(
+                                                          top: Radius.circular(
+                                                            24,
+                                                          ),
+                                                        ),
+                                                  ),
+                                              builder: (context) {
+                                                final estados = [
+                                                  'pendiente',
+                                                  'preparando',
+                                                  'en camino',
+                                                  'entregado',
+                                                  'cancelado',
+                                                ];
+                                                return Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    const SizedBox(height: 16),
+                                                    const Text(
+                                                      'Selecciona el nuevo estado',
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    ...estados.map(
+                                                      (estado) => ListTile(
+                                                        leading: Icon(
+                                                          _getEstadoIcon(
+                                                            estado,
+                                                          ),
+                                                          color:
+                                                              _getEstadoColor(
+                                                                estado,
+                                                              ),
+                                                        ),
+                                                        title: Text(
+                                                          estado.toUpperCase(),
+                                                        ),
+                                                        onTap: () =>
+                                                            Navigator.pop(
+                                                              context,
+                                                              estado,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                        if (nuevoEstado != null &&
+                                            nuevoEstado != pedido['estado']) {
+                                          await _actualizarEstadoPedido(
+                                            pedido['id'].toString(),
+                                            nuevoEstado,
+                                          );
+                                          _cargarPedidos(); // Refresca la lista
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Estado actualizado a $nuevoEstado',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
                       ),
+                    ),
+                  ],
+                ),
+        ),
       ),
-    ); // <-- Paréntesis de cierre añadido
+    ); // Paréntesis de cierre para AnnotatedRegion y método build
   }
 
   // Mostrar detalles completos del pedido
@@ -452,18 +598,13 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
         final productos = List<Map<String, dynamic>>.from(
           pedido['productos'] ?? [],
         );
-        final total = productos.fold<double>(
-          0,
-          (sum, producto) {
-            final precio = double.tryParse(
-              producto['precio']?.toString() ?? '0',
-            ) ?? 0;
-            final cantidad = int.tryParse(
-              producto['cantidad']?.toString() ?? '1',
-            ) ?? 1;
-            return sum + (precio * cantidad);
-          },
-        );
+        final total = productos.fold<double>(0, (sum, producto) {
+          final precio =
+              double.tryParse(producto['precio']?.toString() ?? '0') ?? 0;
+          final cantidad =
+              int.tryParse(producto['cantidad']?.toString() ?? '1') ?? 1;
+          return sum + (precio * cantidad);
+        });
 
         return Padding(
           padding: EdgeInsets.only(
@@ -482,11 +623,22 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(_getEstadoIcon(pedido['estado']?.toString() ?? 'pendiente'), color: _getEstadoColor(pedido['estado']?.toString() ?? 'pendiente'), size: 28),
+                        Icon(
+                          _getEstadoIcon(
+                            pedido['estado']?.toString() ?? 'pendiente',
+                          ),
+                          color: _getEstadoColor(
+                            pedido['estado']?.toString() ?? 'pendiente',
+                          ),
+                          size: 28,
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           'Detalles del Pedido',
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -499,20 +651,43 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                 const SizedBox(height: 10),
                 // Estado visual
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
-                    color: _getEstadoColor(pedido['estado']?.toString() ?? 'pendiente').withOpacity(0.12),
+                    color: _getEstadoColor(
+                      pedido['estado']?.toString() ?? 'pendiente',
+                    ).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _getEstadoColor(pedido['estado']?.toString() ?? 'pendiente')),
+                    border: Border.all(
+                      color: _getEstadoColor(
+                        pedido['estado']?.toString() ?? 'pendiente',
+                      ),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(_getEstadoIcon(pedido['estado']?.toString() ?? 'pendiente'), size: 18, color: _getEstadoColor(pedido['estado']?.toString() ?? 'pendiente')),
+                      Icon(
+                        _getEstadoIcon(
+                          pedido['estado']?.toString() ?? 'pendiente',
+                        ),
+                        size: 18,
+                        color: _getEstadoColor(
+                          pedido['estado']?.toString() ?? 'pendiente',
+                        ),
+                      ),
                       const SizedBox(width: 6),
                       Text(
-                        pedido['estado']?.toString().toUpperCase() ?? 'PENDIENTE',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: _getEstadoColor(pedido['estado']?.toString() ?? 'pendiente')),
+                        pedido['estado']?.toString().toUpperCase() ??
+                            'PENDIENTE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _getEstadoColor(
+                            pedido['estado']?.toString() ?? 'pendiente',
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -521,7 +696,11 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                 // Fecha
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Fecha: ${_formatearFecha(pedido['created_at']?.toString() ?? '')}',
@@ -531,64 +710,92 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                 ),
                 const SizedBox(height: 18),
                 // Productos
-                const Text('Productos:', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Productos:',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
-                ...productos.map((producto) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Imagen del producto si hay
-                      if (producto['img'] != null && producto['img'].toString().isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            producto['img'],
-                            width: 38,
-                            height: 38,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
+                ...productos.map(
+                  (producto) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Imagen del producto si hay
+                        if (producto['img'] != null &&
+                            producto['img'].toString().isNotEmpty)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              producto['img'],
                               width: 38,
                               height: 38,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    color: Colors.grey[200],
+                                    child: const Icon(
+                                      Icons.fastfood,
+                                      color: Colors.grey,
+                                      size: 20,
+                                    ),
+                                  ),
+                            ),
+                          )
+                        else
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
                               color: Colors.grey[200],
-                              child: const Icon(Icons.fastfood, color: Colors.grey, size: 20),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.fastfood,
+                              color: Colors.grey,
+                              size: 20,
                             ),
                           ),
-                        )
-                      else
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            producto['nombre']?.toString() ?? 'Sin nombre',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                          child: const Icon(Icons.fastfood, color: Colors.grey, size: 20),
                         ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          producto['nombre']?.toString() ?? 'Sin nombre',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                        Text(
+                          'x${producto['cantidad']?.toString() ?? '1'}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'x${producto['cantidad']?.toString() ?? '1'}',
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        '\$${double.tryParse(producto['precio']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.green),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Text(
+                          '\$${double.tryParse(producto['precio']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )),
+                ),
                 const SizedBox(height: 18),
                 // Total destacado
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 18,
+                  ),
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.blue[50],
@@ -597,43 +804,69 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Total:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Total:',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       Text(
                         '\$${total.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 // Ubicación
-                if (pedido['direccion_entrega'] != null && pedido['direccion_entrega'].toString().isNotEmpty) ...[
+                if (pedido['direccion_entrega'] != null &&
+                    pedido['direccion_entrega'].toString().isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on, color: Colors.red, size: 22),
+                      const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 22,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           pedido['direccion_entrega'],
-                          style: const TextStyle(fontSize: 15, color: Colors.black87),
-            ),
-          ),
-        ],
-      ),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
                 // Referencias
-                if (pedido['referencias'] != null && pedido['referencias'].toString().isNotEmpty) ...[
+                if (pedido['referencias'] != null &&
+                    pedido['referencias'].toString().isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-                      const Icon(Icons.info_outline, color: Colors.orange, size: 22),
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: Colors.orange,
+                        size: 22,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           pedido['referencias'],
-                          style: const TextStyle(fontSize: 15, color: Colors.black87),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ],
@@ -647,4 +880,4 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
       },
     );
   }
-} 
+}
