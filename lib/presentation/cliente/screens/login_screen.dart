@@ -42,13 +42,14 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       // Consulta el usuario directamente en la tabla 'usuarios' de Supabase
+      
       final userData = await Supabase.instance.client
           .from('usuarios')
           .select()
           .eq('email', email)
           .eq('password', password)
           .single();
-      
+      print('🔐 Login: Intentando login con id: ${userData['user_id']}');
       if (userData == null) {
         setState(() {
           loading = false;
@@ -62,10 +63,11 @@ class _LoginScreenState extends State<LoginScreen> {
       final rol = (userData['rol'] as String).toLowerCase();
       
       // Si es dueño, configura el restauranteId en el provider y activa notificaciones globales
-      if (rol == 'duenio' && userData['restauranteId'] != null) {
-        context.read<CarritoProvider>().setRestauranteId(userData['restauranteId'] as String);
+      print('🔐 Login: id: ${userData['restaurante_id']}');
+      if (rol == 'duenio' && userData['restaurante_id'] != null) {
+        context.read<CarritoProvider>().setRestauranteId(userData['restaurante_id'] as String);
         context.read<NotificacionesPedidosProvider>().configurarRestaurante(
-          userData['restauranteId'] as String,
+          userData['restaurante_id'] as String,
           context,
         );
       }
@@ -77,7 +79,11 @@ class _LoginScreenState extends State<LoginScreen> {
       // Navega según el rol
       switch (rol) {
         case 'cliente':
+          print('🔐 Login: Navegando a cliente con rol: $rol');
+          print('🔐 Login: Email del usuario: $email');
+          print('🔐 Login: Usando context.go("/cliente")');
           context.go('/cliente');
+          print('🔐 Login: Navegación completada');
           break;
         case 'repartidor':
           context.go('/repartidor');

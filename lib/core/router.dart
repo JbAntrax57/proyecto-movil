@@ -4,7 +4,7 @@
 // Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
-import '../presentation/cliente/screens/negocios_screen.dart';
+import '../presentation/cliente/screens/home_screen.dart';
 import '../presentation/cliente/screens/login_screen.dart';
 import '../presentation/duenio/screens/dashboard_screen.dart';
 import '../presentation/admin/screens/admin_home.dart';
@@ -15,15 +15,26 @@ final router = GoRouter(
   routes: [
     GoRoute(
       path: '/login',
-      builder: (context, state) => const LoginScreen(),
+      builder: (context, state) {
+        print('🛣️ Router: Navegando a /login');
+        return const LoginScreen();
+      },
     ),
     GoRoute(
       path: '/cliente',
-      builder: (context, state) => const NegociosScreen(),
+      builder: (context, state) {
+        print('🛣️ Router: Navegando a /cliente - Cargando HomeScreen');
+        print('🛣️ Router: Estado de la ruta: ${state.uri}');
+        print('🛣️ Router: ⚠️ ⚠️ ⚠️ CARGANDO HOMESCREEN ⚠️ ⚠️ ⚠️');
+        return const HomeScreen();
+      },
     ),
     GoRoute(
       path: '/cliente/carrito',
-      builder: (context, state) => const CarritoScreen(),
+      builder: (context, state) {
+        print('🛣️ Router: Navegando a /cliente/carrito');
+        return const CarritoScreen();
+      },
     ),
     GoRoute(
       path: '/duenio',

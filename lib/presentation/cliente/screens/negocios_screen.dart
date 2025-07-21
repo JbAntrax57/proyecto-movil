@@ -12,8 +12,10 @@ import 'carrito_screen.dart';
 
 // Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
-  const NegociosScreen({super.key});
-  
+  final bool? showAppBar;
+
+  const NegociosScreen({super.key, this.showAppBar});
+
   @override
   State<NegociosScreen> createState() => _NegociosScreenState();
 }
@@ -29,7 +31,8 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
   // Controlador y focus para la barra de búsqueda
   final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode(); // FocusNode temporal para controlar el foco
+  final FocusNode _searchFocusNode =
+      FocusNode(); // FocusNode temporal para controlar el foco
   String _searchText = '';
 
   // Cache de datos para evitar recargas
@@ -51,7 +54,9 @@ class _NegociosScreenState extends State<NegociosScreen> {
   ];
 
   // Obtiene los negocios desde Supabase, filtrando por categoría si aplica
-  Future<List<Map<String, dynamic>>> obtenerNegocios({String? categoria}) async {
+  Future<List<Map<String, dynamic>>> obtenerNegocios({
+    String? categoria,
+  }) async {
     try {
       final query = Supabase.instance.client.from('negocios').select();
       if (categoria != null && categoria.isNotEmpty) {
@@ -68,7 +73,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
   // Cargar todos los negocios una sola vez
   Future<void> _cargarNegocios() async {
     if (_todosLosNegocios.isNotEmpty) return; // Ya están cargados
-    
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -101,7 +106,9 @@ class _NegociosScreenState extends State<NegociosScreen> {
     final noDestacados = negocios.where((n) => n['destacado'] != true);
     if (_categoriaSeleccionada != null) {
       return noDestacados
-          .where((n) => (n['categoria']?.toString() ?? '') == _categoriaSeleccionada)
+          .where(
+            (n) => (n['categoria']?.toString() ?? '') == _categoriaSeleccionada,
+          )
           .toList();
     }
     return noDestacados.toList();
@@ -111,35 +118,35 @@ class _NegociosScreenState extends State<NegociosScreen> {
   Future<void> _onRefresh() async {
     await Future.delayed(const Duration(seconds: 1));
     await _cargarNegocios(); // Recargar datos
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Negocios actualizados')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Negocios actualizados')));
   }
 
   // Agregar producto al carrito
   void _agregarAlCarrito(Map<String, dynamic> producto) {
     final productoConCantidad = Map<String, dynamic>.from(producto);
     productoConCantidad['cantidad'] = 1;
-    
+
     context.read<CarritoProvider>().agregarProducto(productoConCantidad);
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${producto['nombre']} agregado al carrito'),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
   // Mostrar modal para agregar al carrito
-  Future<void> _mostrarModalAgregarCarrito(Map<String, dynamic> producto) async {
+  Future<void> _mostrarModalAgregarCarrito(
+    Map<String, dynamic> producto,
+  ) async {
     int cantidad = 1;
-    
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -164,7 +171,8 @@ class _NegociosScreenState extends State<NegociosScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(22),
                     child: Image.network(
-                      producto['img']?.toString() ?? 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80',
+                      producto['img']?.toString() ??
+                          'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80',
                       width: 180,
                       height: 180,
                       fit: BoxFit.cover,
@@ -181,7 +189,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  
+
                   // Nombre del producto
                   Text(
                     producto['nombre']?.toString() ?? 'Sin nombre',
@@ -192,17 +200,18 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Descripción
                   Text(
-                    producto['descripcion']?.toString() ?? 'Delicioso y recién hecho',
+                    producto['descripcion']?.toString() ??
+                        'Delicioso y recién hecho',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Colors.blueGrey[700],
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Precio
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -223,7 +232,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  
+
                   // Selector de cantidad
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -235,7 +244,10 @@ class _NegociosScreenState extends State<NegociosScreen> {
                             : null,
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.blue[50],
                           borderRadius: BorderRadius.circular(8),
@@ -255,7 +267,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  
+
                   // Botón para agregar al carrito
                   SizedBox(
                     width: double.infinity,
@@ -275,16 +287,22 @@ class _NegociosScreenState extends State<NegociosScreen> {
                         ),
                       ),
                       onPressed: () {
-                        final productoConCantidad = Map<String, dynamic>.from(producto);
+                        final productoConCantidad = Map<String, dynamic>.from(
+                          producto,
+                        );
                         productoConCantidad['cantidad'] = cantidad;
-                        
-                        context.read<CarritoProvider>().agregarProducto(productoConCantidad);
-                        
+
+                        context.read<CarritoProvider>().agregarProducto(
+                          productoConCantidad,
+                        );
+
                         Navigator.pop(context);
-                        
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('${producto['nombre']} x$cantidad agregado al carrito'),
+                            content: Text(
+                              '${producto['nombre']} x$cantidad agregado al carrito',
+                            ),
                             backgroundColor: Colors.green,
                             duration: const Duration(seconds: 2),
                             behavior: SnackBarBehavior.floating,
@@ -326,114 +344,224 @@ class _NegociosScreenState extends State<NegociosScreen> {
   @override
   Widget build(BuildContext context) {
     final carrito = context.watch<CarritoProvider>().carrito;
-    
-    return Scaffold(
-      backgroundColor: Colors.blue[50],
-      appBar: AppBar(
-        backgroundColor: Colors.blue[50],
-        title: const Text('Negocios destacados'),
-        centerTitle: true,
-        actions: [
-          // Botón del carrito
-          Consumer<CarritoProvider>(
-            builder: (context, carritoProvider, child) {
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.shopping_cart, color: Colors.black87),
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CarritoScreen(),
-                        ),
-                      );
-                    },
+    final showAppBar = widget.showAppBar ?? true; // Asegurar que sea bool
+
+    return Container(
+      color: Colors
+          .blue[50], // Fondo uniforme para toda la pantalla, incluyendo el área segura superior
+      child: SafeArea(
+        top:
+            false, // Permite que el color de fondo cubra la parte superior (barra de estado)
+        child: Scaffold(
+          extendBody:
+              true, // Permite que el contenido se extienda detrás de widgets flotantes
+          backgroundColor:
+              Colors.transparent, // El fondo lo pone el Container exterior
+          appBar: showAppBar
+              ? AppBar(
+                  backgroundColor: Colors.blue[50],
+                  title: const Text('Negocios destacados'),
+                  centerTitle: true,
+                  actions: [
+                    // Botón del carrito
+                    Consumer<CarritoProvider>(
+                      builder: (context, carritoProvider, child) {
+                        return Stack(
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.shopping_cart,
+                                color: Colors.black87,
+                              ),
+                              onPressed: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const CarritoScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            if (carritoProvider.carrito.isNotEmpty)
+                              Positioned(
+                                right: 8,
+                                top: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 20,
+                                    minHeight: 20,
+                                  ),
+                                  child: Text(
+                                    carritoProvider.carrito.length > 99
+                                        ? '99+'
+                                        : '${carritoProvider.carrito.length}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                )
+              : null,
+          body: Column(
+            children: [
+              // Título personalizado cuando no hay AppBar
+              if (!showAppBar)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  if (carritoProvider.carrito.isNotEmpty)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 20,
-                          minHeight: 20,
-                        ),
-                        child: Text(
-                          carritoProvider.carrito.length > 99 ? '99+' : '${carritoProvider.carrito.length}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.store, color: Colors.blue, size: 28),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Negocios destacados',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
                         ),
                       ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Barra de búsqueda animada con botón de limpiar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+                      const Spacer(),
+                      // Botón del carrito
+                      Consumer<CarritoProvider>(
+                        builder: (context, carritoProvider, child) {
+                          return Stack(
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.shopping_cart,
+                                  color: Colors.blue,
+                                ),
+                                onPressed: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const CarritoScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              if (carritoProvider.carrito.isNotEmpty)
+                                Positioned(
+                                  right: 8,
+                                  top: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 20,
+                                      minHeight: 20,
+                                    ),
+                                    child: Text(
+                                      carritoProvider.carrito.length > 99
+                                          ? '99+'
+                                          : '${carritoProvider.carrito.length}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                autofocus: false,
-                focusNode: _searchFocusNode, // Asignar el FocusNode
-                decoration: InputDecoration(
-                  hintText: 'Buscar negocios...',
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  suffixIcon: _searchText.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.grey),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchText = '');
-                            _searchFocusNode.unfocus(); // Quitar foco al limpiar
-                          },
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 ),
-                onChanged: (value) {
-                  setState(() => _searchText = value);
-                },
-              ),
-            ),
-          ),
-          // El resto del contenido (slider, lista, etc.)
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              // Barra de búsqueda animada con botón de limpiar
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: false,
+                    focusNode: _searchFocusNode, // Asignar el FocusNode
+                    decoration: InputDecoration(
+                      hintText: 'Buscar negocios...',
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: _searchText.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchText = '');
+                                _searchFocusNode
+                                    .unfocus(); // Quitar foco al limpiar
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 15,
+                      ),
                     ),
-                  )
-                : _error != null
+                    onChanged: (value) {
+                      setState(() => _searchText = value);
+                    },
+                  ),
+                ),
+              ),
+              // El resto del contenido (slider, lista, etc.)
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.blue,
+                          ),
+                        ),
+                      )
+                    : _error != null
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -461,289 +589,344 @@ class _NegociosScreenState extends State<NegociosScreen> {
                         ),
                       )
                     : _todosLosNegocios.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.store_mall_directory,
-                                  size: 64,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No hay negocios disponibles',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.store_mall_directory,
+                              size: 64,
+                              color: Colors.grey[400],
                             ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _onRefresh,
-                            child: SingleChildScrollView(
-                              controller: _scrollController,
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              child: Builder(
-                                builder: (context) {
-                                  // Filtrado por búsqueda (nombre, insensible a mayúsculas)
-                                  final filtro = _searchText.trim().toLowerCase();
-                                  final destacados = getDestacados(_todosLosNegocios)
-                                      .where(
-                                        (n) =>
-                                            filtro.isEmpty ||
-                                            (n['nombre']?.toString() ?? '').toLowerCase().contains(
-                                              filtro,
-                                            ),
-                                      )
-                                      .toList();
-                                  final restantes = getRestantes(_todosLosNegocios)
-                                      .where(
-                                        (n) =>
-                                            filtro.isEmpty ||
-                                            (n['nombre']?.toString() ?? '').toLowerCase().contains(
-                                              filtro,
-                                            ),
-                                      )
-                                      .toList();
-                                  
-                                  return Column(
-                                    children: [
-                                      // Slider de negocios destacados (loop infinito y scroll automático)
-                                      if (destacados.isNotEmpty)
-                                        DestacadosSlider(
-                                          destacados: destacados,
-                                          onTap: (negocio) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => MenuScreen(
-                                                  restauranteId: negocio['id']?.toString() ?? '',
-                                                  restaurante: negocio['nombre']?.toString() ?? 'Sin nombre',
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      // Barra de categorías horizontal
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                          horizontal: 8,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                left: 8,
-                                                bottom: 6,
-                                              ),
-                                              child: Text(
-                                                'Categorías',
-                                                style: TextStyle(
-                                                  fontSize: 17,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.blueGrey[950],
-                                                ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No hay negocios disponibles',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _onRefresh,
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 80), // Padding inferior para evitar que el navbar tape el contenido
+                            child: Builder(
+                              builder: (context) {
+                                // Filtrado por búsqueda (nombre, insensible a mayúsculas)
+                                final filtro = _searchText.trim().toLowerCase();
+                                final destacados =
+                                    getDestacados(_todosLosNegocios)
+                                        .where(
+                                          (n) =>
+                                              filtro.isEmpty ||
+                                              (n['nombre']?.toString() ?? '')
+                                                  .toLowerCase()
+                                                  .contains(filtro),
+                                        )
+                                        .toList();
+                                final restantes = getRestantes(_todosLosNegocios)
+                                    .where(
+                                      (n) =>
+                                          filtro.isEmpty ||
+                                          (n['nombre']?.toString() ?? '')
+                                              .toLowerCase()
+                                              .contains(filtro),
+                                    )
+                                    .toList();
+
+                                return Column(
+                                  children: [
+                                    // Slider de negocios destacados (loop infinito y scroll automático)
+                                    if (destacados.isNotEmpty)
+                                      DestacadosSlider(
+                                        destacados: destacados,
+                                        onTap: (negocio) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => MenuScreen(
+                                                restauranteId:
+                                                    negocio['id']?.toString() ??
+                                                    '',
+                                                restaurante:
+                                                    negocio['nombre']
+                                                        ?.toString() ??
+                                                    'Sin nombre',
                                               ),
                                             ),
-                                            SizedBox(
-                                              height: 70,
-                                              child: ListView.separated(
-                                                scrollDirection: Axis.horizontal,
-                                                itemCount: categorias.length,
-                                                separatorBuilder: (_, __) =>
-                                                    const SizedBox(width: 12),
-                                                itemBuilder: (context, index) {
-                                                  final cat = categorias[index];
-                                                  final selected =
-                                                      _categoriaSeleccionada ==
-                                                      cat['nombre'];
-                                                  return GestureDetector(
-                                                    onTap: () {
-                                                      setState(() {
-                                                        _categoriaSeleccionada = selected
-                                                            ? null
-                                                            : cat['nombre'] as String;
-                                                      });
-                                                    },
-                                                    child: Column(
-                                                      children: [
-                                                        CircleAvatar(
-                                                          radius: 24,
-                                                          backgroundColor: selected
-                                                              ? Colors.blueGrey[800]
-                                                              : Colors.blue[50],
-                                                          child: Icon(
-                                                            cat['icon'] as IconData,
-                                                            color: selected
-                                                                ? Colors.white
-                                                                : Colors.blueGrey[800],
-                                                            size: 28,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(height: 4),
-                                                        Text(
-                                                          cat['nombre'] as String,
-                                                          style: TextStyle(
-                                                            fontSize: 12,
-                                                            color: selected
-                                                                ? Colors.blue
-                                                                : null,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                          );
+                                        },
                                       ),
-                                      // Lista de negocios restantes (no destacados)
-                                      ...restantes.map((negocio) {
-                                        final index = restantes.indexOf(negocio);
-                                        return TweenAnimationBuilder<double>(
-                                          tween: Tween(begin: 0, end: 1),
-                                          duration: Duration(milliseconds: 400 + index * 100),
-                                          builder: (context, value, child) => Opacity(
-                                            opacity: value,
-                                            child: Transform.translate(
-                                              offset: Offset(0, 30 * (1 - value)),
-                                              child: child,
+                                    // Barra de categorías horizontal
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        horizontal: 8,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 8,
+                                              bottom: 6,
+                                            ),
+                                            child: Text(
+                                              'Categorías',
+                                              style: TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blueGrey[950],
+                                              ),
                                             ),
                                           ),
-                                          child: Card(
-                                            elevation: 6,
-                                            color: Colors.white,
-                                            shadowColor: Colors.blue.withOpacity(0.10),
-                                            margin: const EdgeInsets.only(
-                                              bottom: 16,
-                                              left: 16,
-                                              right: 16,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(18),
-                                            ),
-                                            child: InkWell(
-                                              borderRadius: BorderRadius.circular(18),
-                                              splashColor: Colors.blue.withOpacity(0.08),
-                                              highlightColor: Colors.blue.withOpacity(0.04),
-                                              onTap: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) => MenuScreen(
-                                                      restauranteId: negocio['id']?.toString() ?? '',
-                                                      restaurante:
-                                                          negocio['nombre']?.toString() ?? 'Sin nombre',
-                                                    ),
+                                          SizedBox(
+                                            height: 70,
+                                            child: ListView.separated(
+                                              scrollDirection: Axis.horizontal,
+                                              itemCount: categorias.length,
+                                              separatorBuilder: (_, __) =>
+                                                  const SizedBox(width: 12),
+                                              itemBuilder: (context, index) {
+                                                final cat = categorias[index];
+                                                final selected =
+                                                    _categoriaSeleccionada ==
+                                                    cat['nombre'];
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _categoriaSeleccionada =
+                                                          selected
+                                                          ? null
+                                                          : cat['nombre']
+                                                                as String;
+                                                    });
+                                                  },
+                                                  child: Column(
+                                                    children: [
+                                                      CircleAvatar(
+                                                        radius: 24,
+                                                        backgroundColor: selected
+                                                            ? Colors.blueGrey[800]
+                                                            : Colors.blue[50],
+                                                        child: Icon(
+                                                          cat['icon'] as IconData,
+                                                          color: selected
+                                                              ? Colors.white
+                                                              : Colors
+                                                                    .blueGrey[800],
+                                                          size: 28,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        cat['nombre'] as String,
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: selected
+                                                              ? Colors.blue
+                                                              : null,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 );
                                               },
-                                              child: Row(
-                                                children: [
-                                                  // Imagen del negocio
-                                                  ClipRRect(
-                                                    borderRadius: const BorderRadius.only(
-                                                      topLeft: Radius.circular(18),
-                                                      bottomLeft: Radius.circular(18),
-                                                    ),
-                                                    child: Image.network(
-                                                      negocio['img']?.toString() ?? 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
-                                                      width: 80,
-                                                      height: 80,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (context, error, stackTrace) =>
-                                                              Container(
-                                                                width: 80,
-                                                                height: 80,
-                                                                color: Colors.grey[300],
-                                                                child: const Icon(
-                                                                  Icons.store,
-                                                                  size: 32,
-                                                                  color: Colors.grey,
-                                                                ),
-                                                              ),
-                                                    ),
-                                                  ),
-                                                  // Detalles del negocio
-                                                  Expanded(
-                                                    child: Padding(
-                                                      padding: const EdgeInsets.symmetric(
-                                                        horizontal: 16,
-                                                        vertical: 18,
-                                                      ),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            negocio['nombre']?.toString() ?? 'Sin nombre',
-                                                            style: Theme.of(context)
-                                                                .textTheme
-                                                                .titleMedium
-                                                                ?.copyWith(
-                                                                  fontWeight: FontWeight.bold,
-                                                                  color: Colors.blueGrey[800],
-                                                                ),
-                                                          ),
-                                                          const SizedBox(height: 8),
-                                                          Row(
-                                                            children: [
-                                                              const Icon(
-                                                                Icons.location_on,
-                                                                size: 16,
-                                                                color: Colors.redAccent,
-                                                              ),
-                                                              const SizedBox(width: 4),
-                                                              Expanded(
-                                                                child: Text(
-                                                                  negocio['direccion']
-                                                                      ?.toString() ?? 'Sin dirección',
-                                                                  style: Theme.of(context)
-                                                                      .textTheme
-                                                                      .bodySmall
-                                                                      ?.copyWith(
-                                                                        color: Colors
-                                                                            .blueGrey[700],
-                                                                      ),
-                                                                  overflow:
-                                                                      TextOverflow.ellipsis,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const Icon(
-                                                    Icons.chevron_right,
-                                                    color: Colors.grey,
-                                                    size: 28,
-                                                  ),
-                                                ],
-                                              ),
                                             ),
                                           ),
-                                        );
-                                      }).toList(),
-                                      const SizedBox(height: 20),
-                                    ],
-                                  );
-                                },
-                              ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Lista de negocios restantes (no destacados)
+                                    ...restantes.map((negocio) {
+                                      final index = restantes.indexOf(negocio);
+                                      return TweenAnimationBuilder<double>(
+                                        tween: Tween(begin: 0, end: 1),
+                                        duration: Duration(
+                                          milliseconds: 400 + index * 100,
+                                        ),
+                                        builder: (context, value, child) =>
+                                            Opacity(
+                                              opacity: value,
+                                              child: Transform.translate(
+                                                offset: Offset(
+                                                  0,
+                                                  30 * (1 - value),
+                                                ),
+                                                child: child,
+                                              ),
+                                            ),
+                                        child: Card(
+                                          elevation: 6,
+                                          color: Colors.white,
+                                          shadowColor: Colors.blue.withOpacity(
+                                            0.10,
+                                          ),
+                                          margin: const EdgeInsets.only(
+                                            bottom: 16,
+                                            left: 16,
+                                            right: 16,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
+                                          ),
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
+                                            splashColor: Colors.blue.withOpacity(
+                                              0.08,
+                                            ),
+                                            highlightColor: Colors.blue
+                                                .withOpacity(0.04),
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => MenuScreen(
+                                                    restauranteId:
+                                                        negocio['id']
+                                                            ?.toString() ??
+                                                        '',
+                                                    restaurante:
+                                                        negocio['nombre']
+                                                            ?.toString() ??
+                                                        'Sin nombre',
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            child: Row(
+                                              children: [
+                                                // Imagen del negocio
+                                                ClipRRect(
+                                                  borderRadius:
+                                                      const BorderRadius.only(
+                                                        topLeft: Radius.circular(
+                                                          18,
+                                                        ),
+                                                        bottomLeft:
+                                                            Radius.circular(18),
+                                                      ),
+                                                  child: Image.network(
+                                                    negocio['img']?.toString() ??
+                                                        'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
+                                                    width: 80,
+                                                    height: 80,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (
+                                                          context,
+                                                          error,
+                                                          stackTrace,
+                                                        ) => Container(
+                                                          width: 80,
+                                                          height: 80,
+                                                          color: Colors.grey[300],
+                                                          child: const Icon(
+                                                            Icons.store,
+                                                            size: 32,
+                                                            color: Colors.grey,
+                                                          ),
+                                                        ),
+                                                  ),
+                                                ),
+                                                // Detalles del negocio
+                                                Expanded(
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 16,
+                                                          vertical: 18,
+                                                        ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          negocio['nombre']
+                                                                  ?.toString() ??
+                                                              'Sin nombre',
+                                                          style: Theme.of(context)
+                                                              .textTheme
+                                                              .titleMedium
+                                                              ?.copyWith(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: Colors
+                                                                    .blueGrey[800],
+                                                              ),
+                                                        ),
+                                                        const SizedBox(height: 8),
+                                                        Row(
+                                                          children: [
+                                                            const Icon(
+                                                              Icons.location_on,
+                                                              size: 16,
+                                                              color: Colors
+                                                                  .redAccent,
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 4,
+                                                            ),
+                                                            Expanded(
+                                                              child: Text(
+                                                                negocio['direccion']
+                                                                        ?.toString() ??
+                                                                    'Sin dirección',
+                                                                style: Theme.of(context)
+                                                                    .textTheme
+                                                                    .bodySmall
+                                                                    ?.copyWith(
+                                                                      color: Colors
+                                                                          .blueGrey[700],
+                                                                    ),
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                                const Icon(
+                                                  Icons.chevron_right,
+                                                  color: Colors.grey,
+                                                  size: 28,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    const SizedBox(height: 20),
+                                  ],
+                                );
+                              },
                             ),
                           ),
+                        ),
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -780,7 +963,7 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
   void _startAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (widget.destacados.isEmpty) return;
-      
+
       // Simplemente ir a la siguiente página
       _pageController.nextPage(
         duration: const Duration(milliseconds: 500),
@@ -817,7 +1000,7 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                 // Usar módulo para obtener el índice real del negocio
                 final realIndex = index % widget.destacados.length;
                 final negocio = widget.destacados[realIndex];
-                
+
                 return GestureDetector(
                   onTap: () => widget.onTap(negocio),
                   child: Container(
@@ -838,7 +1021,8 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                         children: [
                           // Imagen de fondo
                           Image.network(
-                            negocio['img']?.toString() ?? 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
+                            negocio['img']?.toString() ??
+                                'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
                             width: double.infinity,
                             height: double.infinity,
                             fit: BoxFit.cover,
@@ -883,7 +1067,8 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  negocio['direccion']?.toString() ?? 'Sin dirección',
+                                  negocio['direccion']?.toString() ??
+                                      'Sin dirección',
                                   style: TextStyle(
                                     color: Colors.white.withOpacity(0.8),
                                     fontSize: 16,
