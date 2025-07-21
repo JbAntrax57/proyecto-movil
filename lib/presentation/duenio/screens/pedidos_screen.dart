@@ -116,7 +116,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
       child: Scaffold(
         backgroundColor: Colors.blue[50],
         appBar: AppBar(
-          backgroundColor: Colors.blue[50],
+      backgroundColor: Colors.blue[50],
           title: const Text('Pedidos del negocio'),
           centerTitle: true,
           actions: [
@@ -137,7 +137,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                  children: [
                         Icon(
                           Icons.error_outline,
                           size: 64,
@@ -147,12 +147,12 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                         Text(
                           'Error al cargar pedidos',
                           style: TextStyle(
-                            fontSize: 18,
+                              fontSize: 18,
                             color: Colors.grey[600],
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                                          const SizedBox(height: 8),
                         Text(
                           _error!,
                           style: TextStyle(
@@ -230,9 +230,9 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
                                     // Header con estado y fecha
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -274,11 +274,11 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                                   color: _getEstadoColor(
                                                     pedido['estado']?.toString() ?? 'pendiente',
                                                   ),
-                                                ),
                                               ),
-                                            ],
-                                          ),
-                                        ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
                                         Text(
                                           _formatearFecha(
                                             pedido['created_at']?.toString() ?? '',
@@ -299,12 +299,12 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                         fontWeight: FontWeight.bold,
                                         color: Colors.grey[700],
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
+                                        ),
+                                        const SizedBox(height: 8),
                                     ...productos.take(3).map((producto) => Padding(
                                       padding: const EdgeInsets.only(bottom: 4),
                                       child: Row(
-                                        children: [
+                                                children: [
                                           Text(
                                             '• ${producto['nombre']?.toString() ?? 'Sin nombre'}',
                                             style: const TextStyle(fontSize: 14),
@@ -316,9 +316,9 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                               fontSize: 12,
                                               color: Colors.grey[600],
                                             ),
-                                          ),
-                                        ],
-                                      ),
+                                                        ),
+                                                      ],
+                                                    ),
                                     )),
                                     if (productos.length > 3)
                                       Padding(
@@ -617,17 +617,17 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                         child: Text(
                           pedido['direccion_entrega'],
                           style: const TextStyle(fontSize: 15, color: Colors.black87),
-                        ),
-                      ),
-                    ],
-                  ),
+            ),
+          ),
+        ],
+      ),
                 ],
                 // Referencias
                 if (pedido['referencias'] != null && pedido['referencias'].toString().isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+        children: [
                       const Icon(Icons.info_outline, color: Colors.orange, size: 22),
                       const SizedBox(width: 8),
                       Expanded(

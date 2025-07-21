@@ -42,8 +42,10 @@ class _HomeScreenState extends State<HomeScreen> {
     print('🏠 HomeScreen build - Current index: $_currentIndex');
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: Colors.blue[50], // Color de la barra de estado igual al fondo
-        statusBarIconBrightness: Brightness.dark, // Iconos oscuros para fondo claro
+        statusBarColor:
+            Colors.white, // Color de la barra de estado igual al fondo
+        statusBarIconBrightness:
+            Brightness.dark, // Iconos oscuros para fondo claro
         statusBarBrightness: Brightness.light, // iOS: texto oscuro
       ),
       child: Container(
@@ -51,25 +53,19 @@ class _HomeScreenState extends State<HomeScreen> {
         width: double.infinity, // Asegura que cubre todo el ancho
         height: double.infinity, // Asegura que cubre todo el alto
         child: SafeArea(
-          top: false,
+          top: true,
           child: Scaffold(
-            backgroundColor: Colors.transparent, // El fondo lo pone el Container exterior
+            backgroundColor:
+                Colors.transparent, // El fondo lo pone el Container exterior
             extendBody: true,
             body: _pages[_currentIndex],
             bottomNavigationBar: Container(
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.10),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+              // Sin margen, pegado abajo
+              decoration: const BoxDecoration(
+                color: Colors.white, // Fondo blanco minimalista
+                // Sin borderRadius ni sombra
               ),
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: _navItems.asMap().entries.map((entry) {
@@ -84,17 +80,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected ? item['color'].withOpacity(0.15) : Colors.transparent,
+                        color: isSelected
+                            ? item['color'].withOpacity(0.15)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
-                        border: isSelected ? Border.all(color: item['color'], width: 2) : null,
+                        border: isSelected
+                            ? Border.all(color: item['color'], width: 2)
+                            : null,
                       ),
                       child: Row(
                         children: [
                           Icon(
                             item['icon'],
-                            color: isSelected ? item['color'] : Colors.grey[600],
+                            color: isSelected
+                                ? item['color']
+                                : Colors.grey[600],
                             size: 28,
                           ),
                           if (isSelected) ...[

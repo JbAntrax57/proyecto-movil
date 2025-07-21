@@ -347,11 +347,13 @@ class _NegociosScreenState extends State<NegociosScreen> {
     final showAppBar = widget.showAppBar ?? true; // Asegurar que sea bool
 
     return Container(
-      color: Colors
-          .blue[50], // Fondo uniforme para toda la pantalla, incluyendo el área segura superior
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: SafeArea(
         top:
-            false, // Permite que el color de fondo cubra la parte superior (barra de estado)
+            true, // Permite que el color de fondo cubra la parte superior (barra de estado)
         child: Scaffold(
           extendBody:
               true, // Permite que el contenido se extienda detrás de widgets flotantes
@@ -359,33 +361,33 @@ class _NegociosScreenState extends State<NegociosScreen> {
               Colors.transparent, // El fondo lo pone el Container exterior
           appBar: showAppBar
               ? AppBar(
-                  backgroundColor: Colors.blue[50],
-                  title: const Text('Negocios destacados'),
-                  centerTitle: true,
-                  actions: [
+        backgroundColor: Colors.blue[50],
+        title: const Text('Negocios destacados'),
+        centerTitle: true,
+        actions: [
                     // Botón del carrito
                     Consumer<CarritoProvider>(
                       builder: (context, carritoProvider, child) {
                         return Stack(
-                          children: [
-                            IconButton(
+            children: [
+              IconButton(
                               icon: const Icon(
                                 Icons.shopping_cart,
                                 color: Colors.black87,
                               ),
-                              onPressed: () async {
-                                await Navigator.push(
-                                  context,
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
                                   MaterialPageRoute(
                                     builder: (_) => const CarritoScreen(),
                                   ),
-                                );
-                              },
-                            ),
+                  );
+                },
+              ),
                             if (carritoProvider.carrito.isNotEmpty)
-                              Positioned(
-                                right: 8,
-                                top: 8,
+                Positioned(
+                  right: 8,
+                  top: 8,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
@@ -399,7 +401,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                     minWidth: 20,
                                     minHeight: 20,
                                   ),
-                                  child: Text(
+                    child: Text(
                                     carritoProvider.carrito.length > 99
                                         ? '99+'
                                         : '${carritoProvider.carrito.length}',
@@ -419,25 +421,25 @@ class _NegociosScreenState extends State<NegociosScreen> {
                   ],
                 )
               : null,
-          body: Column(
-            children: [
+      body: Column(
+        children: [
               // Título personalizado cuando no hay AppBar
               if (!showAppBar)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
                         color: Colors.black.withOpacity(0.1),
                         blurRadius: 5,
                         offset: const Offset(0, 2),
-                      ),
-                    ],
                   ),
-                  child: Row(
-                    children: [
+                ],
+              ),
+              child: Row(
+                children: [
                       const Icon(Icons.store, color: Colors.blue, size: 28),
                       const SizedBox(width: 12),
                       const Text(
@@ -500,14 +502,15 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                 ),
                             ],
                           );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                      },
+                    ),
+                ],
+              ),
+            ),
               // Barra de búsqueda animada con botón de limpiar
-              Padding(
-                padding: const EdgeInsets.all(16.0),
+              Container(
+                padding: const EdgeInsets.all(12),
+                color: Colors.transparent,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   decoration: BoxDecoration(
@@ -555,7 +558,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
               Expanded(
                 child: _isLoading
                     ? const Center(
-                        child: CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(
                             Colors.blue,
                           ),
@@ -613,10 +616,12 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     : RefreshIndicator(
                         onRefresh: _onRefresh,
                         child: SingleChildScrollView(
-                          controller: _scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
                           child: Padding(
-                            padding: const EdgeInsets.only(bottom: 80), // Padding inferior para evitar que el navbar tape el contenido
+                            padding: const EdgeInsets.only(
+                              bottom: 80,
+                            ), // Padding inferior para evitar que el navbar tape el contenido
                             child: Builder(
                               builder: (context) {
                                 // Filtrado por búsqueda (nombre, insensible a mayúsculas)
@@ -631,27 +636,28 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                   .contains(filtro),
                                         )
                                         .toList();
-                                final restantes = getRestantes(_todosLosNegocios)
-                                    .where(
-                                      (n) =>
-                                          filtro.isEmpty ||
-                                          (n['nombre']?.toString() ?? '')
-                                              .toLowerCase()
-                                              .contains(filtro),
-                                    )
-                                    .toList();
+                                final restantes =
+                                    getRestantes(_todosLosNegocios)
+                                        .where(
+                                          (n) =>
+                                              filtro.isEmpty ||
+                                              (n['nombre']?.toString() ?? '')
+                                                  .toLowerCase()
+                                                  .contains(filtro),
+                                        )
+                                        .toList();
 
                                 return Column(
                                   children: [
-                                    // Slider de negocios destacados (loop infinito y scroll automático)
-                                    if (destacados.isNotEmpty)
+                      // Slider de negocios destacados (loop infinito y scroll automático)
+                      if (destacados.isNotEmpty)
                                       DestacadosSlider(
-                                        destacados: destacados,
-                                        onTap: (negocio) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => MenuScreen(
+                            destacados: destacados,
+                            onTap: (negocio) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MenuScreen(
                                                 restauranteId:
                                                     negocio['id']?.toString() ??
                                                     '',
@@ -659,209 +665,212 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                     negocio['nombre']
                                                         ?.toString() ??
                                                     'Sin nombre',
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    // Barra de categorías horizontal
+                                  ),
+                                ),
+                              );
+                            },
+                        ),
+                      // Barra de categorías horizontal
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 12,
-                                        horizontal: 8,
-                                      ),
-                                      child: Column(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 8,
+                              ),
+                              child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        children: [
-                                          Padding(
+                                children: [
+                                  Padding(
                                             padding: const EdgeInsets.only(
-                                              left: 8,
-                                              bottom: 6,
-                                            ),
-                                            child: Text(
-                                              'Categorías',
-                                              style: TextStyle(
-                                                fontSize: 17,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.blueGrey[950],
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            height: 70,
-                                            child: ListView.separated(
-                                              scrollDirection: Axis.horizontal,
-                                              itemCount: categorias.length,
-                                              separatorBuilder: (_, __) =>
-                                                  const SizedBox(width: 12),
-                                              itemBuilder: (context, index) {
-                                                final cat = categorias[index];
-                                                final selected =
-                                                    _categoriaSeleccionada ==
-                                                    cat['nombre'];
-                                                return GestureDetector(
-                                                  onTap: () {
-                                                    setState(() {
-                                                      _categoriaSeleccionada =
-                                                          selected
-                                                          ? null
-                                                          : cat['nombre']
-                                                                as String;
-                                                    });
-                                                  },
-                                                  child: Column(
-                                                    children: [
-                                                      CircleAvatar(
-                                                        radius: 24,
-                                                        backgroundColor: selected
-                                                            ? Colors.blueGrey[800]
-                                                            : Colors.blue[50],
-                                                        child: Icon(
-                                                          cat['icon'] as IconData,
-                                                          color: selected
-                                                              ? Colors.white
-                                                              : Colors
-                                                                    .blueGrey[800],
-                                                          size: 28,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 4),
-                                                      Text(
-                                                        cat['nombre'] as String,
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: selected
-                                                              ? Colors.blue
-                                                              : null,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ],
+                                      left: 8,
+                                      bottom: 6,
+                                    ),
+                                    child: Text(
+                                      'Categorías',
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blueGrey[950],
                                       ),
                                     ),
-                                    // Lista de negocios restantes (no destacados)
+                                  ),
+                                  SizedBox(
+                                    height: 70,
+                                    child: ListView.separated(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: categorias.length,
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(width: 12),
+                                      itemBuilder: (context, index) {
+                                        final cat = categorias[index];
+                                        final selected =
+                                            _categoriaSeleccionada ==
+                                            cat['nombre'];
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                                      _categoriaSeleccionada =
+                                                          selected
+                                                  ? null
+                                                          : cat['nombre']
+                                                                as String;
+                                            });
+                                          },
+                                          child: Column(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 24,
+                                                        backgroundColor:
+                                                            selected
+                                                            ? Colors
+                                                                  .blueGrey[800]
+                                                    : Colors.blue[50],
+                                                child: Icon(
+                                                          cat['icon']
+                                                              as IconData,
+                                                  color: selected
+                                                      ? Colors.white
+                                                              : Colors
+                                                                    .blueGrey[800],
+                                                  size: 28,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                cat['nombre'] as String,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: selected
+                                                      ? Colors.blue
+                                                      : null,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                        ),
+                      ),
+                      // Lista de negocios restantes (no destacados)
                                     ...restantes.map((negocio) {
                                       final index = restantes.indexOf(negocio);
-                                      return TweenAnimationBuilder<double>(
-                                        tween: Tween(begin: 0, end: 1),
+                          return TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 1),
                                         duration: Duration(
                                           milliseconds: 400 + index * 100,
                                         ),
                                         builder: (context, value, child) =>
                                             Opacity(
-                                              opacity: value,
-                                              child: Transform.translate(
+                              opacity: value,
+                              child: Transform.translate(
                                                 offset: Offset(
                                                   0,
                                                   30 * (1 - value),
                                                 ),
-                                                child: child,
-                                              ),
-                                            ),
-                                        child: Card(
-                                          elevation: 6,
-                                          color: Colors.white,
+                                child: child,
+                              ),
+                            ),
+                            child: Card(
+                              elevation: 6,
+                              color: Colors.white,
                                           shadowColor: Colors.blue.withOpacity(
                                             0.10,
                                           ),
-                                          margin: const EdgeInsets.only(
-                                            bottom: 16,
-                                            left: 16,
-                                            right: 16,
-                                          ),
-                                          shape: RoundedRectangleBorder(
+                              margin: const EdgeInsets.only(
+                                bottom: 16,
+                                left: 16,
+                                right: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
                                               18,
                                             ),
-                                          ),
-                                          child: InkWell(
+                              ),
+                              child: InkWell(
                                             borderRadius: BorderRadius.circular(
                                               18,
                                             ),
-                                            splashColor: Colors.blue.withOpacity(
-                                              0.08,
-                                            ),
+                                            splashColor: Colors.blue
+                                                .withOpacity(0.08),
                                             highlightColor: Colors.blue
                                                 .withOpacity(0.04),
-                                            onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) => MenuScreen(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => MenuScreen(
                                                     restauranteId:
                                                         negocio['id']
                                                             ?.toString() ??
                                                         '',
-                                                    restaurante:
+                                        restaurante:
                                                         negocio['nombre']
                                                             ?.toString() ??
                                                         'Sin nombre',
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            child: Row(
-                                              children: [
-                                                // Imagen del negocio
-                                                ClipRRect(
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Row(
+                                  children: [
+                                    // Imagen del negocio
+                                    ClipRRect(
                                                   borderRadius:
                                                       const BorderRadius.only(
-                                                        topLeft: Radius.circular(
-                                                          18,
-                                                        ),
+                                                        topLeft:
+                                                            Radius.circular(18),
                                                         bottomLeft:
                                                             Radius.circular(18),
-                                                      ),
-                                                  child: Image.network(
-                                                    negocio['img']?.toString() ??
+                                      ),
+                                      child: Image.network(
+                                                    negocio['img']
+                                                            ?.toString() ??
                                                         'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
-                                                    width: 80,
-                                                    height: 80,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder:
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
                                                         (
                                                           context,
                                                           error,
                                                           stackTrace,
                                                         ) => Container(
-                                                          width: 80,
-                                                          height: 80,
-                                                          color: Colors.grey[300],
-                                                          child: const Icon(
-                                                            Icons.store,
-                                                            size: 32,
-                                                            color: Colors.grey,
-                                                          ),
-                                                        ),
+                                                  width: 80,
+                                                  height: 80,
+                                                          color:
+                                                              Colors.grey[300],
+                                                  child: const Icon(
+                                                    Icons.store,
+                                                    size: 32,
+                                                    color: Colors.grey,
                                                   ),
                                                 ),
-                                                // Detalles del negocio
-                                                Expanded(
-                                                  child: Padding(
+                                      ),
+                                    ),
+                                    // Detalles del negocio
+                                    Expanded(
+                                      child: Padding(
                                                     padding:
                                                         const EdgeInsets.symmetric(
-                                                          horizontal: 16,
-                                                          vertical: 18,
-                                                        ),
-                                                    child: Column(
-                                                      crossAxisAlignment:
+                                          horizontal: 16,
+                                          vertical: 18,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
                                                           CrossAxisAlignment
                                                               .start,
-                                                      children: [
-                                                        Text(
+                                          children: [
+                                            Text(
                                                           negocio['nombre']
                                                                   ?.toString() ??
                                                               'Sin nombre',
-                                                          style: Theme.of(context)
-                                                              .textTheme
-                                                              .titleMedium
-                                                              ?.copyWith(
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium
+                                                  ?.copyWith(
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
@@ -869,62 +878,64 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                                     .blueGrey[800],
                                                               ),
                                                         ),
-                                                        const SizedBox(height: 8),
-                                                        Row(
-                                                          children: [
-                                                            const Icon(
-                                                              Icons.location_on,
-                                                              size: 16,
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.location_on,
+                                                  size: 16,
                                                               color: Colors
                                                                   .redAccent,
-                                                            ),
+                                                ),
                                                             const SizedBox(
                                                               width: 4,
                                                             ),
-                                                            Expanded(
-                                                              child: Text(
-                                                                negocio['direccion']
+                                                Expanded(
+                                                  child: Text(
+                                                    negocio['direccion']
                                                                         ?.toString() ??
                                                                     'Sin dirección',
-                                                                style: Theme.of(context)
-                                                                    .textTheme
-                                                                    .bodySmall
-                                                                    ?.copyWith(
-                                                                      color: Colors
-                                                                          .blueGrey[700],
-                                                                    ),
-                                                                overflow:
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: Colors
+                                                              .blueGrey[700],
+                                                        ),
+                                                    overflow:
                                                                     TextOverflow
                                                                         .ellipsis,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
                                                   ),
-                                                ),
-                                                const Icon(
-                                                  Icons.chevron_right,
-                                                  color: Colors.grey,
-                                                  size: 28,
                                                 ),
                                               ],
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                      );
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.grey,
+                                      size: 28,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
                                     }).toList(),
                                     const SizedBox(height: 20),
-                                  ],
-                                );
-                              },
+                    ],
+                );
+              },
                             ),
                           ),
                         ),
-                      ),
-              ),
-            ],
+            ),
+          ),
+        ],
           ),
         ),
       ),
@@ -966,9 +977,9 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
 
       // Simplemente ir a la siguiente página
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
     });
   }
 
@@ -991,18 +1002,18 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
       child: Column(
         children: [
           Expanded(
-            child: PageView.builder(
-              controller: _pageController,
+      child: PageView.builder(
+        controller: _pageController,
               onPageChanged: (index) {
                 setState(() => _currentPage = index % widget.destacados.length);
               },
-              itemBuilder: (context, index) {
+        itemBuilder: (context, index) {
                 // Usar módulo para obtener el índice real del negocio
                 final realIndex = index % widget.destacados.length;
                 final negocio = widget.destacados[realIndex];
 
                 return GestureDetector(
-                  onTap: () => widget.onTap(negocio),
+                onTap: () => widget.onTap(negocio),
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
@@ -1025,17 +1036,17 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                                 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
                             width: double.infinity,
                             height: double.infinity,
-                            fit: BoxFit.cover,
+                        fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
                                 Container(
-                                  color: Colors.grey[300],
-                                  child: const Icon(
-                                    Icons.store,
+                          color: Colors.grey[300],
+                          child: const Icon(
+                            Icons.store,
                                     size: 64,
-                                    color: Colors.grey,
-                                  ),
-                                ),
+                            color: Colors.grey,
                           ),
+                        ),
+                      ),
                           // Gradiente oscuro para el texto
                           Container(
                             decoration: BoxDecoration(
@@ -1054,10 +1065,10 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                             bottom: 20,
                             left: 20,
                             right: 20,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
                                   negocio['nombre']?.toString() ?? 'Sin nombre',
                                   style: const TextStyle(
                                     color: Colors.white,
@@ -1098,14 +1109,14 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
-                  ),
-                );
-              },
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
             ),
           ),
           // Indicadores de página
