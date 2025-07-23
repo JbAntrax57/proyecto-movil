@@ -4,19 +4,23 @@ import '../../cliente/providers/carrito_provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../duenio/providers/notificaciones_pedidos_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
+import 'package:crypto/crypto.dart'; // Para encriptar la contraseña
+import 'dart:convert'; // Para utf8.encode
 
 // login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
 // Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
 // Incluye validación de formulario, feedback visual y navegación dinámica.
-class LoginScreen extends StatefulWidget {
+
+// Login funcional para cliente y multirol
+class ClienteLoginScreen extends StatefulWidget {
   // Pantalla de login principal para el usuario cliente (y demo para todos los roles)
-  const LoginScreen({super.key});
+  const ClienteLoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<ClienteLoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<ClienteLoginScreen> {
   // Llave para el formulario de login
   final _formKey = GlobalKey<FormState>();
   // Variables para email y contraseña
@@ -34,6 +38,13 @@ class _LoginScreenState extends State<LoginScreen> {
     {'email': 'admin@demo.com', 'password': '1234', 'rol': 'Admin'},
   ];
 
+  // Función para encriptar la contraseña con SHA-256
+  String hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
   // Lógica de login: consulta Supabase y navega según el rol
   void _login() async {
     setState(() {
@@ -47,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
           .from('usuarios')
           .select()
           .eq('email', email)
-          .eq('password', password)
+          .eq('password', hashPassword(password)) // Compara el hash
           .single();
       print('🔐 Login: Intentando login con id: ${userData['user_id']}');
       if (userData == null) {
@@ -107,9 +118,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Navega a la pantalla de registro (placeholder)
+  // Navega a la pantalla de registro
   void _goToRegister() {
-    Navigator.pushNamed(context, '/register');
+    context.go('/register');
   }
 
   @override
