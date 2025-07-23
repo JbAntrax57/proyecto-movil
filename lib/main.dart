@@ -19,6 +19,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'presentation/duenio/providers/notificaciones_pedidos_provider.dart';
 import 'core/env.dart'; // Importa las variables de entorno
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importa flutter_dotenv
+import 'core/theme.dart';
 // Importa las pantallas principales de cada rol si existen
 // Si no, usa un Scaffold temporal
 
@@ -109,10 +110,8 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'App Demo Multirol',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
+      // Usar el nuevo lightTheme personalizado con Montserrat y paleta de azules
+      theme: lightTheme,
       routerConfig: router, // Usar GoRouter centralizado
     );
   }

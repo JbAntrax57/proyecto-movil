@@ -534,18 +534,21 @@ class CarritoScreen extends StatelessWidget {
                                                         int parseCantidad(
                                                           dynamic cantidad,
                                                         ) {
-                                                          if (cantidad is int)
+                                                          if (cantidad is int) {
                                                             return cantidad;
+                                                          }
                                                           if (cantidad
-                                                              is String)
+                                                              is String) {
                                                             return int.tryParse(
                                                                   cantidad,
                                                                 ) ??
                                                                 1;
+                                                          }
                                                           if (cantidad
-                                                              is double)
+                                                              is double) {
                                                             return cantidad
                                                                 .toInt();
+                                                          }
                                                           return 1;
                                                         }
 

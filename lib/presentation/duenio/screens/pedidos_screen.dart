@@ -136,7 +136,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
         child: Scaffold(
           backgroundColor: Colors.blue[50],
           appBar: AppBar(
-            backgroundColor: Colors.blue[50],
+      backgroundColor: Colors.blue[50],
             title: const Text('Pedidos del negocio'),
             centerTitle: true,
             actions: [
@@ -157,7 +157,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+        children: [
                       Icon(
                         Icons.error_outline,
                         size: 64,
@@ -188,7 +188,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                 )
               : _pedidos.isEmpty
               ? Center(
-                  child: Column(
+              child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
@@ -237,7 +237,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                 color: selected
                                     ? estado['color'] as Color
                                     : Colors.black87,
-                                fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                               ),
                               onSelected: (_) {
                                 setState(() {
@@ -306,9 +306,9 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
                                   // Header con estado y fecha
                                   Row(
                                     mainAxisAlignment:
@@ -397,8 +397,8 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                           padding: const EdgeInsets.only(
                                             bottom: 4,
                                           ),
-                                          child: Row(
-                                            children: [
+                                child: Row(
+                                  children: [
                                               Text(
                                                 '• ${producto['nombre']?.toString() ?? 'Sin nombre'}',
                                                 style: const TextStyle(
@@ -491,7 +491,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                           ),
                                         ),
                                       ),
-                                      onPressed: () async {
+                                          onPressed: () async {
                                         final nuevoEstado =
                                             await showModalBottomSheet<String>(
                                               context: context,
@@ -842,10 +842,10 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                             fontSize: 15,
                             color: Colors.black87,
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
+            ),
+          ),
+        ],
+      ),
                 ],
                 // Referencias
                 if (pedido['referencias'] != null &&
@@ -853,7 +853,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                   const SizedBox(height: 10),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+        children: [
                       const Icon(
                         Icons.info_outline,
                         color: Colors.orange,

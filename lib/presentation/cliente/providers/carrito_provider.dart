@@ -15,6 +15,7 @@ class CarritoProvider extends ChangeNotifier {
     print('getUserEmail llamado, valor actual: $_userEmail'); // Debug
     return _userEmail;
   }
+
   String? get restauranteId => _restauranteId;
 
   // Helper para convertir cantidad de forma segura
@@ -53,15 +54,17 @@ class CarritoProvider extends ChangeNotifier {
   void _listenToCarrito() {
     if (_userEmail == null) return;
     // Obtener el carrito inicial desde Supabase
-    obtenerCarrito(_userEmail!).then((carritoDb) {
-      print('Carrito obtenido de DB: $carritoDb'); // Debug
-      _carrito.clear();
-      _carrito.addAll(carritoDb);
-      print('Carrito actual en provider: $_carrito'); // Debug
-      notifyListeners();
-    }).catchError((error) {
-      print('Error cargando carrito: $error'); // Debug
-    });
+    obtenerCarrito(_userEmail!)
+        .then((carritoDb) {
+          print('Carrito obtenido de DB: $carritoDb'); // Debug
+          _carrito.clear();
+          _carrito.addAll(carritoDb);
+          print('Carrito actual en provider: $_carrito'); // Debug
+          notifyListeners();
+        })
+        .catchError((error) {
+          print('Error cargando carrito: $error'); // Debug
+        });
   }
 
   // Obtiene el carrito del usuario desde Supabase
@@ -72,7 +75,7 @@ class CarritoProvider extends ChangeNotifier {
           .select('carrito')
           .eq('email', email)
           .single();
-      
+
       if (data != null && data['carrito'] != null) {
         // Si carrito es una lista, la devolvemos directamente
         if (data['carrito'] is List) {
@@ -82,7 +85,9 @@ class CarritoProvider extends ChangeNotifier {
         if (data['carrito'] is String) {
           try {
             final List<dynamic> parsed = jsonDecode(data['carrito']);
-            return parsed.map((item) => Map<String, dynamic>.from(item)).toList();
+            return parsed
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList();
           } catch (e) {
             print('Error parsing carrito JSON: $e');
             return [];
@@ -95,17 +100,18 @@ class CarritoProvider extends ChangeNotifier {
       return [];
     }
   }
-  
+
   // Actualiza el carrito en Supabase
-  Future<void> actualizarCarrito(String email, List<Map<String, dynamic>> carrito) async {
+  Future<void> actualizarCarrito(
+    String email,
+    List<Map<String, dynamic>> carrito,
+  ) async {
     try {
-      await Supabase.instance.client
-          .from('carritos')
-          .upsert({
-            'email': email, 
-            'carrito': carrito,
-            'updated_at': DateTime.now().toIso8601String(),
-          });
+      await Supabase.instance.client.from('carritos').upsert({
+        'email': email,
+        'carrito': carrito,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
     } catch (e) {
       print('Error actualizando carrito: $e');
     }
@@ -114,18 +120,17 @@ class CarritoProvider extends ChangeNotifier {
   void agregarProducto(Map<String, dynamic> producto) {
     print('Agregando producto: $producto'); // Debug
     print('Negocio ID del producto: ${producto['negocio_id']}'); // Debug
-    final index = _carrito.indexWhere((item) => item['nombre'] == producto['nombre']);
+    final index = _carrito.indexWhere(
+      (item) => item['nombre'] == producto['nombre'],
+    );
     if (index != -1) {
       // Sumar cantidades de forma segura
       final cantidadActual = _parseCantidad(_carrito[index]['cantidad']);
       final cantidadNueva = _parseCantidad(producto['cantidad']);
       _carrito[index]['cantidad'] = cantidadActual + cantidadNueva;
-      print('Producto existente, nueva cantidad: ${_carrito[index]['cantidad']}'); // Debug
     } else {
       _carrito.add(Map<String, dynamic>.from(producto));
-      print('Producto nuevo agregado'); // Debug
     }
-    print('Carrito después de agregar: $_carrito'); // Debug
     actualizarCarrito(_userEmail!, _carrito);
     notifyListeners();
   }
@@ -148,9 +153,9 @@ class CarritoProvider extends ChangeNotifier {
       final cantidadActual = _parseCantidad(_carrito[index]['cantidad']);
       final nuevaCantidad = cantidadActual + delta;
       _carrito[index]['cantidad'] = nuevaCantidad < 1 ? 1 : nuevaCantidad;
-      
+
       actualizarCarrito(_userEmail!, _carrito);
       notifyListeners();
     }
   }
-} 
+}

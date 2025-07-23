@@ -521,8 +521,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                       child: Image.network(
                                         producto['img']?.toString() ??
                                             'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80',
-                                        width: 80,
-                                        height: 80,
+                                        width: 100,
+                                        height: 150,
                                         fit: BoxFit.cover,
                                         errorBuilder:
                                             (context, error, stackTrace) =>
@@ -609,7 +609,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                                 decoration: BoxDecoration(
                                                   color: Colors.blue,
                                                   borderRadius:
-                                                      BorderRadius.circular(20),
+                                                      BorderRadius.circular(15),
                                                 ),
                                                 child: IconButton(
                                                   icon: const Icon(
@@ -623,8 +623,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                                       ),
                                                   constraints:
                                                       const BoxConstraints(
-                                                        minWidth: 40,
-                                                        minHeight: 40,
+                                                        minWidth: 90,
+                                                        minHeight: 30,
                                                       ),
                                                 ),
                                               ),

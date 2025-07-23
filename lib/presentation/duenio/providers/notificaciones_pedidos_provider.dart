@@ -12,6 +12,7 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
   String? _restauranteId;
   BuildContext? _contextoGlobal;
   bool _inicializado = false;
+  RealtimeChannel? _realtimeChannel; // Canal para Realtime
 
   // Inicializar el sistema de notificaciones al arrancar la app
   Future<void> inicializarSistema() async {
@@ -28,9 +29,7 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
     _contextoGlobal = context;
     _notificados.clear();
     _pedidoSub?.cancel();
-    
-    // Por ahora, usar una implementación simple sin Realtime
-    // TODO: Implementar Supabase Realtime cuando esté disponible
+    _suscribirsePedidosRealtime(restauranteId); // Suscribirse a Realtime
     print('🔔 Notificaciones configuradas para restaurante: $restauranteId');
   }
 
@@ -69,9 +68,26 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
   }
 
   // Suscribirse a cambios en la tabla de pedidos usando Supabase Realtime
-  void suscribirsePedidos(String restauranteId) {
-    // TODO: Implementar cuando Supabase Realtime esté disponible
-    print('🔔 Suscripción a pedidos configurada para: $restauranteId');
+  void _suscribirsePedidosRealtime(String restauranteId) {
+    _realtimeChannel?.unsubscribe();
+    print('🔔 Suscribiéndose a pedidos Realtime para restaurante: $restauranteId');
+    _realtimeChannel = Supabase.instance.client
+      .channel('public:pedidos')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'pedidos',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'restaurante_id',
+          value: restauranteId,
+        ),
+        callback: (payload) {
+          print('🔔 Nuevo pedido detectado por Realtime: ${payload.newRecord}');
+          _mostrarNotificacionNativa();
+        },
+      )
+      .subscribe();
   }
 
   void _escucharPedidosNuevos() {
@@ -137,6 +153,7 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
   @override
   void dispose() {
     _pedidoSub?.cancel();
+    _realtimeChannel?.unsubscribe(); // Cancelar la suscripción Realtime
     super.dispose();
   }
 } 

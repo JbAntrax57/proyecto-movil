@@ -64,7 +64,7 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
   @override
   Widget build(BuildContext context) {
     final userEmail = context.read<CarritoProvider>().userEmail;
-    
+
     return Scaffold(
       backgroundColor: Colors.blue[50],
       appBar: AppBar(
@@ -73,7 +73,7 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
         centerTitle: true,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: obtenerPedidos(userEmail),
+        future: obtenerPedidos(userEmail!),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -104,26 +104,25 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Realiza tu primer pedido para verlo aquí',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey[500]),
                   ),
                 ],
               ),
             );
           }
-          
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-        itemCount: pedidos.length,
-        itemBuilder: (context, index) {
-          final pedido = pedidos[index];
-              final productos = List<Map<String, dynamic>>.from(pedido['productos'] ?? []);
+            itemCount: pedidos.length,
+            itemBuilder: (context, index) {
+              final pedido = pedidos[index];
+              final productos = List<Map<String, dynamic>>.from(
+                pedido['productos'] ?? [],
+              );
               final estado = pedido['estado'] as String;
               final total = pedido['total'] as int;
               final timestamp = DateTime.parse(pedido['timestamp'] as String);
-              
+
               // Animación de aparición para cada pedido
               return TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0, end: 1),
@@ -144,10 +143,7 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                   child: ExpansionTile(
                     leading: CircleAvatar(
                       backgroundColor: _getEstadoColor(estado),
-                      child: Icon(
-                        _getEstadoIcon(estado),
-                        color: Colors.white,
-                      ),
+                      child: Icon(_getEstadoIcon(estado), color: Colors.white),
                     ),
                     title: Text(
                       'Pedido #${pedido['id']}',
@@ -227,24 +223,26 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                                       width: 50,
                                       height: 50,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          Container(
-                                        width: 50,
-                                        height: 50,
-                                        color: Colors.grey[300],
-                                        child: const Icon(
-                                          Icons.fastfood,
-                                          size: 24,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                                width: 50,
+                                                height: 50,
+                                                color: Colors.grey[300],
+                                                child: const Icon(
+                                                  Icons.fastfood,
+                                                  size: 24,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   // Detalles del producto
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           producto['nombre'] as String,

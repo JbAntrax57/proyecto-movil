@@ -9,6 +9,8 @@ import '../providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'menu_screen.dart';
 import 'carrito_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 // Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
@@ -362,7 +364,15 @@ class _NegociosScreenState extends State<NegociosScreen> {
           appBar: showAppBar
               ? AppBar(
         backgroundColor: Colors.blue[50],
-        title: const Text('Negocios destacados'),
+        elevation: 0,
+        title: Text(
+          'Negocios destacados',
+          style: GoogleFonts.montserrat(
+            color: Colors.blue[900],
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
         centerTitle: true,
         actions: [
                     // Botón del carrito
@@ -528,8 +538,10 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     controller: _searchController,
                     autofocus: false,
                     focusNode: _searchFocusNode, // Asignar el FocusNode
+                    style: GoogleFonts.montserrat(fontSize: 16, color: Colors.blueGrey[900]),
                     decoration: InputDecoration(
                       hintText: 'Buscar negocios...',
+                      hintStyle: GoogleFonts.montserrat(color: Colors.blueGrey[400], fontSize: 16),
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       suffixIcon: _searchText.isNotEmpty
                           ? IconButton(
@@ -577,7 +589,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'Error al cargar negocios',
-                              style: TextStyle(
+                              style: GoogleFonts.montserrat(
                                 fontSize: 18,
                                 color: Colors.grey[600],
                                 fontWeight: FontWeight.w500,
@@ -604,7 +616,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'No hay negocios disponibles',
-                              style: TextStyle(
+                              style: GoogleFonts.montserrat(
                                 fontSize: 18,
                                 color: Colors.grey[600],
                                 fontWeight: FontWeight.w500,
@@ -651,25 +663,134 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                   children: [
                       // Slider de negocios destacados (loop infinito y scroll automático)
                       if (destacados.isNotEmpty)
-                                      DestacadosSlider(
-                            destacados: destacados,
-                            onTap: (negocio) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => MenuScreen(
-                                                restauranteId:
-                                                    negocio['id']?.toString() ??
-                                                    '',
-                                                restaurante:
-                                                    negocio['nombre']
-                                                        ?.toString() ??
-                                                    'Sin nombre',
-                                  ),
-                                ),
-                              );
-                            },
+                                      Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    child: CarouselSlider(
+      options: CarouselOptions(
+        height: 200,
+        autoPlay: true,
+        autoPlayInterval: const Duration(seconds: 3),
+        enlargeCenterPage: true,
+        viewportFraction: 0.97,
+        enableInfiniteScroll: true,
+      ),
+      items: destacados.map((negocio) {
+        return Builder(
+          builder: (context) {
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MenuScreen(
+                      restauranteId: negocio['id']?.toString() ?? '',
+                      restaurante: negocio['nombre']?.toString() ?? 'Sin nombre',
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.10),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Stack(
+                    children: [
+                      Image.network(
+                        negocio['img']?.toString() ??
+                            'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.grey[300],
+                          child: const Icon(
+                            Icons.store,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
                         ),
+                      ),
+                      // Gradiente oscuro para el texto
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.7),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Contenido del negocio
+                      Positioned(
+                        bottom: 20,
+                        left: 20,
+                        right: 20,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              negocio['nombre']?.toString() ?? 'Sin nombre',
+                              style: GoogleFonts.montserrat(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              negocio['direccion']?.toString() ?? 'Sin dirección',
+                              style: GoogleFonts.montserrat(
+                                color: Colors.white.withOpacity(0.85),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Badge de destacado
+                      Positioned(
+                        top: 16,
+                        right: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Destacado',
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      }).toList(),
+    ),
+  ),
                       // Barra de categorías horizontal
                                     Padding(
                               padding: const EdgeInsets.symmetric(
@@ -687,13 +808,14 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                     ),
                                     child: Text(
                                       'Categorías',
-                                      style: TextStyle(
+                                      style: GoogleFonts.montserrat(
                                         fontSize: 17,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.blueGrey[950],
                                       ),
                                     ),
                                   ),
+                                  // En la barra de categorías horizontal
                                   SizedBox(
                                     height: 70,
                                     child: ListView.separated(
@@ -706,47 +828,38 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                         final selected =
                                             _categoriaSeleccionada ==
                                             cat['nombre'];
-                                        return GestureDetector(
-                                          onTap: () {
+                                        return ChoiceChip(
+                                          label: Text(
+                                            cat['nombre'] as String,
+                                            style: GoogleFonts.montserrat(
+                                              fontSize: 13,
+                                              color: selected ? Colors.blue[800] : Colors.blueGrey[800],
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          avatar: Icon(
+                                            cat['icon'] as IconData,
+                                            color: selected ? Colors.blue[800] : Colors.blueGrey[600],
+                                            size: 22,
+                                          ),
+                                          selected: selected,
+                                          backgroundColor: Colors.white,
+                                          selectedColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(18),
+                                            side: BorderSide(
+                                              color: selected ? Colors.blue[800]! : Colors.blueGrey[100]!,
+                                              width: selected ? 2 : 1,
+                                            ),
+                                          ),
+                                          elevation: selected ? 2 : 0,
+                                          pressElevation: 4,
+                                          onSelected: (_) {
                                             setState(() {
-                                                      _categoriaSeleccionada =
-                                                          selected
-                                                  ? null
-                                                          : cat['nombre']
-                                                                as String;
+                                              _categoriaSeleccionada = selected ? null : cat['nombre'] as String;
                                             });
                                           },
-                                          child: Column(
-                                            children: [
-                                              CircleAvatar(
-                                                radius: 24,
-                                                        backgroundColor:
-                                                            selected
-                                                            ? Colors
-                                                                  .blueGrey[800]
-                                                    : Colors.blue[50],
-                                                child: Icon(
-                                                          cat['icon']
-                                                              as IconData,
-                                                  color: selected
-                                                      ? Colors.white
-                                                              : Colors
-                                                                    .blueGrey[800],
-                                                  size: 28,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                cat['nombre'] as String,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: selected
-                                                      ? Colors.blue
-                                                      : null,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                         );
                                       },
                                     ),
@@ -867,20 +980,15 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                           negocio['nombre']
                                                                   ?.toString() ??
                                                               'Sin nombre',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleMedium
-                                                  ?.copyWith(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Colors
-                                                                    .blueGrey[800],
-                                                              ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 8,
-                                                        ),
+                                              style: GoogleFonts.montserrat(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blueGrey[800],
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 8,
+                                            ),
                                             Row(
                                               children: [
                                                 const Icon(
@@ -897,13 +1005,10 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                     negocio['direccion']
                                                                         ?.toString() ??
                                                                     'Sin dirección',
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: Colors
-                                                              .blueGrey[700],
-                                                        ),
+                                                    style: GoogleFonts.montserrat(
+                                                        color: Colors.blueGrey[700],
+                                                        fontSize: 13,
+                                                      ),
                                                     overflow:
                                                                     TextOverflow
                                                                         .ellipsis,
@@ -1070,9 +1175,9 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                           children: [
                             Text(
                                   negocio['nombre']?.toString() ?? 'Sin nombre',
-                                  style: const TextStyle(
+                                  style: GoogleFonts.montserrat(
                                     color: Colors.white,
-                                    fontSize: 24,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -1080,9 +1185,9 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                                 Text(
                                   negocio['direccion']?.toString() ??
                                       'Sin dirección',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontSize: 16,
+                                  style: GoogleFonts.montserrat(
+                                    color: Colors.white.withOpacity(0.85),
+                                    fontSize: 14,
                                   ),
                                 ),
                               ],
@@ -1093,30 +1198,27 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                             top: 16,
                             right: 16,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
                                 color: Colors.orange,
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Destacado',
-                                style: TextStyle(
+                                style: GoogleFonts.montserrat(
                                   color: Colors.white,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+                  ),
+                );
+              },
             ),
           ),
           // Indicadores de página

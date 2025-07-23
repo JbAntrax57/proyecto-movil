@@ -3,7 +3,6 @@
 // Para agregar rutas, edita el arreglo 'routes'.
 // Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
 import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart';
 import '../presentation/cliente/screens/home_screen.dart';
 import '../presentation/cliente/screens/login_screen.dart';
 import '../presentation/duenio/screens/dashboard_screen.dart';
@@ -47,4 +46,4 @@ final router = GoRouter(
   ],
 );
 // Fin de router.dart
-// Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión. 
+// Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
