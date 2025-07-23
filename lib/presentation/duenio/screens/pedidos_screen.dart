@@ -28,6 +28,16 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
     {'label': 'Cancelado', 'color': Colors.red},
   ];
 
+  // Orden personalizado de estados
+  final List<String> _ordenEstados = [
+    'pendiente',
+    'preparando',
+    'en camino',
+    'listo',
+    'entregado',
+    'cancelado',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -268,7 +278,8 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                           .toList())
                                 .length,
                         itemBuilder: (context, index) {
-                          final pedidosFiltrados = _filtroEstado == null
+                          // Filtrar y ordenar los pedidos por estado personalizado
+                          List<Map<String, dynamic>> pedidosFiltrados = _filtroEstado == null
                               ? _pedidos
                               : _pedidos
                                     .where(
@@ -277,6 +288,17 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                           _filtroEstado!.toLowerCase(),
                                     )
                                     .toList();
+                          pedidosFiltrados.sort((a, b) {
+                            final estadoA = (a['estado'] ?? '').toString().toLowerCase();
+                            final estadoB = (b['estado'] ?? '').toString().toLowerCase();
+                            final idxA = _ordenEstados.indexOf(estadoA);
+                            final idxB = _ordenEstados.indexOf(estadoB);
+                            if (idxA == idxB) {
+                              // Si el estado es igual, ordenar por fecha descendente
+                              return (b['created_at'] ?? '').compareTo(a['created_at'] ?? '');
+                            }
+                            return idxA.compareTo(idxB);
+                          });
                           final pedido = pedidosFiltrados[index];
                           final productos = List<Map<String, dynamic>>.from(
                             pedido['productos'] ?? [],
