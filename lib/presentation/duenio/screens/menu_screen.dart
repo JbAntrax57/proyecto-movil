@@ -509,11 +509,11 @@ class _DuenioMenuScreenState extends State<DuenioMenuScreen> {
                                             .from('productos')
                                             .delete()
                                             .eq('id', producto['id']);
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
+                                        ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
                                             content: Text('Producto eliminado'),
+                                            behavior: SnackBarBehavior.floating,
+                                            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
                                           ),
                                         );
                                         setState(

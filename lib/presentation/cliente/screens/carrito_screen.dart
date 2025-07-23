@@ -72,7 +72,11 @@ class CarritoScreen extends StatelessWidget {
       if (confirm == true) {
         context.read<CarritoProvider>().eliminarProducto(index);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Producto eliminado del carrito')),
+          const SnackBar(
+            content: Text('Producto eliminado del carrito'),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(top: 60, left: 16, right: 16), // Mostrar pegado arriba
+          ),
         );
       }
     }
@@ -103,7 +107,13 @@ class CarritoScreen extends StatelessWidget {
         context.read<CarritoProvider>().limpiarCarrito();
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Carrito vaciado')));
+        ).showSnackBar(
+          const SnackBar(
+            content: Text('Carrito vaciado'),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
+          ),
+        );
       }
     }
 
@@ -124,7 +134,13 @@ class CarritoScreen extends StatelessWidget {
       if (carrito.isEmpty) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('El carrito está vacío')));
+        ).showSnackBar(
+          const SnackBar(
+            content: Text('El carrito está vacío'),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
+          ),
+        );
         return;
       }
 
@@ -239,6 +255,8 @@ class CarritoScreen extends StatelessWidget {
             content: Text('¡Pedido realizado con éxito!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
           ),
         );
 

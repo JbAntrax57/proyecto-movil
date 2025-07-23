@@ -68,6 +68,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Registro exitoso. Ahora puedes iniciar sesión.'),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
           ),
         );
         // Navega a login después de un frame

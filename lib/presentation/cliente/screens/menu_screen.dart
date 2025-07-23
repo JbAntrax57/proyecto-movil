@@ -144,34 +144,61 @@ class _MenuScreenState extends State<MenuScreen> {
                             ),
                           ),
                         ),
-                        if (cantidad > 1)
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.arrow_circle_right_rounded,
-                                color: Colors.green,
-                                size: 22,
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.red[100],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '\$${(producto['precio'] * cantidad)?.toString() ?? '0'}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
-                                    fontSize: 22,
-                                  ),
+                        // Animación para el total y la flecha verde cuando cantidad > 1
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 150),
+                          transitionBuilder: (child, animation) =>
+                              SlideTransition(
+                                position:
+                                    Tween<Offset>(
+                                      begin: const Offset(
+                                        0,
+                                        0.5,
+                                      ), // Empieza abajo
+                                      end: Offset.zero,
+                                    ).animate(
+                                      CurvedAnimation(
+                                        parent: animation,
+                                        curve:
+                                            Curves.bounceOut, // Efecto saltito
+                                      ),
+                                    ),
+                                child: FadeTransition(
+                                  opacity: animation,
+                                  child: child,
                                 ),
                               ),
-                            ],
-                          ),
+                          child: cantidad > 1
+                              ? Row(
+                                  key: ValueKey(cantidad),
+                                  children: [
+                                    const Icon(
+                                      Icons.arrow_circle_right_rounded,
+                                      color: Colors.green,
+                                      size: 22,
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red[100],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '\$${(producto['precio'] * cantidad)?.toString() ?? '0'}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue,
+                                          fontSize: 22,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                       ],
                     ),
                   ),
@@ -253,6 +280,11 @@ class _MenuScreenState extends State<MenuScreen> {
                             backgroundColor: Colors.green,
                             duration: const Duration(seconds: 2),
                             behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.only(
+                              top: 60,
+                              left: 16,
+                              right: 16,
+                            ), // Mostrar pegado arriba
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),

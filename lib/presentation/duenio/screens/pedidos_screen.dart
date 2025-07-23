@@ -588,6 +588,11 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                               content: Text(
                                                 'Estado actualizado a $nuevoEstado',
                                               ),
+                                              backgroundColor: Colors.green,
+                                              duration: const Duration(seconds: 2),
+                                              behavior: SnackBarBehavior.floating,
+                                              margin: const EdgeInsets.only(top: 60, left: 16, right: 16),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                             ),
                                           );
                                         }
