@@ -302,6 +302,19 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
+  // Determina si el producto es nuevo (menos de 1 mes desde created_at)
+  bool _esNuevo(dynamic createdAt) {
+    if (createdAt == null) return false;
+    try {
+      final fecha = DateTime.tryParse(createdAt.toString());
+      if (fecha == null) return false;
+      final ahora = DateTime.now();
+      return ahora.difference(fecha).inDays < 30;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -544,31 +557,71 @@ class _MenuScreenState extends State<MenuScreen> {
                               onTap: () =>
                                   _mostrarModalAgregarCarrito(producto),
                               child: Padding(
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(4),
                                 child: Row(
                                   children: [
-                                    // Imagen del producto
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Image.network(
-                                        producto['img']?.toString() ??
-                                            'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80',
-                                        width: 100,
-                                        height: 150,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Container(
-                                                  width: 80,
-                                                  height: 80,
-                                                  color: Colors.grey[200],
-                                                  child: Icon(
-                                                    Icons.fastfood,
-                                                    size: 32,
-                                                    color: Colors.grey[400],
+                                    // Imagen del producto con badge 'Nuevo' encima si aplica
+                                    Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          child: Image.network(
+                                            producto['img']?.toString() ??
+                                                'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80',
+                                            width: 100,
+                                            height: 120,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    Container(
+                                                      width: 80,
+                                                      height: 80,
+                                                      color: Colors.grey[200],
+                                                      child: Icon(
+                                                        Icons.fastfood,
+                                                        size: 32,
+                                                        color: Colors.grey[400],
+                                                      ),
+                                                    ),
+                                          ),
+                                        ),
+                                        if (_esNuevo(producto['created_at']))
+                                          Positioned(
+                                            top: 8,
+                                            left: 8,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4,
                                                   ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange
+                                                    .withOpacity(0.55),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.08),
+                                                    blurRadius: 4,
+                                                    offset: const Offset(1, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: const Text(
+                                                'Nuevo',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
                                                 ),
-                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
 
                                     const SizedBox(width: 16),

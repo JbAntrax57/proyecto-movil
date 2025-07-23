@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import '../../cliente/providers/carrito_provider.dart'; // Importa CarritoProvider correctamente
+import 'package:permission_handler/permission_handler.dart'; // Para pedir permisos
 
 class NotificacionesPedidosProvider extends ChangeNotifier {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
@@ -44,6 +45,9 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
 
     await _localNotifications.initialize(initSettings);
     
+    // Pedir permisos de notificación en Android/iOS
+    await _pedirPermisosNotificacion();
+
     // Crear canal de notificaciones para Android
     const androidChannel = AndroidNotificationChannel(
       'pedidos_channel',
@@ -56,6 +60,15 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
     await _localNotifications
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(androidChannel);
+  }
+
+  // Pedir permisos de notificación en Android/iOS
+  Future<void> _pedirPermisosNotificacion() async {
+    // Android 13+
+    if (await Permission.notification.isDenied) {
+      await Permission.notification.request();
+    }
+    // iOS: handled by flutter_local_notifications
   }
 
   void _escucharTodosLosPedidos() {
@@ -85,6 +98,7 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
         callback: (payload) {
           print('🔔 Nuevo pedido detectado por Realtime: ${payload.newRecord}');
           _mostrarNotificacionNativa();
+          _mostrarSnackBar(); // Refuerzo visual arriba
         },
       )
       .subscribe();
@@ -136,6 +150,8 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
             content: Text('¡Nuevo pedido recibido!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
           ),
         );
         print('🔔 SnackBar mostrado');

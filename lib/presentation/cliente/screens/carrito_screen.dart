@@ -159,10 +159,7 @@ class CarritoScreen extends StatelessWidget {
       );
 
       try {
-        // Verificar que el email del usuario no sea null
         final userEmail = context.read<CarritoProvider>().userEmail;
-        print('Email del usuario: $userEmail'); // Debug
-
         if (userEmail == null || userEmail.isEmpty) {
           Navigator.pop(context); // Cerrar loading
           ScaffoldMessenger.of(context).showSnackBar(
@@ -177,71 +174,47 @@ class CarritoScreen extends StatelessWidget {
           return;
         }
 
-        print('Creando pedido con email: $userEmail'); // Debug
-
-        // Obtener el negocio_id del primer producto del carrito
-        final negocioId = carrito.isNotEmpty
-            ? carrito.first['negocio_id']
-            : null;
-        print('Negocio ID: $negocioId'); // Debug
-
-        // Debug: mostrar datos del primer producto
-        if (carrito.isNotEmpty) {
-          print('Primer producto del carrito: ${carrito.first}'); // Debug
+        // Agrupar productos por negocio_id
+        final Map<String, List<Map<String, dynamic>>> productosPorNegocio = {};
+        for (var item in carrito) {
+          final negocioId = item['negocio_id'];
+          if (negocioId == null) continue;
+          productosPorNegocio.putIfAbsent(negocioId, () => []).add(item);
         }
 
-        // Verificar que el negocio_id no sea null
-        if (negocioId == null) {
-          Navigator.pop(context); // Cerrar loading
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Error en el carrito'),
-              content: const Text(
-                'Algunos productos en tu carrito no tienen información del negocio. Esto puede suceder si agregaste productos antes de una actualización. Por favor, vacía el carrito y agrega los productos nuevamente.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    context.read<CarritoProvider>().limpiarCarrito();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Carrito vaciado. Puedes agregar productos nuevamente.',
-                        ),
-                        backgroundColor: Colors.blue,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Vaciar carrito'),
-                ),
-              ],
-            ),
-          );
-          return;
+        // Crear un pedido por cada negocio
+        for (final entry in productosPorNegocio.entries) {
+          final negocioId = entry.key;
+          final productos = entry.value;
+          final total = productos.fold(0, (int sum, item) {
+            int parsePrecio(dynamic precio) {
+              if (precio is int) return precio;
+              if (precio is String) return int.tryParse(precio) ?? 0;
+              if (precio is double) return precio.toInt();
+              return 0;
+            }
+            int parseCantidad(dynamic cantidad) {
+              if (cantidad is int) return cantidad;
+              if (cantidad is String) return int.tryParse(cantidad) ?? 1;
+              if (cantidad is double) return cantidad.toInt();
+              return 1;
+            }
+            final precio = parsePrecio(item['precio']);
+            final cantidad = parseCantidad(item['cantidad']);
+            return sum + (precio * cantidad);
+          });
+
+          await Supabase.instance.client.from('pedidos').insert({
+            'usuario_email': userEmail,
+            'restaurante_id': negocioId,
+            'productos': productos,
+            'total': total,
+            'estado': 'pendiente',
+            'direccion_entrega': ubicacionData['ubicacion'],
+            'referencias': ubicacionData['referencias'],
+            'created_at': DateTime.now().toIso8601String(),
+          });
         }
-
-        print(
-          'Datos del pedido: ${{'usuario_email': userEmail, 'negocio_id': negocioId, 'productos': carrito, 'total': total, 'estado': 'pendiente', 'direccion_entrega': ubicacionData['ubicacion'], 'referencias': ubicacionData['referencias'], 'created_at': DateTime.now().toIso8601String()}}',
-        ); // Debug
-
-        // Crear el pedido en Supabase
-        await Supabase.instance.client.from('pedidos').insert({
-          'usuario_email': userEmail,
-          'restaurante_id': negocioId,
-          'productos': carrito,
-          'total': total,
-          'estado': 'pendiente',
-          'direccion_entrega': ubicacionData['ubicacion'],
-          'referencias': ubicacionData['referencias'],
-          'created_at': DateTime.now().toIso8601String(),
-        });
 
         // Cerrar loading
         Navigator.pop(context);
@@ -252,7 +225,7 @@ class CarritoScreen extends StatelessWidget {
         // Mostrar éxito
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('¡Pedido realizado con éxito!'),
+            content: Text('¡Pedidos realizados con éxito!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,

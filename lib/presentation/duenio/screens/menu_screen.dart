@@ -231,6 +231,19 @@ class _DuenioMenuScreenState extends State<DuenioMenuScreen> {
     await Supabase.instance.client.from('productos').insert(producto);
   }
 
+  // Determina si el producto es nuevo (menos de 1 mes desde created_at)
+  bool _esNuevo(dynamic createdAt) {
+    if (createdAt == null) return false;
+    try {
+      final fecha = DateTime.tryParse(createdAt.toString());
+      if (fecha == null) return false;
+      final ahora = DateTime.now();
+      return ahora.difference(fecha).inDays < 30;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -394,43 +407,72 @@ class _DuenioMenuScreenState extends State<DuenioMenuScreen> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // Imagen del producto ocupa todo el alto
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(20),
-                                    bottomLeft: Radius.circular(20),
-                                  ),
-                                  child:
-                                      producto['img'] != null &&
-                                          producto['img'].toString().isNotEmpty
-                                      ? Image.network(
-                                          producto['img'],
-                                          width: 110,
-                                          height: 10,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  Container(
-                                                    width: 110,
-                                                    height: 100,
-                                                    color: Colors.grey[100],
-                                                    child: const Icon(
-                                                      Icons.fastfood,
-                                                      color: Colors.grey,
-                                                      size: 40,
-                                                    ),
-                                                  ),
-                                        )
-                                      : Container(
-                                          width: 110,
-                                          height: double.infinity,
-                                          color: Colors.grey[100],
-                                          child: const Icon(
-                                            Icons.fastfood,
-                                            color: Colors.grey,
-                                            size: 40,
+                                // Imagen del producto con badge 'Nuevo' encima si aplica
+                                Stack(
+                                  children: [
+                                    // Imagen del producto con altura suficiente para el badge
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(20),
+                                        bottomLeft: Radius.circular(20),
+                                      ),
+                                      child: producto['img'] != null && producto['img'].toString().isNotEmpty
+                                          ? Image.network(
+                                              producto['img'],
+                                              width: 110,
+                                              height: 120, // Altura suficiente para el badge
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => Container(
+                                                width: 110,
+                                                height: 120,
+                                                color: Colors.grey[100],
+                                                child: const Icon(
+                                                  Icons.fastfood,
+                                                  color: Colors.grey,
+                                                  size: 40,
+                                                ),
+                                              ),
+                                            )
+                                          : Container(
+                                              width: 110,
+                                              height: 120,
+                                              color: Colors.grey[100],
+                                              child: const Icon(
+                                                Icons.fastfood,
+                                                color: Colors.grey,
+                                                size: 40,
+                                              ),
+                                            ),
+                                    ),
+                                    // Badge 'Nuevo' en la esquina superior izquierda de la imagen
+                                    if (_esNuevo(producto['created_at']))
+                                      Positioned(
+                                        top: 8,
+                                        left: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.withOpacity(0.85), // Naranja con transparencia
+                                            borderRadius: BorderRadius.circular(12),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.08),
+                                                blurRadius: 4,
+                                                offset: const Offset(1, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Text(
+                                            'Nuevo',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
+                                      ),
+                                  ],
                                 ),
                                 const SizedBox(width: 18),
                                 // Info principal
@@ -448,6 +490,7 @@ class _DuenioMenuScreenState extends State<DuenioMenuScreen> {
                                           color: Colors.blue,
                                         ),
                                       ),
+                                      // Badge 'Nuevo' si el producto fue creado hace menos de 1 mes
                                       const SizedBox(height: 6),
                                       Text(
                                         producto['descripcion'] ??
@@ -509,11 +552,17 @@ class _DuenioMenuScreenState extends State<DuenioMenuScreen> {
                                             .from('productos')
                                             .delete()
                                             .eq('id', producto['id']);
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
                                           const SnackBar(
                                             content: Text('Producto eliminado'),
                                             behavior: SnackBarBehavior.floating,
-                                            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
+                                            margin: EdgeInsets.only(
+                                              top: 60,
+                                              left: 16,
+                                              right: 16,
+                                            ),
                                           ),
                                         );
                                         setState(
