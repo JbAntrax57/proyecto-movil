@@ -615,15 +615,24 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                               .from('usuarios')
                                               .select()
                                               .eq('rol', 'duenio');
+                                            
+                                            print('🔔 Encontrados ${duenos.length} dueños de restaurantes');
+                                            
                                             // Insertar notificación para cada dueño
                                             for (final dueno in duenos) {
-                                              await Supabase.instance.client.from('notificaciones').insert({
-                                                'usuario_id': dueno['uid'] ?? dueno['id'] ?? dueno['user_id'],
-                                                'mensaje': 'El cliente $nombre ($correo) quiere ser repartidor. Dirección: $direccion, Teléfono: $telefono',
-                                                'tipo': 'repartidor_disponible',
-                                                'leida': false,
-                                                'fecha': DateTime.now().toIso8601String(),
-                                              });
+                                              final usuarioId = dueno['id']?.toString() ?? dueno['user_id']?.toString() ?? dueno['uid']?.toString();
+                                              if (usuarioId != null && usuarioId.isNotEmpty) {
+                                                await Supabase.instance.client.from('notificaciones').insert({
+                                                  'usuario_id': usuarioId,
+                                                  'mensaje': 'El cliente $nombre ($correo) quiere ser repartidor. Dirección: $direccion, Teléfono: $telefono',
+                                                  'tipo': 'repartidor_disponible',
+                                                  'leida': false,
+                                                  'fecha': DateTime.now().toIso8601String(),
+                                                });
+                                                print('🔔 Notificación enviada a dueño: ${dueno['email']}');
+                                              } else {
+                                                print('⚠️ No se pudo obtener ID de usuario para: ${dueno['email']}');
+                                              }
                                             }
                                             Navigator.pop(context); // Cerrar loading
                                             showSuccessAlert(

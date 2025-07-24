@@ -156,16 +156,29 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
   Future<List<Map<String, dynamic>>> _cargarNotificacionesDuenio() async {
     try {
       final userProvider = Provider.of<CarritoProvider>(context, listen: false);
-      final userEmail = userProvider.userEmail;
-      if (userEmail == null) return [];
+      final userId = userProvider.userId;
+      if (userId == null) return [];
       final data = await Supabase.instance.client
         .from('notificaciones')
         .select()
-        .eq('usuario_id', userEmail)
+        .eq('usuario_id', userId)
         .order('fecha', ascending: false);
       return List<Map<String, dynamic>>.from(data);
     } catch (e) {
+      print('❌ Error cargando notificaciones: $e');
       return [];
+    }
+  }
+
+  // Marcar notificación como leída
+  Future<void> _marcarNotificacionComoLeida(String notificacionId) async {
+    try {
+      await Supabase.instance.client
+        .from('notificaciones')
+        .update({'leida': true})
+        .eq('id', notificacionId);
+    } catch (e) {
+      print('❌ Error marcando notificación como leída: $e');
     }
   }
 
@@ -337,45 +350,7 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          // --- Sección de notificaciones locales ---
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: _cargarNotificacionesDuenio(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final notificaciones = snapshot.data ?? [];
-              if (notificaciones.isEmpty) {
-                return Card(
-                  color: Colors.blue[50],
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: const Padding(
-                    padding: EdgeInsets.all(18),
-                    child: Text('No tienes notificaciones recientes.', style: TextStyle(color: Colors.blueGrey)),
-                  ),
-                );
-              }
-              return Card(
-                color: Colors.blue[50],
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Notificaciones recientes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue)),
-                      const SizedBox(height: 10),
-                      ...notificaciones.take(5).map((notif) => ListTile(
-                        leading: const Icon(Icons.notifications, color: Colors.purple),
-                        title: Text(notif['mensaje'] ?? '', style: const TextStyle(fontWeight: FontWeight.w500)),
-                        subtitle: Text(_formatearFecha(notif['fecha'])),
-                      )),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+          // --- Sección de información del negocio ---
           // --- Foto y nombre del negocio ---
           FutureBuilder<Map<String, dynamic>?>(
             future: _cargarDatosNegocioReactivo(restauranteId),
@@ -427,7 +402,10 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.delivery_dining, color: Colors.white),
-                      label: const Text('Asignar repartidores', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Asignar repartidores',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
