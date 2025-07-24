@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../cliente/providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart'; // Para personalizar la status bar
+import 'dart:async';
 
 class DuenioPedidosScreen extends StatefulWidget {
   const DuenioPedidosScreen({super.key});
@@ -17,6 +18,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
   bool _isLoading = true;
   String? _error;
   String? _filtroEstado; // Estado seleccionado para filtrar
+  StreamSubscription? _pedidosSubscription;
 
   // Lista de estados para los badges
   final List<Map<String, dynamic>> _estados = [
@@ -42,6 +44,30 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
   void initState() {
     super.initState();
     _cargarPedidos();
+    _suscribirseAPedidosRealtime();
+  }
+
+  // Suscribirse a la tabla de pedidos para actualizar la lista en tiempo real
+  void _suscribirseAPedidosRealtime() {
+    _pedidosSubscription = Supabase.instance.client
+      .from('pedidos')
+      .stream(primaryKey: ['id'])
+      .listen((data) {
+        final userProvider = context.read<CarritoProvider>();
+        final negocioId = userProvider.restauranteId;
+        final pedidosNegocio = List<Map<String, dynamic>>.from(data)
+            .where((p) => p['restaurante_id'] == negocioId)
+            .toList();
+        setState(() {
+          _pedidos = pedidosNegocio;
+        });
+      });
+  }
+
+  @override
+  void dispose() {
+    _pedidosSubscription?.cancel();
+    super.dispose();
   }
 
   // Cargar pedidos del negocio desde Supabase
@@ -531,6 +557,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                                   'pendiente',
                                                   'preparando',
                                                   'en camino',
+                                                  'listo',
                                                   'entregado',
                                                   'cancelado',
                                                 ];

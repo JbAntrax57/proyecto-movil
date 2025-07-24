@@ -4,12 +4,36 @@ import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
+import 'dart:async';
 
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
 // Incluye selección de ubicación (actual o manual) antes de enviar el pedido.
 class CarritoScreen extends StatelessWidget {
   const CarritoScreen({super.key});
+
+  // Obtiene la mejor ubicación posible escuchando varias posiciones durante unos segundos
+  Future<Position?> obtenerMejorUbicacion({int segundos = 5}) async {
+    Position? mejorPosicion;
+    double mejorPrecision = double.infinity;
+    final completer = Completer<Position?>();
+    final subscription = Geolocator.getPositionStream(
+      locationSettings: LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+      ),
+    ).listen((Position position) {
+      if (position.accuracy < mejorPrecision) {
+        mejorPrecision = position.accuracy;
+        mejorPosicion = position;
+      }
+    });
+    // Espera unos segundos y luego cancela el stream
+    await Future.delayed(Duration(seconds: segundos));
+    await subscription.cancel();
+    completer.complete(mejorPosicion);
+    return completer.future;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -826,7 +850,20 @@ class _UbicacionModalState extends State<UbicacionModal> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: buscando ? null : _obtenerUbicacion,
+                  onPressed: () async {
+                    final posicion = await context.read<CarritoScreen>().obtenerMejorUbicacion();
+                    if (posicion != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Ubicación precisa: ${posicion.latitude}, ${posicion.longitude} (±${posicion.accuracy}m)')),
+                      );
+                      // Aquí usa la posición para el pedido, por ejemplo:
+                      // setState(() { _direccionSeleccionada = ...; });
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No se pudo obtener la ubicación precisa.')),
+                      );
+                    }
+                  },
                   icon: buscando
                       ? const SizedBox(
                           width: 16,

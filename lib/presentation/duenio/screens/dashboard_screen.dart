@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import '../providers/notificaciones_pedidos_provider.dart'; // Importa el provider de notificaciones
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'asignar_repartidores_screen.dart';
 
 /// dashboard_screen.dart - Pantalla principal (dashboard) para el dueño
 /// Muestra un menú con las opciones principales para la gestión del restaurante.
@@ -140,6 +141,70 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
     await Supabase.instance.client.from('usuarios').insert(usuario);
   }
 
+  // Cargar notificaciones locales del dueño desde Supabase
+  Future<List<Map<String, dynamic>>> _cargarNotificacionesDuenio() async {
+    try {
+      final userProvider = Provider.of<CarritoProvider>(context, listen: false);
+      final userEmail = userProvider.userEmail;
+      if (userEmail == null) return [];
+      final data = await Supabase.instance.client
+        .from('notificaciones')
+        .select()
+        .eq('usuario_id', userEmail)
+        .order('fecha', ascending: false);
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Formatea la fecha para mostrarla de forma amigable
+  String _formatearFecha(dynamic fecha) {
+    try {
+      final date = DateTime.parse(fecha.toString());
+      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}' ;
+    } catch (e) {
+      return fecha.toString();
+    }
+  }
+
+  // Cargar repartidores disponibles (usuarios con rol repartidor que no estén ya asignados a este restaurante)
+  Future<List<Map<String, dynamic>>> _cargarRepartidoresDisponibles() async {
+    try {
+      final userProvider = Provider.of<CarritoProvider>(context, listen: false);
+      final negocioId = userProvider.restauranteId;
+      if (negocioId == null) return [];
+      // Obtener todos los repartidores
+      final repartidores = await Supabase.instance.client
+        .from('usuarios')
+        .select()
+        .eq('rol', 'repartidor');
+      // Obtener los ya asignados a este restaurante
+      final asignados = await Supabase.instance.client
+        .from('negocios_repartidores')
+        .select('repartidor_id')
+        .eq('negocio_id', negocioId);
+      final idsAsignados = asignados.map((a) => a['repartidor_id']).toSet();
+      // Filtrar los que no están asignados
+      return List<Map<String, dynamic>>.from(repartidores).where((r) => !idsAsignados.contains(r['id'])).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Asignar repartidor al restaurante (insertar en negocios_repartidores)
+  Future<void> _asignarRepartidorAlRestaurante(dynamic repartidorId) async {
+    final userProvider = Provider.of<CarritoProvider>(context, listen: false);
+    final negocioId = userProvider.restauranteId;
+    if (negocioId == null) return;
+    await Supabase.instance.client.from('negocios_repartidores').insert({
+      'negocio_id': negocioId,
+      'repartidor_id': repartidorId,
+      'asociado_en': DateTime.now().toIso8601String(),
+      'estado': 'activo',
+    });
+  }
+
   @override
   void dispose() {
     _pedidoSub?.cancel();
@@ -192,6 +257,45 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          // --- Sección de notificaciones locales ---
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: _cargarNotificacionesDuenio(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final notificaciones = snapshot.data ?? [];
+              if (notificaciones.isEmpty) {
+                return Card(
+                  color: Colors.blue[50],
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: const Padding(
+                    padding: EdgeInsets.all(18),
+                    child: Text('No tienes notificaciones recientes.', style: TextStyle(color: Colors.blueGrey)),
+                  ),
+                );
+              }
+              return Card(
+                color: Colors.blue[50],
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Notificaciones recientes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue)),
+                      const SizedBox(height: 10),
+                      ...notificaciones.take(5).map((notif) => ListTile(
+                        leading: const Icon(Icons.notifications, color: Colors.purple),
+                        title: Text(notif['mensaje'] ?? '', style: const TextStyle(fontWeight: FontWeight.w500)),
+                        subtitle: Text(_formatearFecha(notif['fecha'])),
+                      )),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           // --- Foto y nombre del negocio ---
           if (_cargandoNegocio)
             const Center(child: CircularProgressIndicator()),
@@ -230,6 +334,29 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
                   _negocioNombre ?? 'Mi Negocio',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey),
                   textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                // --- Botón para ir a la vista de asignar repartidores ---
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.delivery_dining, color: Colors.white),
+                    label: const Text('Asignar repartidores', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AsignarRepartidoresScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(height: 24),
               ],

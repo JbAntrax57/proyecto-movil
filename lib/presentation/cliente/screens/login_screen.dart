@@ -6,6 +6,7 @@ import '../../duenio/providers/notificaciones_pedidos_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import 'package:crypto/crypto.dart'; // Para encriptar la contraseña
 import 'dart:convert'; // Para utf8.encode
+import '../../repartidor/screens/pedidos_screen.dart';
 
 // login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
 // Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
@@ -31,11 +32,10 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
 
   // Usuarios demo por rol (Cliente, Repartidor, Dueño, Admin)
   final demoUsers = [
-    {'email': 'cliente1@demo.com', 'password': '1234', 'rol': 'Cliente'},
-    {'email': 'cliente2@demo.com', 'password': '1234', 'rol': 'Cliente'},
-    {'email': 'repartidor@demo.com', 'password': '1234', 'rol': 'Repartidor'},
-    {'email': 'duenio@demo.com', 'password': '1234', 'rol': 'Duenio'},
-    {'email': 'admin@demo.com', 'password': '1234', 'rol': 'Admin'},
+    {'email': 'cliente@wasp.mx', 'password': 'cliente123', 'rol': 'Cliente'},
+    {'email': 'repartidor@wasp.mx', 'password': 'res123', 'rol': 'Repartidor'},
+    {'email': 'res@wasp.mx', 'password': 'res123', 'rol': 'Duenio'},
+    {'email': 'admin@wasp.mx', 'password': 'admin123', 'rol': 'Admin'},
   ];
 
   // Función para encriptar la contraseña con SHA-256
@@ -97,6 +97,7 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
           print('🔐 Login: Navegación completada');
           break;
         case 'repartidor':
+          // Navega directamente a la pantalla de pedidos del repartidor
           context.go('/repartidor');
           break;
         case 'duenio':

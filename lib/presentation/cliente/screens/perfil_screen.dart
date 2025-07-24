@@ -566,6 +566,71 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                         ),
                                         onTap: _cerrarSesion,
                                       ),
+
+                                      // Botón: Quiero ser repartidor
+                                      const Divider(),
+                                      ListTile(
+                                        leading: const Icon(
+                                          Icons.delivery_dining,
+                                          color: Colors.purple,
+                                        ),
+                                        title: const Text('Quiero ser repartidor'),
+                                        subtitle: const Text('Notificar a los restaurantes que estoy disponible'),
+                                        onTap: () async {
+                                          // Verificar datos del usuario
+                                          final nombre = _nombreController.text.trim();
+                                          final correo = _usuario?['email']?.toString() ?? '';
+                                          final direccion = _direccionController.text.trim();
+                                          final telefono = _telefonoController.text.trim();
+                                          if (nombre.isEmpty || correo.isEmpty || direccion.isEmpty || telefono.isEmpty) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Por favor, completa todos tus datos (nombre, correo, dirección y teléfono) antes de solicitar ser repartidor.'),
+                                                backgroundColor: Colors.orange,
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          // Mostrar loading
+                                          showDialog(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (context) => const Center(child: CircularProgressIndicator()),
+                                          );
+                                          try {
+                                            // Obtener todos los dueños de negocios
+                                            final duenos = await Supabase.instance.client
+                                              .from('usuarios')
+                                              .select()
+                                              .eq('rol', 'duenio');
+                                            // Insertar notificación para cada dueño
+                                            for (final dueno in duenos) {
+                                              await Supabase.instance.client.from('notificaciones').insert({
+                                                'usuario_id': dueno['uid'] ?? dueno['id'] ?? dueno['user_id'],
+                                                'mensaje': 'El cliente $nombre ($correo) quiere ser repartidor. Dirección: $direccion, Teléfono: $telefono',
+                                                'tipo': 'repartidor_disponible',
+                                                'leida': false,
+                                                'fecha': DateTime.now().toIso8601String(),
+                                              });
+                                            }
+                                            Navigator.pop(context); // Cerrar loading
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('¡Se notificó a los restaurantes que quieres ser repartidor!'),
+                                                backgroundColor: Colors.green,
+                                              ),
+                                            );
+                                          } catch (e) {
+                                            Navigator.pop(context); // Cerrar loading
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Error al notificar: ' + e.toString()),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
                                     ],
                                   ),
                                 ),

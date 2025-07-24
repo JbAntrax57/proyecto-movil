@@ -10,6 +10,7 @@ import '../presentation/admin/screens/admin_home.dart';
 import '../presentation/cliente/screens/carrito_screen.dart';
 import '../presentation/common/screens/splash_screen.dart';
 import '../presentation/common/screens/register_screen.dart';
+import '../presentation/repartidor/screens/pedidos_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/splash',
@@ -58,6 +59,10 @@ final router = GoRouter(
     GoRoute(
       path: '/admin',
       builder: (context, state) => const AdminHomeScreen(),
+    ),
+      GoRoute(
+      path: '/repartidor',
+      builder: (context, state) => const RepartidorPedidosScreen(),
     ),
   ],
 );

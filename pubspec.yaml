@@ -45,6 +45,8 @@ dependencies:
   carousel_slider: ^5.1.1
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.2
+  flutter_background_service: ^5.1.0
+  flutter_background_service_android: ^6.3.0
 
 dev_dependencies:
   flutter_test:
