@@ -1059,7 +1059,7 @@ class CarritoScreen extends StatelessWidget {
                               ),
                             ),
                             // SizedBox para evitar que el bottom navigation bar tape el último elemento
-                            const SizedBox(height: 180),
+                            const SizedBox(height: 190),
                           ],
                         ),
                 ),
