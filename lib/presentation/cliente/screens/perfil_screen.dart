@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'historial_pedidos_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
+import '../../../shared/widgets/custom_alert.dart';
 
 // perfil_screen.dart - Pantalla de perfil del cliente
 // Permite ver y editar información del usuario
@@ -115,12 +116,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Perfil actualizado correctamente'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      showSuccessAlert(context, 'Perfil actualizado correctamente');
     } catch (e) {
       setState(() {
         _error = 'Error al actualizar perfil: $e';
@@ -601,11 +597,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                           final direccion = _direccionController.text.trim();
                                           final telefono = _telefonoController.text.trim();
                                           if (nombre.isEmpty || correo.isEmpty || direccion.isEmpty || telefono.isEmpty) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Por favor, completa todos tus datos (nombre, correo, dirección y teléfono) antes de solicitar ser repartidor.'),
-                                                backgroundColor: Colors.orange,
-                                              ),
+                                            showWarningAlert(
+                                              context,
+                                              'Por favor, completa todos tus datos (nombre, correo, dirección y teléfono) antes de solicitar ser repartidor.',
                                             );
                                             return;
                                           }
@@ -632,19 +626,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                               });
                                             }
                                             Navigator.pop(context); // Cerrar loading
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('¡Se notificó a los restaurantes que quieres ser repartidor!'),
-                                                backgroundColor: Colors.green,
-                                              ),
+                                            showSuccessAlert(
+                                              context,
+                                              '¡Se notificó a los restaurantes que quieres ser repartidor!',
                                             );
                                           } catch (e) {
                                             Navigator.pop(context); // Cerrar loading
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('Error al notificar: ' + e.toString()),
-                                                backgroundColor: Colors.red,
-                                              ),
+                                            showErrorAlert(
+                                              context,
+                                              'Error al notificar: ${e.toString()}',
                                             );
                                           }
                                         },

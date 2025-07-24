@@ -11,6 +11,7 @@ import 'menu_screen.dart';
 import 'carrito_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import '../../../shared/widgets/custom_alert.dart';
 
 // Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
@@ -132,15 +133,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
     context.read<CarritoProvider>().agregarProducto(productoConCantidad);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${producto['nombre']} agregado al carrito'),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    showSuccessAlert(context, '${producto['nombre']} agregado al carrito');
   }
 
   // Mostrar modal para agregar al carrito
@@ -300,18 +293,9 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
                         Navigator.pop(context);
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${producto['nombre']} x$cantidad agregado al carrito',
-                            ),
-                            backgroundColor: Colors.green,
-                            duration: const Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
+                        showSuccessAlert(
+                          context,
+                          '${producto['nombre']} x$cantidad agregado al carrito',
                         );
                       },
                     ),

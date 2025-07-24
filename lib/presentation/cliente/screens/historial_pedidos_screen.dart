@@ -21,11 +21,30 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
   List<Map<String, dynamic>> _pedidos = [];
   bool _isLoading = true;
   String? _error;
+  bool _mostrarLeyenda = false;
 
   @override
   void initState() {
     super.initState();
     _cargarPedidos();
+    
+    // Mostrar la leyenda con un pequeño delay para una entrada más suave
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _mostrarLeyenda = true;
+        });
+      }
+    });
+    
+    // Ocultar la leyenda después de 5 segundos
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _mostrarLeyenda = false;
+        });
+      }
+    });
   }
 
   // Cargar pedidos del usuario desde Supabase
@@ -51,8 +70,11 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
           .eq('usuario_email', userEmail)
           .order('created_at', ascending: false);
 
+      // Ordenar pedidos por estado y fecha
+      final pedidosOrdenados = _ordenarPedidosPorEstado(List<Map<String, dynamic>>.from(data));
+
       setState(() {
-        _pedidos = List<Map<String, dynamic>>.from(data);
+        _pedidos = pedidosOrdenados;
         _isLoading = false;
       });
     } catch (e) {
@@ -61,6 +83,38 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // Ordenar pedidos por estado (prioridad) y fecha
+  List<Map<String, dynamic>> _ordenarPedidosPorEstado(List<Map<String, dynamic>> pedidos) {
+    // Definir prioridad de estados (menor número = mayor prioridad)
+    final Map<String, int> prioridadEstados = {
+      'pendiente': 1,
+      'preparando': 2,
+      'en camino': 3,
+      'entregado': 4,
+      'cancelado': 5,
+    };
+
+    pedidos.sort((a, b) {
+      final estadoA = a['estado']?.toString().toLowerCase() ?? 'pendiente';
+      final estadoB = b['estado']?.toString().toLowerCase() ?? 'pendiente';
+      
+      final prioridadA = prioridadEstados[estadoA] ?? 6;
+      final prioridadB = prioridadEstados[estadoB] ?? 6;
+      
+      // Si tienen la misma prioridad, ordenar por fecha (más reciente primero)
+      if (prioridadA == prioridadB) {
+        final fechaA = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(1900);
+        final fechaB = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(1900);
+        return fechaB.compareTo(fechaA);
+      }
+      
+      // Ordenar por prioridad de estado
+      return prioridadA.compareTo(prioridadB);
+    });
+
+    return pedidos;
   }
 
   // Obtener color según el estado del pedido
@@ -176,6 +230,66 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                     ],
                   ),
                 ),
+              // Información sobre el ordenamiento (se oculta después de 5 segundos)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeInOut,
+                height: _mostrarLeyenda ? 60 : 0,
+                margin: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 8,
+                  bottom: _mostrarLeyenda ? 8 : 0,
+                ),
+                child: AnimatedOpacity(
+                  opacity: _mostrarLeyenda ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeInOut,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue[200]!),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          child: Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: Colors.blue[700],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 400),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.w500,
+                              height: 1.3,
+                            ),
+                            child: const Text(
+                              'Los pedidos están ordenados por estado: Pendiente → Preparando → En camino → Entregado → Cancelado',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               Expanded(
                 child: _isLoading
                     ? const Center(
@@ -287,47 +401,63 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                                             Row(
                                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 6,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: _getEstadoColor(
-                                                      pedido['estado']?.toString() ?? 'pendiente',
-                                                    ).withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(20),
-                                                    border: Border.all(
-                                                      color: _getEstadoColor(
-                                                        pedido['estado']?.toString() ?? 'pendiente',
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Icon(
-                                                        _getEstadoIcon(
-                                                          pedido['estado']?.toString() ?? 'pendiente',
-                                                        ),
-                                                        size: 16,
+                                                Row(
+                                                  children: [
+                                                    // Indicador de prioridad
+                                                    Container(
+                                                      width: 4,
+                                                      height: 40,
+                                                      decoration: BoxDecoration(
                                                         color: _getEstadoColor(
                                                           pedido['estado']?.toString() ?? 'pendiente',
                                                         ),
+                                                        borderRadius: BorderRadius.circular(2),
                                                       ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        pedido['estado']?.toString().toUpperCase() ?? 'PENDIENTE',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight: FontWeight.bold,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 6,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: _getEstadoColor(
+                                                          pedido['estado']?.toString() ?? 'pendiente',
+                                                        ).withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(20),
+                                                        border: Border.all(
                                                           color: _getEstadoColor(
                                                             pedido['estado']?.toString() ?? 'pendiente',
                                                           ),
                                                         ),
                                                       ),
-                                                    ],
-                                                  ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            _getEstadoIcon(
+                                                              pedido['estado']?.toString() ?? 'pendiente',
+                                                            ),
+                                                            size: 16,
+                                                            color: _getEstadoColor(
+                                                              pedido['estado']?.toString() ?? 'pendiente',
+                                                            ),
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            pedido['estado']?.toString().toUpperCase() ?? 'PENDIENTE',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              fontWeight: FontWeight.bold,
+                                                              color: _getEstadoColor(
+                                                                pedido['estado']?.toString() ?? 'pendiente',
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                                 Text(
                                                   _formatearFecha(

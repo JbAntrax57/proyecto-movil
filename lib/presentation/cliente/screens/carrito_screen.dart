@@ -9,8 +9,37 @@ import 'dart:async';
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
 // Incluye selección de ubicación (actual o manual) antes de enviar el pedido.
-class CarritoScreen extends StatelessWidget {
+class CarritoScreen extends StatefulWidget {
   const CarritoScreen({super.key});
+
+  @override
+  State<CarritoScreen> createState() => _CarritoScreenState();
+}
+
+class _CarritoScreenState extends State<CarritoScreen> {
+  bool _mostrarAlerta = false;
+  String _mensajeAlerta = '';
+  Color _colorAlerta = Colors.green;
+  IconData _iconoAlerta = Icons.check_circle;
+
+  // Función para mostrar alertas personalizadas
+  void _mostrarAlertaPersonalizada(String mensaje, Color color, IconData icono) {
+    setState(() {
+      _mensajeAlerta = mensaje;
+      _colorAlerta = color;
+      _iconoAlerta = icono;
+      _mostrarAlerta = true;
+    });
+
+    // Ocultar la alerta después de 3 segundos
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _mostrarAlerta = false;
+        });
+      }
+    });
+  }
 
   // Obtiene la mejor ubicación posible escuchando varias posiciones durante unos segundos
   Future<Position?> obtenerMejorUbicacion({int segundos = 5}) async {
@@ -60,11 +89,10 @@ class CarritoScreen extends StatelessWidget {
         // Cerrar loading
         Navigator.pop(context);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Carrito refrescado y duplicados limpiados'),
-            backgroundColor: Colors.green,
-          ),
+        _mostrarAlertaPersonalizada(
+          'Carrito refrescado y duplicados limpiados',
+          Colors.green,
+          Icons.check_circle,
         );
       } catch (e) {
         // Cerrar loading si está abierto
@@ -72,11 +100,10 @@ class CarritoScreen extends StatelessWidget {
           Navigator.pop(context);
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al refrescar carrito: $e'),
-            backgroundColor: Colors.red,
-          ),
+        _mostrarAlertaPersonalizada(
+          'Error al refrescar carrito: $e',
+          Colors.red,
+          Icons.error,
         );
       }
     }
@@ -135,16 +162,10 @@ class CarritoScreen extends StatelessWidget {
       );
       if (confirm == true) {
         context.read<CarritoProvider>().eliminarProducto(index);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto eliminado del carrito'),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(
-              top: 60,
-              left: 16,
-              right: 16,
-            ), // Mostrar pegado arriba
-          ),
+        _mostrarAlertaPersonalizada(
+          'Producto eliminado del carrito',
+          Colors.orange,
+          Icons.delete,
         );
       }
     }
@@ -173,12 +194,10 @@ class CarritoScreen extends StatelessWidget {
       );
       if (confirm == true) {
         context.read<CarritoProvider>().limpiarCarrito();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Carrito vaciado'),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
-          ),
+        _mostrarAlertaPersonalizada(
+          'Carrito vaciado',
+          Colors.blue,
+          Icons.clear_all,
         );
       }
     }
@@ -198,12 +217,10 @@ class CarritoScreen extends StatelessWidget {
     // Lógica para realizar el pedido usando Supabase
     void _realizarPedido() async {
       if (carrito.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('El carrito está vacío'),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
-          ),
+        _mostrarAlertaPersonalizada(
+          'El carrito está vacío',
+          Colors.orange,
+          Icons.shopping_cart_outlined,
         );
         return;
       }
@@ -226,14 +243,10 @@ class CarritoScreen extends StatelessWidget {
         final userEmail = context.read<CarritoProvider>().userEmail;
         if (userEmail == null || userEmail.isEmpty) {
           Navigator.pop(context); // Cerrar loading
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Error: No se pudo identificar al usuario. Por favor, inicia sesión nuevamente.',
-              ),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 4),
-            ),
+          _mostrarAlertaPersonalizada(
+            'Error: No se pudo identificar al usuario. Por favor, inicia sesión nuevamente.',
+            Colors.red,
+            Icons.error,
           );
           return;
         }
@@ -289,14 +302,10 @@ class CarritoScreen extends StatelessWidget {
         context.read<CarritoProvider>().limpiarCarrito();
 
         // Mostrar éxito
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('¡Pedidos realizados con éxito!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
-          ),
+        _mostrarAlertaPersonalizada(
+          '¡Pedidos realizados con éxito!',
+          Colors.green,
+          Icons.check_circle,
         );
 
         // Regresar a la pantalla anterior
@@ -305,12 +314,10 @@ class CarritoScreen extends StatelessWidget {
         // Cerrar loading
         Navigator.pop(context);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al realizar el pedido: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        _mostrarAlertaPersonalizada(
+          'Error al realizar el pedido: $e',
+          Colors.red,
+          Icons.error,
         );
       }
     }
@@ -479,11 +486,10 @@ class CarritoScreen extends StatelessWidget {
                                   context
                                       .read<CarritoProvider>()
                                       .limpiarCarrito();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Carrito vaciado'),
-                                      backgroundColor: Colors.blue,
-                                    ),
+                                  _mostrarAlertaPersonalizada(
+                                    'Carrito vaciado',
+                                    Colors.blue,
+                                    Icons.clear_all,
                                   );
                                 },
                                 icon: const Icon(Icons.clear_all, size: 18),
@@ -1066,6 +1072,66 @@ class CarritoScreen extends StatelessWidget {
               ],
             ),
           ),
+          // Alerta personalizada
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          floatingActionButton: _mostrarAlerta
+              ? AnimatedContainer(
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeInOut,
+                  height: _mostrarAlerta ? 60 : 0,
+                  margin: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: _mostrarAlerta ? 120 : 0,
+                  ),
+                  child: AnimatedOpacity(
+                    opacity: _mostrarAlerta ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _colorAlerta.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _colorAlerta),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _colorAlerta.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            child: Icon(
+                              _iconoAlerta,
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 300),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                height: 1.3,
+                              ),
+                              child: Text(_mensajeAlerta),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              : null,
           bottomNavigationBar: carrito.isNotEmpty
               ? Container(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -1443,13 +1509,23 @@ class _UbicacionModalState extends State<UbicacionModal> {
                         }
 
                         if (referencias.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Debes ingresar referencias adicionales',
-                              ),
-                              backgroundColor: Colors.orange,
-                            ),
+                          // Como este está dentro de un modal, usamos un showDialog en lugar de la alerta personalizada
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Referencias requeridas'),
+                                content: const Text(
+                                  'Debes ingresar referencias adicionales para la entrega.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Aceptar'),
+                                  ),
+                                ],
+                              );
+                            },
                           );
                           return;
                         }

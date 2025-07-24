@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import 'package:crypto/crypto.dart'; // Para encriptar la contraseña
 import 'dart:convert'; // Para utf8.encode
 import 'package:go_router/go_router.dart'; // Importa context.go
+import '../../../shared/widgets/custom_alert.dart';
 
 // register_screen.dart (común) - Pantalla de registro genérica
 // Muestra un formulario de registro simple para cualquier rol.
@@ -65,12 +66,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
       // Navega o muestra mensaje de éxito
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registro exitoso. Ahora puedes iniciar sesión.'),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
-          ),
+        showSuccessAlert(
+          context,
+          'Registro exitoso. Ahora puedes iniciar sesión.',
         );
         // Navega a login después de un frame
         Future.delayed(Duration.zero, () {

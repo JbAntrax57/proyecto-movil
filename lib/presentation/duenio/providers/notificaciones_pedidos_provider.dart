@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import '../../cliente/providers/carrito_provider.dart'; // Importa CarritoProvider correctamente
 import 'package:permission_handler/permission_handler.dart'; // Para pedir permisos
+import '../../../shared/widgets/custom_alert.dart';
 
 class NotificacionesPedidosProvider extends ChangeNotifier {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
@@ -145,18 +146,10 @@ class NotificacionesPedidosProvider extends ChangeNotifier {
   void _mostrarSnackBar() {
     if (_contextoGlobal != null) {
       try {
-        ScaffoldMessenger.of(_contextoGlobal!).showSnackBar(
-          const SnackBar(
-            content: Text('¡Nuevo pedido recibido!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(top: 60, left: 16, right: 16),
-          ),
-        );
-        print('🔔 SnackBar mostrado');
+        showSuccessAlert(_contextoGlobal!, '¡Nuevo pedido recibido!');
+        print('🔔 Alerta personalizada mostrada');
       } catch (e) {
-        print('❌ Error mostrando SnackBar: $e');
+        print('❌ Error mostrando alerta personalizada: $e');
       }
     }
   }

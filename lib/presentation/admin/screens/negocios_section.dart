@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/widgets/custom_alert.dart';
 
 class AdminNegociosSection extends StatefulWidget {
   const AdminNegociosSection({super.key});
@@ -254,15 +255,11 @@ class _AdminNegociosSectionState extends State<AdminNegociosSection> {
                       Navigator.of(context).pop();
                       _refrescar();
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Negocio actualizado correctamente')),
-                        );
+                        showSuccessAlert(context, 'Negocio actualizado correctamente');
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error al actualizar: $e')),
-                        );
+                        showErrorAlert(context, 'Error al actualizar: $e');
                       }
                     }
                   },
@@ -299,15 +296,11 @@ class _AdminNegociosSectionState extends State<AdminNegociosSection> {
                   Navigator.of(context).pop();
                   _refrescar();
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Negocio eliminado correctamente')),
-                    );
+                    showSuccessAlert(context, 'Negocio eliminado correctamente');
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al eliminar: $e')),
-                    );
+                    showErrorAlert(context, 'Error al eliminar: $e');
                   }
                 }
               },
@@ -412,9 +405,7 @@ class _AdminNegociosSectionState extends State<AdminNegociosSection> {
                 TextButton(
                   onPressed: () async {
                     if (usuarioidSeleccionado == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Debes seleccionar un dueño')),
-                      );
+                      showWarningAlert(context, 'Debes seleccionar un dueño');
                       return;
                     }
 
@@ -434,15 +425,11 @@ class _AdminNegociosSectionState extends State<AdminNegociosSection> {
                       Navigator.of(context).pop();
                       _refrescar();
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Negocio creado correctamente')),
-                        );
+                        showSuccessAlert(context, 'Negocio creado correctamente');
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error al crear negocio: $e')),
-                        );
+                        showErrorAlert(context, 'Error al crear negocio: $e');
                       }
                     }
                   },

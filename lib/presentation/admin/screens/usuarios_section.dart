@@ -1,6 +1,7 @@
  import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/widgets/custom_alert.dart';
 
 class AdminUsuariosSection extends StatefulWidget {
   const AdminUsuariosSection({super.key});
@@ -176,15 +177,11 @@ class _AdminUsuariosSectionState extends State<AdminUsuariosSection> {
                   Navigator.of(context).pop();
                   _cargarDatos();
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Usuario actualizado correctamente')),
-                    );
+                    showSuccessAlert(context, 'Usuario actualizado correctamente');
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al actualizar: $e')),
-                    );
+                    showErrorAlert(context, 'Error al actualizar: $e');
                   }
                 }
               },
@@ -219,15 +216,11 @@ class _AdminUsuariosSectionState extends State<AdminUsuariosSection> {
                   Navigator.of(context).pop();
                   _cargarDatos();
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Usuario eliminado correctamente')),
-                    );
+                    showSuccessAlert(context, 'Usuario eliminado correctamente');
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al eliminar: $e')),
-                    );
+                    showErrorAlert(context, 'Error al eliminar: $e');
                   }
                 }
               },
@@ -361,18 +354,14 @@ class _AdminUsuariosSectionState extends State<AdminUsuariosSection> {
                       Navigator.of(context).pop();
                       _cargarDatos();
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Usuario creado correctamente')),
-                        );
+                        showSuccessAlert(context, 'Usuario creado correctamente');
                       }
                     } catch (e) {
                       setStateDialog(() {
                         _error = 'Error al crear usuario: $e';
                       });
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error al crear usuario: $e')),
-                        );
+                        showErrorAlert(context, 'Error al crear usuario: $e');
                       }
                     }
                   },

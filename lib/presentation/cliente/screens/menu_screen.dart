@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'carrito_screen.dart';
+import '../../../shared/widgets/custom_alert.dart';
 
 class MenuScreen extends StatefulWidget {
   final String restauranteId;
@@ -272,23 +273,9 @@ class _MenuScreenState extends State<MenuScreen> {
 
                         Navigator.pop(context);
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${producto['nombre']} x$cantidad agregado al carrito',
-                            ),
-                            backgroundColor: Colors.green,
-                            duration: const Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
-                            margin: const EdgeInsets.only(
-                              top: 60,
-                              left: 16,
-                              right: 16,
-                            ), // Mostrar pegado arriba
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
+                        showSuccessAlert(
+                          context,
+                          '${producto['nombre']} x$cantidad agregado al carrito',
                         );
                       },
                     ),

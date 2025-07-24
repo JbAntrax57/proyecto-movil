@@ -10,6 +10,7 @@ import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../cliente/screens/login_screen.dart';
+import '../../../shared/widgets/custom_alert.dart';
 
 // pedidos_screen.dart - Pantalla de pedidos asignados para el repartidor
 // Permite ver pedidos asignados, simular nuevos pedidos preparados, navegar al mapa y actualizar estado de entrega.
@@ -222,9 +223,7 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
       .from('pedidos')
       .update({'estado': 'en camino'})
       .eq('id', pedido['id']);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('¡Pedido tomado!'), backgroundColor: Colors.green),
-    );
+    showSuccessAlert(context, '¡Pedido tomado!');
     await _cargarAmbasListas(); // Refresca la lista y el badge
     setState(() { _isLoading = false; });
   }
@@ -573,9 +572,7 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
       .from('pedidos')
       .update({'estado': 'entregado'})
       .eq('id', pedido['id']);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('¡Pedido marcado como entregado!'), backgroundColor: Colors.blue),
-    );
+    showInfoAlert(context, '¡Pedido marcado como entregado!');
     await _cargarAmbasListas(); // Refresca la lista y el badge
     setState(() { _isLoading = false; });
   }

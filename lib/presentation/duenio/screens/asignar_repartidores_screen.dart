@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../cliente/providers/carrito_provider.dart';
+import '../../../shared/widgets/custom_alert.dart';
 
 /// asignar_repartidores_screen.dart - Vista para que el dueño asigne repartidores a su restaurante
 class AsignarRepartidoresScreen extends StatefulWidget {
@@ -60,9 +61,7 @@ class _AsignarRepartidoresScreenState extends State<AsignarRepartidoresScreen> {
     setState(() { _isLoading = true; });
     final telefono = _telefonoController.text.trim();
     if (telefono.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa un número de teléfono'), backgroundColor: Colors.orange),
-      );
+      showWarningAlert(context, 'Ingresa un número de teléfono');
       setState(() { _isLoading = false; });
       return;
     }
@@ -77,9 +76,7 @@ class _AsignarRepartidoresScreenState extends State<AsignarRepartidoresScreen> {
       .eq('telefono', telefono)
       .maybeSingle();
     if (resultado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se encontró un repartidor con ese teléfono'), backgroundColor: Colors.red),
-      );
+      showErrorAlert(context, 'No se encontró un repartidor con ese teléfono');
       setState(() { _isLoading = false; });
       return;
     }
@@ -89,9 +86,7 @@ class _AsignarRepartidoresScreenState extends State<AsignarRepartidoresScreen> {
       'asociado_en': DateTime.now().toIso8601String(),
       'estado': 'activo',
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Repartidor asignado por teléfono correctamente.'), backgroundColor: Colors.green),
-    );
+    showSuccessAlert(context, 'Repartidor asignado por teléfono correctamente.');
     setState(() { _isLoading = false; });
     _telefonoController.clear();
   }
@@ -186,12 +181,7 @@ class _AsignarRepartidoresScreenState extends State<AsignarRepartidoresScreen> {
                         trailing: ElevatedButton(
                           onPressed: _isLoading ? null : () async {
                             await _asignarRepartidorAlRestaurante(repartidor['id']);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Repartidor asignado correctamente.'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                            showSuccessAlert(context, 'Repartidor asignado correctamente.');
                             setState(() {}); // Refrescar la lista
                           },
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),

@@ -12,6 +12,7 @@ import 'dart:io';
 import 'asignar_repartidores_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Importa SharedPreferences
 import '../../cliente/screens/login_screen.dart'; // Importa el login del cliente
+import '../../../shared/widgets/custom_alert.dart';
 
 /// dashboard_screen.dart - Pantalla principal (dashboard) para el dueño
 /// Muestra un menú con las opciones principales para la gestión del restaurante.
@@ -125,7 +126,7 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
     setState(() {
       _negocioImgUrl = publicUrl;
     });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Foto actualizada')));
+    showSuccessAlert(context, 'Foto actualizada');
   }
 
   // Obtiene métricas y datos de Supabase para el dashboard
