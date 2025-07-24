@@ -90,11 +90,31 @@ class _MyAppState extends State<MyApp> {
     // Solicitar permisos de notificaciones
     await _solicitarPermisosNotificaciones();
     
-    // Inicializar sistema de notificaciones global
+    // Inicializar sistema de notificaciones global y carrito
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notificacionesProvider = Provider.of<NotificacionesPedidosProvider>(context, listen: false);
       notificacionesProvider.inicializarSistema();
+      
+      // Inicializar carrito si el usuario está logueado
+      if (widget.isLoggedIn) {
+        _inicializarCarrito();
+      }
     });
+  }
+
+  Future<void> _inicializarCarrito() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userEmail = prefs.getString('userEmail');
+      if (userEmail != null && userEmail.isNotEmpty) {
+        final carritoProvider = Provider.of<CarritoProvider>(context, listen: false);
+        carritoProvider.setUserEmail(userEmail);
+        await carritoProvider.cargarCarrito();
+        print('✅ Carrito inicializado para: $userEmail');
+      }
+    } catch (e) {
+      print('❌ Error inicializando carrito: $e');
+    }
   }
 
   Future<void> _solicitarPermisosNotificaciones() async {

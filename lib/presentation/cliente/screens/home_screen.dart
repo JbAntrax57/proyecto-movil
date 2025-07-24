@@ -34,7 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     final userEmail = prefs.getString('userEmail');
     if (userEmail != null && userEmail.isNotEmpty) {
-      Provider.of<CarritoProvider>(context, listen: false).setUserEmail(userEmail);
+      final carritoProvider = Provider.of<CarritoProvider>(context, listen: false);
+      carritoProvider.setUserEmail(userEmail);
+      // Cargar el carrito explícitamente para asegurar que esté disponible
+      await carritoProvider.cargarCarrito();
     }
   }
 

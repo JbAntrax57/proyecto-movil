@@ -17,17 +17,18 @@ class CarritoScreen extends StatelessWidget {
     Position? mejorPosicion;
     double mejorPrecision = double.infinity;
     final completer = Completer<Position?>();
-    final subscription = Geolocator.getPositionStream(
-      locationSettings: LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 0,
-      ),
-    ).listen((Position position) {
-      if (position.accuracy < mejorPrecision) {
-        mejorPrecision = position.accuracy;
-        mejorPosicion = position;
-      }
-    });
+    final subscription =
+        Geolocator.getPositionStream(
+          locationSettings: LocationSettings(
+            accuracy: LocationAccuracy.bestForNavigation,
+            distanceFilter: 0,
+          ),
+        ).listen((Position position) {
+          if (position.accuracy < mejorPrecision) {
+            mejorPrecision = position.accuracy;
+            mejorPosicion = position;
+          }
+        });
     // Espera unos segundos y luego cancela el stream
     await Future.delayed(Duration(seconds: segundos));
     await subscription.cancel();
@@ -40,6 +41,45 @@ class CarritoScreen extends StatelessWidget {
     final carrito = context.watch<CarritoProvider>().carrito;
     print('Carrito en screen: $carrito'); // Debug
     print('Longitud del carrito: ${carrito.length}'); // Debug
+
+    // Función para refrescar el carrito
+    void _refrescarCarrito() async {
+      try {
+        // Mostrar loading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()),
+        );
+
+        // Limpiar duplicados y cargar carrito
+        await context.read<CarritoProvider>().limpiarCarritosDuplicados();
+        await context.read<CarritoProvider>().cargarCarrito();
+
+        // Cerrar loading
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Carrito refrescado y duplicados limpiados'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        // Cerrar loading si está abierto
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al refrescar carrito: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
 
     // Verificar si todos los productos tienen negocio_id
     final productosSinNegocio = carrito
@@ -99,7 +139,11 @@ class CarritoScreen extends StatelessWidget {
           const SnackBar(
             content: Text('Producto eliminado del carrito'),
             behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(top: 60, left: 16, right: 16), // Mostrar pegado arriba
+            margin: EdgeInsets.only(
+              top: 60,
+              left: 16,
+              right: 16,
+            ), // Mostrar pegado arriba
           ),
         );
       }
@@ -129,9 +173,7 @@ class CarritoScreen extends StatelessWidget {
       );
       if (confirm == true) {
         context.read<CarritoProvider>().limpiarCarrito();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Carrito vaciado'),
             behavior: SnackBarBehavior.floating,
@@ -156,9 +198,7 @@ class CarritoScreen extends StatelessWidget {
     // Lógica para realizar el pedido usando Supabase
     void _realizarPedido() async {
       if (carrito.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('El carrito está vacío'),
             behavior: SnackBarBehavior.floating,
@@ -217,12 +257,14 @@ class CarritoScreen extends StatelessWidget {
               if (precio is double) return precio.toInt();
               return 0;
             }
+
             int parseCantidad(dynamic cantidad) {
               if (cantidad is int) return cantidad;
               if (cantidad is String) return int.tryParse(cantidad) ?? 1;
               if (cantidad is double) return cantidad.toInt();
               return 1;
             }
+
             final precio = parsePrecio(item['precio']);
             final cantidad = parseCantidad(item['cantidad']);
             return sum + (precio * cantidad);
@@ -285,42 +327,93 @@ class CarritoScreen extends StatelessWidget {
           backgroundColor:
               Colors.transparent, // El fondo lo pone el Container exterior
           appBar: AppBar(
-            backgroundColor: Colors.white, // Igual que historial de pedidos
-            elevation: 2,
-            title: const Text(
-              'Carrito de compras',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.green, // Mismo color que historial de pedidos
-              ),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.shopping_cart,
+                    color: Colors.green[700],
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Mi Carrito',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
-            centerTitle: true,
+            centerTitle: false,
             leading: IconButton(
-              icon: const Icon(
-                Icons.arrow_back,
-                color: Colors.green,
-              ), // Mismo color que historial de pedidos
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.black87,
+                  size: 18,
+                ),
+              ),
               onPressed: () {
                 Navigator.pop(context, carrito);
               },
             ),
             actions: [
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.refresh_rounded,
+                    color: Colors.blue[700],
+                    size: 18,
+                  ),
+                ),
+                onPressed: _refrescarCarrito,
+                tooltip: 'Refrescar carrito',
+              ),
               if (carrito.isNotEmpty)
                 IconButton(
-                  icon: const Icon(
-                    Icons.delete_sweep,
-                    color: Colors.green,
-                  ), // Mismo color que historial de pedidos
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red[700],
+                      size: 18,
+                    ),
+                  ),
                   onPressed: _limpiarCarrito,
                   tooltip: 'Vaciar carrito',
                 ),
+              const SizedBox(width: 8),
             ],
           ),
           body: Padding(
             padding: const EdgeInsets.only(
-              bottom: 80,
-            ), // Padding inferior para evitar que el navbar tape el contenido
+              bottom: 0,
+            ), // Removemos el padding inferior ya que usaremos SizedBox
             child: Column(
               children: [
                 // Advertencia si hay productos sin negocio_id
@@ -330,51 +423,96 @@ class CarritoScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     margin: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.orange[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orange[200]!),
+                      gradient: LinearGradient(
+                        colors: [Colors.orange[50]!, Colors.orange[100]!],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.orange[200]!, width: 1),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.warning,
-                          color: Colors.orange[700],
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Productos sin información del negocio',
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.orange[100],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.orange[700],
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Productos incompletos',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.orange[700],
+                                  fontSize: 16,
+                                  color: Colors.orange[800],
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Algunos productos no se pueden procesar. Vacía el carrito y agrega productos nuevamente.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.orange[600],
-                                ),
-                              ),
-                            ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Algunos productos no tienen la información completa del negocio y no se pueden procesar.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.orange[700],
+                            height: 1.4,
                           ),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            context.read<CarritoProvider>().limpiarCarrito();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Carrito vaciado'),
-                                backgroundColor: Colors.blue,
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  context
+                                      .read<CarritoProvider>()
+                                      .limpiarCarrito();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Carrito vaciado'),
+                                      backgroundColor: Colors.blue,
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.clear_all, size: 18),
+                                label: const Text('Vaciar carrito'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.orange[700],
+                                  side: BorderSide(color: Colors.orange[300]!),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
                               ),
-                            );
-                          },
-                          child: const Text('Vaciar'),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.store, size: 18),
+                                label: const Text('Explorar'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange[600],
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -382,276 +520,547 @@ class CarritoScreen extends StatelessWidget {
                 Expanded(
                   child: carrito.isEmpty
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.shopping_cart_outlined,
-                                size: 80,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Tu carrito está vacío',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.shopping_cart_outlined,
+                                    size: 64,
+                                    color: Colors.grey[400],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Agrega algunos productos para comenzar',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[500],
+                                const SizedBox(height: 24),
+                                Text(
+                                  'Tu carrito está vacío',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Agrega algunos productos deliciosos\nde los restaurantes disponibles',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[500],
+                                    height: 1.4,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 32),
+                                ElevatedButton.icon(
+                                  onPressed: () => Navigator.pop(context),
+                                  icon: const Icon(Icons.store),
+                                  label: const Text('Explorar restaurantes'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: carrito.length,
-                          itemBuilder: (context, index) {
-                            final item = carrito[index];
-                            // Animación de aparición para cada producto
-                            return TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0, end: 1),
-                              duration: Duration(
-                                milliseconds: 400 + index * 100,
-                              ),
-                              builder: (context, value, child) => Opacity(
-                                opacity: value,
-                                child: Transform.translate(
-                                  offset: Offset(0, 30 * (1 - value)),
-                                  child: child,
+                      : Column(
+                          children: [
+                            Expanded(
+                              child: ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
                                 ),
-                              ),
-                              child: Card(
-                                elevation: 4,
-                                margin: const EdgeInsets.only(bottom: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Imagen del producto
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Image.network(
-                                          item['img']?.toString() ??
-                                              'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80',
-                                          width: 80,
-                                          height: 120,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
+                                itemCount: carrito.length,
+                                itemBuilder: (context, index) {
+                                  final item = carrito[index];
+
+                                  // Helper functions
+                                  int parsePrecio(dynamic precio) {
+                                    if (precio is int) return precio;
+                                    if (precio is String)
+                                      return int.tryParse(precio) ?? 0;
+                                    if (precio is double) return precio.toInt();
+                                    return 0;
+                                  }
+
+                                  int parseCantidad(dynamic cantidad) {
+                                    if (cantidad is int) return cantidad;
+                                    if (cantidad is String)
+                                      return int.tryParse(cantidad) ?? 1;
+                                    if (cantidad is double)
+                                      return cantidad.toInt();
+                                    return 1;
+                                  }
+
+                                  final precio = parsePrecio(item['precio']);
+                                  final cantidad = parseCantidad(
+                                    item['cantidad'],
+                                  );
+                                  final subtotal = precio * cantidad;
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.08),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                          spreadRadius: 0,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(16),
+                                        onTap: () {
+                                          // Opcional: mostrar detalles del producto
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(16),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              // Header con nombre, precio unitario y botón eliminar
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  // Imagen del producto
                                                   Container(
                                                     width: 80,
                                                     height: 80,
-                                                    color: Colors.grey[300],
-                                                    child: const Icon(
-                                                      Icons.fastfood,
-                                                      size: 40,
-                                                      color: Colors.grey,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black
+                                                              .withOpacity(0.1),
+                                                          blurRadius: 8,
+                                                          offset: const Offset(
+                                                            0,
+                                                            2,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                      child: Image.network(
+                                                        item['img']
+                                                                ?.toString() ??
+                                                            'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80',
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder:
+                                                            (
+                                                              context,
+                                                              error,
+                                                              stackTrace,
+                                                            ) => Container(
+                                                              decoration: BoxDecoration(
+                                                                color: Colors
+                                                                    .grey[100],
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12,
+                                                                    ),
+                                                              ),
+                                                              child: Icon(
+                                                                Icons.fastfood,
+                                                                size: 32,
+                                                                color: Colors
+                                                                    .grey[400],
+                                                              ),
+                                                            ),
+                                                      ),
                                                     ),
                                                   ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      // Detalles del producto
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              item['nombre']?.toString() ??
-                                                  'Sin nombre',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              item['descripcion']?.toString() ??
-                                                  'Delicioso y recién hecho',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 14,
-                                              ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Center(
-                                              child: Text(
-                                                '\$${() {
-                                                  // Helper para convertir precio de forma segura
-                                                  int parsePrecio(dynamic precio) {
-                                                    if (precio is int) return precio;
-                                                    if (precio is String) return int.tryParse(precio) ?? 0;
-                                                    if (precio is double) return precio.toInt();
-                                                    return 0;
-                                                  }
 
-                                                  return parsePrecio(item['precio']);
-                                                }()}',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.blue,
-                                                  fontSize: 20,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      // Controles de cantidad
-                                      Column(
-                                        children: [
-                                          // Botón para eliminar
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.delete,
-                                              color: Colors.red,
-                                            ),
-                                            onPressed: () =>
-                                                _eliminarProducto(index),
-                                            tooltip: 'Eliminar producto',
-                                          ),
-                                          const SizedBox(height: 8),
-                                          // Controles de cantidad
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              // Botón para disminuir cantidad
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue[50],
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                ),
-                                                child: IconButton(
-                                                  icon: const Icon(
-                                                    Icons.remove,
-                                                    size: 18,
-                                                  ),
-                                                  onPressed:
-                                                      () {
-                                                        // Helper para convertir cantidad de forma segura
-                                                        int parseCantidad(
-                                                          dynamic cantidad,
-                                                        ) {
-                                                          if (cantidad is int) {
-                                                            return cantidad;
-                                                          }
-                                                          if (cantidad
-                                                              is String) {
-                                                            return int.tryParse(
-                                                                  cantidad,
-                                                                ) ??
-                                                                1;
-                                                          }
-                                                          if (cantidad
-                                                              is double) {
-                                                            return cantidad
-                                                                .toInt();
-                                                          }
-                                                          return 1;
-                                                        }
+                                                  const SizedBox(width: 16),
 
-                                                        return parseCantidad(
-                                                              item['cantidad'],
-                                                            ) >
-                                                            1;
-                                                      }()
-                                                      ? () {
-                                                          context
-                                                              .read<
-                                                                CarritoProvider
-                                                              >()
-                                                              .modificarCantidad(
-                                                                index,
-                                                                -1,
-                                                              );
-                                                        }
-                                                      : null,
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                        minWidth: 36,
-                                                        minHeight: 36,
-                                                      ),
-                                                ),
-                                              ),
-                                              // Cantidad
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 12,
+                                                  // Información principal
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        // Nombre del producto
+                                                        Text(
+                                                          item['nombre']
+                                                                  ?.toString() ??
+                                                              'Sin nombre',
+                                                          style:
+                                                              const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 18,
+                                                                color: Colors
+                                                                    .black87,
+                                                              ),
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+
+                                                        const SizedBox(
+                                                          height: 4,
+                                                        ),
+
+                                                        // Descripción
+                                                        if (item['descripcion'] !=
+                                                                null &&
+                                                            item['descripcion']
+                                                                .toString()
+                                                                .isNotEmpty)
+                                                          Text(
+                                                            item['descripcion']
+                                                                .toString(),
+                                                            style: TextStyle(
+                                                              color: Colors
+                                                                  .grey[600],
+                                                              fontSize: 14,
+                                                              height: 1.3,
+                                                            ),
+                                                            maxLines: 2,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+
+                                                        // Precio unitario
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors
+                                                                .green[50],
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                            border: Border.all(
+                                                              color: Colors
+                                                                  .green[200]!,
+                                                              width: 1,
+                                                            ),
+                                                          ),
+                                                          child: Text(
+                                                            '\$$precio c/u',
+                                                            style: TextStyle(
+                                                              color: Colors
+                                                                  .green[700],
+                                                              fontSize: 14,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                child: Text(
-                                                  '${() {
-                                                    // Helper para convertir cantidad de forma segura
-                                                    int parseCantidad(dynamic cantidad) {
-                                                      if (cantidad is int) return cantidad;
-                                                      if (cantidad is String) return int.tryParse(cantidad) ?? 1;
-                                                      if (cantidad is double) return cantidad.toInt();
-                                                      return 1;
-                                                    }
+                                                  ),
 
-                                                    return parseCantidad(item['cantidad']);
-                                                  }()}',
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                              // Botón para aumentar cantidad
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  color: Colors.green,
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                ),
-                                                child: IconButton(
-                                                  icon: const Icon(
-                                                    Icons.add,
-                                                    size: 18,
-                                                    color: Colors.white,
-                                                  ),
-                                                  onPressed: () {
-                                                    context
-                                                        .read<CarritoProvider>()
-                                                        .modificarCantidad(
-                                                          index,
-                                                          1,
-                                                        );
-                                                  },
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                        minWidth: 36,
-                                                        minHeight: 36,
+                                                  // Botón eliminar
+                                                  Container(
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.red[50],
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    child: IconButton(
+                                                      icon: Icon(
+                                                        Icons
+                                                            .delete_outline_rounded,
+                                                        color: Colors.red[600],
+                                                        size: 20,
                                                       ),
-                                                ),
+                                                      onPressed: () =>
+                                                          _eliminarProducto(
+                                                            index,
+                                                          ),
+                                                      tooltip:
+                                                          'Eliminar producto',
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                            8,
+                                                          ),
+                                                      constraints:
+                                                          const BoxConstraints(
+                                                            minWidth: 36,
+                                                            minHeight: 36,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+
+                                              const SizedBox(height: 16),
+
+                                              // Controles de cantidad y subtotal
+                                              Row(
+                                                children: [
+                                                  // Controles de cantidad
+                                                  Container(
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.grey[50],
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                      border: Border.all(
+                                                        color:
+                                                            Colors.grey[200]!,
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        // Botón disminuir
+                                                        Material(
+                                                          color: Colors
+                                                              .transparent,
+                                                          child: InkWell(
+                                                            borderRadius:
+                                                                const BorderRadius.only(
+                                                                  topLeft:
+                                                                      Radius.circular(
+                                                                        12,
+                                                                      ),
+                                                                  bottomLeft:
+                                                                      Radius.circular(
+                                                                        12,
+                                                                      ),
+                                                                ),
+                                                            onTap: cantidad > 1
+                                                                ? () {
+                                                                    context
+                                                                        .read<
+                                                                          CarritoProvider
+                                                                        >()
+                                                                        .modificarCantidad(
+                                                                          index,
+                                                                          -1,
+                                                                        );
+                                                                  }
+                                                                : null,
+                                                            child: Container(
+                                                              padding:
+                                                                  const EdgeInsets.all(
+                                                                    12,
+                                                                  ),
+                                                              child: Icon(
+                                                                Icons
+                                                                    .remove_rounded,
+                                                                size: 18,
+                                                                color:
+                                                                    cantidad > 1
+                                                                    ? Colors
+                                                                          .grey[700]
+                                                                    : Colors
+                                                                          .grey[400],
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+
+                                                        // Cantidad
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 16,
+                                                                vertical: 12,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.white,
+                                                            border: Border.symmetric(
+                                                              horizontal: BorderSide(
+                                                                color: Colors
+                                                                    .grey[200]!,
+                                                                width: 1,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          child: Text(
+                                                            '$cantidad',
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: Colors
+                                                                      .black87,
+                                                                ),
+                                                          ),
+                                                        ),
+
+                                                        // Botón aumentar
+                                                        Material(
+                                                          color: Colors
+                                                              .transparent,
+                                                          child: InkWell(
+                                                            borderRadius:
+                                                                const BorderRadius.only(
+                                                                  topRight:
+                                                                      Radius.circular(
+                                                                        12,
+                                                                      ),
+                                                                  bottomRight:
+                                                                      Radius.circular(
+                                                                        12,
+                                                                      ),
+                                                                ),
+                                                            onTap: () {
+                                                              context
+                                                                  .read<
+                                                                    CarritoProvider
+                                                                  >()
+                                                                  .modificarCantidad(
+                                                                    index,
+                                                                    1,
+                                                                  );
+                                                            },
+                                                            child: Container(
+                                                              padding:
+                                                                  const EdgeInsets.all(
+                                                                    12,
+                                                                  ),
+                                                              child: Icon(
+                                                                Icons
+                                                                    .add_rounded,
+                                                                size: 18,
+                                                                color: Colors
+                                                                    .green[700],
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+
+                                                  const Spacer(),
+
+                                                  // Subtotal
+                                                  Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.end,
+                                                    children: [
+                                                      Text(
+                                                        'Subtotal',
+                                                        style: TextStyle(
+                                                          color:
+                                                              Colors.grey[600],
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 12,
+                                                              vertical: 6,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          gradient: LinearGradient(
+                                                            colors: [
+                                                              Colors.blue[400]!,
+                                                              Colors.blue[600]!,
+                                                            ],
+                                                            begin: Alignment
+                                                                .topLeft,
+                                                            end: Alignment
+                                                                .bottomRight,
+                                                          ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                12,
+                                                              ),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.blue
+                                                                  .withOpacity(
+                                                                    0.3,
+                                                                  ),
+                                                              blurRadius: 8,
+                                                              offset:
+                                                                  const Offset(
+                                                                    0,
+                                                                    2,
+                                                                  ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Text(
+                                                          '\$$subtotal',
+                                                          style:
+                                                              const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: Colors
+                                                                    .white,
+                                                                fontSize: 18,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
-                                        ],
+                                        ),
                                       ),
-                                    ],
-                                  ),
-                                ),
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
+                            ),
+                            // SizedBox para evitar que el bottom navigation bar tape el último elemento
+                            const SizedBox(height: 180),
+                          ],
                         ),
                 ),
               ],
@@ -659,67 +1068,142 @@ class CarritoScreen extends StatelessWidget {
           ),
           bottomNavigationBar: carrito.isNotEmpty
               ? Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  decoration: BoxDecoration(
                     color: Colors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 8,
-                        offset: Offset(0, -2),
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
                       ),
                     ],
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total:',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            ' \$$total',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: tieneProductosSinNegocio
-                              ? null
-                              : _realizarPedido,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            textStyle: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            tieneProductosSinNegocio
-                                ? 'Productos incompletos'
-                                : 'Realizar Pedido',
+                  child: SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Indicador visual
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+
+                        // Información del total
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Total',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  '\$$total',
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green[50],
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.green[200]!,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.shopping_cart,
+                                    size: 16,
+                                    color: Colors.green[700],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${carrito.length} ${carrito.length == 1 ? 'producto' : 'productos'}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.green[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Botón de realizar pedido
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: tieneProductosSinNegocio
+                                ? null
+                                : _realizarPedido,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: tieneProductosSinNegocio
+                                  ? Colors.grey[300]
+                                  : Colors.green,
+                              foregroundColor: tieneProductosSinNegocio
+                                  ? Colors.grey[600]
+                                  : Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              textStyle: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: tieneProductosSinNegocio ? 0 : 2,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (!tieneProductosSinNegocio) ...[
+                                  const Icon(
+                                    Icons.shopping_cart_checkout,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                Text(
+                                  tieneProductosSinNegocio
+                                      ? 'Productos incompletos'
+                                      : 'Realizar Pedido',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : null,
@@ -754,17 +1238,18 @@ class _UbicacionModalState extends State<UbicacionModal> {
     Position? mejorPosicion;
     double mejorPrecision = double.infinity;
     final completer = Completer<Position?>();
-    final subscription = Geolocator.getPositionStream(
-      locationSettings: LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 0,
-      ),
-    ).listen((Position position) {
-      if (position.accuracy < mejorPrecision) {
-        mejorPrecision = position.accuracy;
-        mejorPosicion = position;
-      }
-    });
+    final subscription =
+        Geolocator.getPositionStream(
+          locationSettings: LocationSettings(
+            accuracy: LocationAccuracy.bestForNavigation,
+            distanceFilter: 0,
+          ),
+        ).listen((Position position) {
+          if (position.accuracy < mejorPrecision) {
+            mejorPrecision = position.accuracy;
+            mejorPosicion = position;
+          }
+        });
     // Espera unos segundos y luego cancela el stream
     await Future.delayed(Duration(seconds: segundos));
     await subscription.cancel();
@@ -814,21 +1299,22 @@ class _UbicacionModalState extends State<UbicacionModal> {
                             if (!mounted) return;
                             if (posicion != null) {
                               try {
-                                final placemarks = await placemarkFromCoordinates(
-                                  posicion.latitude,
-                                  posicion.longitude,
-                                );
+                                final placemarks =
+                                    await placemarkFromCoordinates(
+                                      posicion.latitude,
+                                      posicion.longitude,
+                                    );
                                 if (placemarks.isNotEmpty) {
                                   final p = placemarks.first;
                                   ubicacionActual =
-                                    '${p.street ?? ''} ${p.subThoroughfare ?? ''}, ${p.subLocality ?? ''}, ${p.locality ?? ''}, ${p.administrativeArea ?? ''}, ${p.country ?? ''}';
+                                      '${p.street ?? ''} ${p.subThoroughfare ?? ''}, ${p.subLocality ?? ''}, ${p.locality ?? ''}, ${p.administrativeArea ?? ''}, ${p.country ?? ''}';
                                 } else {
                                   ubicacionActual =
-                                    'Lat: ${posicion.latitude.toStringAsFixed(6)}, Lng: ${posicion.longitude.toStringAsFixed(6)} (±${posicion.accuracy}m)';
+                                      'Lat: ${posicion.latitude.toStringAsFixed(6)}, Lng: ${posicion.longitude.toStringAsFixed(6)} (±${posicion.accuracy}m)';
                                 }
                               } catch (e) {
                                 ubicacionActual =
-                                  'Lat: ${posicion.latitude.toStringAsFixed(6)}, Lng: ${posicion.longitude.toStringAsFixed(6)} (±${posicion.accuracy}m)';
+                                    'Lat: ${posicion.latitude.toStringAsFixed(6)}, Lng: ${posicion.longitude.toStringAsFixed(6)} (±${posicion.accuracy}m)';
                               }
                             } else {
                               ubicacionActual = null;
@@ -873,7 +1359,10 @@ class _UbicacionModalState extends State<UbicacionModal> {
                   padding: const EdgeInsets.all(12),
                   child: Text(
                     ubicacionActual!,
-                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
 

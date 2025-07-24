@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../cliente/providers/carrito_provider.dart';
+import 'package:provider/provider.dart';
+import '../../cliente/screens/login_screen.dart';
+import 'package:crypto/crypto.dart'; // Para encriptar la contraseña
+import 'dart:convert'; // Para utf8.encode
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -27,13 +33,40 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     });
   }
 
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (mounted) {
+      Provider.of<CarritoProvider>(context, listen: false).setUserEmail('');
+      Provider.of<CarritoProvider>(context, listen: false).setUserId('');
+      Provider.of<CarritoProvider>(
+        context,
+        listen: false,
+      ).setRestauranteId(null);
+    }
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const ClienteLoginScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_pages[_selectedIndex] is _AdminSectionPlaceholder
-            ? (_pages[_selectedIndex] as _AdminSectionPlaceholder).title
-            : 'Admin'),
+        title: Text(
+          _pages[_selectedIndex] is _AdminSectionPlaceholder
+              ? (_pages[_selectedIndex] as _AdminSectionPlaceholder).title
+              : 'Admin',
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: _logout,
+          ),
+        ],
       ),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -41,14 +74,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Usuarios',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.store),
-            label: 'Negocios',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Usuarios'),
+          BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Negocios'),
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart),
             label: 'Reportes',
@@ -108,6 +135,13 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
   String _searchQuery = '';
   String _selectedRole = 'todos';
 
+  // Función para encriptar la contraseña con SHA-256
+  String hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -116,11 +150,14 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
 
   Future<List<Map<String, dynamic>>> _obtenerUsuarios() async {
     final usuarios = await Supabase.instance.client.from('usuarios').select();
-    final negocios = await Supabase.instance.client.from('negocios').select('id, nombre');
+    final negocios = await Supabase.instance.client
+        .from('negocios')
+        .select('id, nombre');
     final negociosMap = {for (var n in negocios) n['id']: n['nombre']};
     // Agrega el nombre del restaurante a cada usuario si es duenio
     for (var usuario in usuarios) {
-      if ((usuario['rol'] ?? '') == 'duenio' && usuario['restaurante_id'] != null) {
+      if ((usuario['rol'] ?? '') == 'duenio' &&
+          usuario['restaurante_id'] != null) {
         usuario['restaurante_nombre'] = negociosMap[usuario['restaurante_id']];
       }
     }
@@ -133,9 +170,13 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
     });
   }
 
-  List<Map<String, dynamic>> _filtrarUsuarios(List<Map<String, dynamic>> usuarios) {
+  List<Map<String, dynamic>> _filtrarUsuarios(
+    List<Map<String, dynamic>> usuarios,
+  ) {
     return usuarios.where((usuario) {
-      final nombre = (usuario['name'] ?? usuario['nombre'] ?? '').toString().toLowerCase();
+      final nombre = (usuario['name'] ?? usuario['nombre'] ?? '')
+          .toString()
+          .toLowerCase();
       final correo = (usuario['email'] ?? '').toString().toLowerCase();
       final rol = (usuario['rol'] ?? '').toString().toLowerCase();
       final query = _searchQuery.toLowerCase();
@@ -173,9 +214,15 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
                     value: _selectedRole,
                     items: const [
                       DropdownMenuItem(value: 'todos', child: Text('Todos')),
-                      DropdownMenuItem(value: 'cliente', child: Text('Cliente')),
+                      DropdownMenuItem(
+                        value: 'cliente',
+                        child: Text('Cliente'),
+                      ),
                       DropdownMenuItem(value: 'duenio', child: Text('Dueño')),
-                      DropdownMenuItem(value: 'repartidor', child: Text('Repartidor')),
+                      DropdownMenuItem(
+                        value: 'repartidor',
+                        child: Text('Repartidor'),
+                      ),
                       DropdownMenuItem(value: 'admin', child: Text('Admin')),
                     ],
                     onChanged: (value) {
@@ -201,9 +248,12 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
                   }
                   final usuarios = _filtrarUsuarios(snapshot.data ?? []);
                   if (usuarios.isEmpty) {
-                    return const Center(child: Text('No hay usuarios registrados.'));
+                    return const Center(
+                      child: Text('No hay usuarios registrados.'),
+                    );
                   }
-                  final isDesktop = kIsWeb || MediaQuery.of(context).size.width > 600;
+                  final isDesktop =
+                      kIsWeb || MediaQuery.of(context).size.width > 600;
                   return isDesktop
                       ? _buildDataTable(usuarios)
                       : _buildListView(usuarios);
@@ -217,9 +267,9 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
           right: 24,
           child: FloatingActionButton(
             backgroundColor: Colors.green,
-            child: const Icon(Icons.add, color: Colors.white),
             onPressed: _mostrarDialogoCrearUsuario,
             tooltip: 'Agregar usuario',
+            child: const Icon(Icons.add, color: Colors.white),
           ),
         ),
       ],
@@ -247,22 +297,26 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
           } else if (tieneDuenios) {
             cells.add(const DataCell(Text('')));
           }
-          cells.add(DataCell(Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit, color: Colors.blue),
-                onPressed: () {
-                  _mostrarDialogoEditarUsuario(usuario);
-                },
+          cells.add(
+            DataCell(
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () {
+                      _mostrarDialogoEditarUsuario(usuario);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      _confirmarEliminarUsuario(usuario);
+                    },
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () {
-                  _confirmarEliminarUsuario(usuario);
-                },
-              ),
-            ],
-          )));
+            ),
+          );
           return DataRow(cells: cells);
         }).toList(),
       ),
@@ -300,7 +354,7 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: () {
+                  onPressed: () {
                     _confirmarEliminarUsuario(usuario);
                   },
                 ),
@@ -313,7 +367,9 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
   }
 
   void _mostrarDialogoEditarUsuario(Map<String, dynamic> usuario) {
-    final nombreController = TextEditingController(text: usuario['name'] ?? usuario['nombre'] ?? '');
+    final nombreController = TextEditingController(
+      text: usuario['name'] ?? usuario['nombre'] ?? '',
+    );
     String rol = usuario['rol'] ?? '';
     showDialog(
       context: context,
@@ -334,7 +390,10 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
                 items: const [
                   DropdownMenuItem(value: 'cliente', child: Text('Cliente')),
                   DropdownMenuItem(value: 'duenio', child: Text('Dueño')),
-                  DropdownMenuItem(value: 'repartidor', child: Text('Repartidor')),
+                  DropdownMenuItem(
+                    value: 'repartidor',
+                    child: Text('Repartidor'),
+                  ),
                   DropdownMenuItem(value: 'admin', child: Text('Admin')),
                 ],
                 onChanged: (value) {
@@ -366,9 +425,9 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
                   }
                 } catch (e) {
                   if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
                   }
                 }
               },
@@ -385,7 +444,9 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar usuario'),
-        content: Text('¿Estás seguro de que deseas eliminar a "${usuario['name'] ?? usuario['nombre'] ?? ''}"? Esta acción no se puede deshacer.'),
+        content: Text(
+          '¿Estás seguro de que deseas eliminar a "${usuario['name'] ?? usuario['nombre'] ?? ''}"? Esta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -408,9 +469,9 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               }
             },
@@ -441,7 +502,9 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
             if (isLoading && restaurantes.isEmpty && error == null) {
               Future.microtask(() async {
                 try {
-                  final data = await Supabase.instance.client.from('negocios').select('id, nombre');
+                  final data = await Supabase.instance.client
+                      .from('negocios')
+                      .select('id, nombre');
                   setStateDialog(() {
                     restaurantes = List<Map<String, dynamic>>.from(data);
                     isLoading = false;
@@ -457,76 +520,109 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
             return AlertDialog(
               title: const Text('Agregar usuario'),
               content: isLoading
-                  ? const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()))
+                  ? const SizedBox(
+                      height: 100,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
                   : error != null
-                      ? Text(error!, style: const TextStyle(color: Colors.red))
-                      : SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (error != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Text(error!, style: const TextStyle(color: Colors.red)),
-                                ),
-                              TextField(
-                                controller: nombreController,
-                                decoration: const InputDecoration(labelText: 'Nombre'),
+                  ? Text(error!, style: const TextStyle(color: Colors.red))
+                  : SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (error != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(
+                                error!,
+                                style: const TextStyle(color: Colors.red),
                               ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: emailController,
-                                decoration: const InputDecoration(labelText: 'Correo electrónico'),
-                                keyboardType: TextInputType.emailAddress,
+                            ),
+                          TextField(
+                            controller: nombreController,
+                            decoration: const InputDecoration(
+                              labelText: 'Nombre',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: emailController,
+                            decoration: const InputDecoration(
+                              labelText: 'Correo electrónico',
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: passwordController,
+                            decoration: const InputDecoration(
+                              labelText: 'Contraseña',
+                            ),
+                            obscureText: true,
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: telefonoController,
+                            decoration: const InputDecoration(
+                              labelText: 'Teléfono',
+                            ),
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: direccionController,
+                            decoration: const InputDecoration(
+                              labelText: 'Dirección',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: rol,
+                            decoration: const InputDecoration(labelText: 'Rol'),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'cliente',
+                                child: Text('Cliente'),
                               ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: passwordController,
-                                decoration: const InputDecoration(labelText: 'Contraseña'),
-                                obscureText: true,
+                              DropdownMenuItem(
+                                value: 'duenio',
+                                child: Text('Dueño'),
                               ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: telefonoController,
-                                decoration: const InputDecoration(labelText: 'Teléfono'),
-                                keyboardType: TextInputType.phone,
+                              DropdownMenuItem(
+                                value: 'repartidor',
+                                child: Text('Repartidor'),
                               ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: direccionController,
-                                decoration: const InputDecoration(labelText: 'Dirección'),
-                              ),
-                              const SizedBox(height: 12),
-                              DropdownButtonFormField<String>(
-                                value: rol,
-                                decoration: const InputDecoration(labelText: 'Rol'),
-                                items: const [
-                                  DropdownMenuItem(value: 'cliente', child: Text('Cliente')),
-                                  DropdownMenuItem(value: 'duenio', child: Text('Dueño')),
-                                  DropdownMenuItem(value: 'repartidor', child: Text('Repartidor')),
-                                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                                ],
-                                onChanged: (value) {
-                                  if (value != null) setStateDialog(() => rol = value);
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              DropdownButtonFormField<String>(
-                                value: restauranteId,
-                                decoration: const InputDecoration(labelText: 'Restaurante'),
-                                items: restaurantes
-                                    .map((rest) => DropdownMenuItem(
-                                          value: rest['id'].toString(),
-                                          child: Text(rest['nombre'] ?? ''),
-                                        ))
-                                    .toList(),
-                                onChanged: (value) {
-                                  setStateDialog(() => restauranteId = value);
-                                },
+                              DropdownMenuItem(
+                                value: 'admin',
+                                child: Text('Admin'),
                               ),
                             ],
+                            onChanged: (value) {
+                              if (value != null)
+                                setStateDialog(() => rol = value);
+                            },
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: restauranteId,
+                            decoration: const InputDecoration(
+                              labelText: 'Restaurante',
+                            ),
+                            items: restaurantes
+                                .map(
+                                  (rest) => DropdownMenuItem(
+                                    value: rest['id'].toString(),
+                                    child: Text(rest['nombre'] ?? ''),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              setStateDialog(() => restauranteId = value);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -536,27 +632,35 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
                   onPressed: isLoading
                       ? null
                       : () async {
-                          final nombre = nombreController.text.trim().toUpperCase();
+                          final nombre = nombreController.text
+                              .trim()
+                              .toUpperCase();
                           final email = emailController.text.trim();
                           final password = passwordController.text;
                           final telefono = telefonoController.text.trim();
                           final direccion = direccionController.text.trim();
-                          if (nombre.isEmpty || email.isEmpty || password.isEmpty || telefono.isEmpty) {
+                          if (nombre.isEmpty ||
+                              email.isEmpty ||
+                              password.isEmpty ||
+                              telefono.isEmpty) {
                             setStateDialog(() {
                               error = 'Completa todos los campos obligatorios.';
                             });
                             return;
                           }
                           try {
-                            await Supabase.instance.client.from('usuarios').insert({
-                              'name': nombre,
-                              'email': email,
-                              'password': password,
-                              'rol': rol,
-                              'telephone': telefono,
-                              'direccion': direccion,
-                              if (restauranteId != null) 'restaurante_id': restauranteId,
-                            });
+                            await Supabase.instance.client
+                                .from('usuarios')
+                                .insert({
+                                  'name': nombre,
+                                  'email': email,
+                                  'password': hashPassword(password), // Contraseña encriptada
+                                  'rol': rol,
+                                  'telephone': telefono,
+                                  'direccion': direccion,
+                                  if (restauranteId != null)
+                                    'restaurante_id': restauranteId,
+                                });
                             if (mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -570,7 +674,9 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
                             });
                           }
                         },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
                   child: const Text('Guardar'),
                 ),
               ],
@@ -580,4 +686,4 @@ class _AdminSectionUsuariosState extends State<_AdminSectionUsuarios> {
       },
     );
   }
-} 
+}
