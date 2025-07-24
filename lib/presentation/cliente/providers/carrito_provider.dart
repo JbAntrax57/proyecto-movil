@@ -312,4 +312,12 @@ class CarritoProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void limpiarSesion() {
+    _carrito.clear();
+    _userEmail = null;
+    _userId = null;
+    _restauranteId = null;
+    notifyListeners();
+  }
 }
