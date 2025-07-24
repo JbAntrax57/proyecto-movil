@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'presentation/cliente/screens/login_screen.dart';
 import 'presentation/cliente/screens/menu_screen.dart';
 import 'presentation/cliente/screens/negocios_screen.dart';
-import 'presentation/admin/screens/dashboard_screen.dart';
+import 'presentation/admin/screens/admin_home.dart';
 import 'presentation/duenio/screens/dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import 'package:provider/provider.dart';
@@ -130,7 +130,7 @@ class _MyAppState extends State<MyApp> {
           home = const DuenioDashboardScreen();
           break;
         case 'admin':
-          home = const AdminDashboardScreen();
+          home = const AdminHomeScreen();
           break;
         default:
           home = const ClienteLoginScreen();
@@ -172,17 +172,6 @@ class RepartidorHomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Inicio Repartidor')), 
       body: const Center(child: Text('Vista principal Repartidor')), 
-    );
-  }
-}
-// Pantalla principal temporal para admin (no se usa, se usa AdminDashboardScreen)
-class AdminHomeScreen extends StatelessWidget {
-  const AdminHomeScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Inicio Admin')), 
-      body: const Center(child: Text('Vista principal Admin')), 
     );
   }
 }

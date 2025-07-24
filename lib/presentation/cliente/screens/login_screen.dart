@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../cliente/screens/home_screen.dart';
 import '../../repartidor/screens/pedidos_screen.dart';
 import '../../duenio/screens/dashboard_screen.dart';
-import '../../admin/screens/dashboard_screen.dart';
+import '../../admin/screens/admin_home.dart';
 
 // login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
 // Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
@@ -127,7 +127,7 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
         case 'admin':
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+            MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
             (route) => false,
           );
           break;
