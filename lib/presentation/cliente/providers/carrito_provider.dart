@@ -6,6 +6,7 @@ class CarritoProvider extends ChangeNotifier {
   final List<Map<String, dynamic>> _carrito = [];
   String? _userEmail;
   String? _restauranteId; // ID del restaurante asociado al usuario dueño
+  String? _userId;
   Stream<List<Map<String, dynamic>>>? _carritoStream;
   Stream<List<Map<String, dynamic>>>? get carritoStream => _carritoStream;
 
@@ -17,6 +18,12 @@ class CarritoProvider extends ChangeNotifier {
   }
 
   String? get restauranteId => _restauranteId;
+
+  String? get userId => _userId;
+  void setUserId(String id) {
+    _userId = id;
+    notifyListeners();
+  }
 
   // Helper para convertir cantidad de forma segura
   int _parseCantidad(dynamic cantidad) {

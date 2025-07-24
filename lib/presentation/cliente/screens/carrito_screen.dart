@@ -749,72 +749,27 @@ class _UbicacionModalState extends State<UbicacionModal> {
     super.dispose();
   }
 
-  // Obtiene la ubicación actual usando geolocator y la convierte a dirección legible
-  Future<void> _obtenerUbicacion() async {
-    setState(() => buscando = true);
-    try {
-      // Verificar permisos de ubicación
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() => buscando = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permisos de ubicación denegados')),
-          );
-          return;
-        }
+  // Obtiene la mejor ubicación posible escuchando varias posiciones durante unos segundos
+  Future<Position?> obtenerMejorUbicacion({int segundos = 5}) async {
+    Position? mejorPosicion;
+    double mejorPrecision = double.infinity;
+    final completer = Completer<Position?>();
+    final subscription = Geolocator.getPositionStream(
+      locationSettings: LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+      ),
+    ).listen((Position position) {
+      if (position.accuracy < mejorPrecision) {
+        mejorPrecision = position.accuracy;
+        mejorPosicion = position;
       }
-
-      if (permission == LocationPermission.deniedForever) {
-        setState(() => buscando = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Los permisos de ubicación están permanentemente denegados',
-            ),
-          ),
-        );
-        return;
-      }
-
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
-      );
-
-      // Geocoding inverso
-      final placemarks = await placemarkFromCoordinates(
-        pos.latitude,
-        pos.longitude,
-      );
-
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
-        ubicacionActual =
-            '${p.street ?? ''}, ${p.subLocality ?? ''}, ${p.locality ?? ''}, ${p.administrativeArea ?? ''}, ${p.country ?? ''}';
-      } else {
-        ubicacionActual =
-            'Lat: ${pos.latitude.toStringAsFixed(6)}, Lng: ${pos.longitude.toStringAsFixed(6)}';
-      }
-
-      setState(() => buscando = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ubicación obtenida correctamente'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      setState(() => buscando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al obtener ubicación: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    });
+    // Espera unos segundos y luego cancela el stream
+    await Future.delayed(Duration(seconds: segundos));
+    await subscription.cancel();
+    completer.complete(mejorPosicion);
+    return completer.future;
   }
 
   @override
@@ -850,20 +805,40 @@ class _UbicacionModalState extends State<UbicacionModal> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final posicion = await context.read<CarritoScreen>().obtenerMejorUbicacion();
-                    if (posicion != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Ubicación precisa: ${posicion.latitude}, ${posicion.longitude} (±${posicion.accuracy}m)')),
-                      );
-                      // Aquí usa la posición para el pedido, por ejemplo:
-                      // setState(() { _direccionSeleccionada = ...; });
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No se pudo obtener la ubicación precisa.')),
-                      );
-                    }
-                  },
+                  onPressed: buscando
+                      ? null
+                      : () async {
+                          setState(() => buscando = true);
+                          try {
+                            final posicion = await obtenerMejorUbicacion();
+                            if (!mounted) return;
+                            if (posicion != null) {
+                              try {
+                                final placemarks = await placemarkFromCoordinates(
+                                  posicion.latitude,
+                                  posicion.longitude,
+                                );
+                                if (placemarks.isNotEmpty) {
+                                  final p = placemarks.first;
+                                  ubicacionActual =
+                                    '${p.street ?? ''} ${p.subThoroughfare ?? ''}, ${p.subLocality ?? ''}, ${p.locality ?? ''}, ${p.administrativeArea ?? ''}, ${p.country ?? ''}';
+                                } else {
+                                  ubicacionActual =
+                                    'Lat: ${posicion.latitude.toStringAsFixed(6)}, Lng: ${posicion.longitude.toStringAsFixed(6)} (±${posicion.accuracy}m)';
+                                }
+                              } catch (e) {
+                                ubicacionActual =
+                                  'Lat: ${posicion.latitude.toStringAsFixed(6)}, Lng: ${posicion.longitude.toStringAsFixed(6)} (±${posicion.accuracy}m)';
+                              }
+                            } else {
+                              ubicacionActual = null;
+                            }
+                          } catch (e) {
+                            if (!mounted) return;
+                            ubicacionActual = null;
+                          }
+                          setState(() => buscando = false);
+                        },
                   icon: buscando
                       ? const SizedBox(
                           width: 16,
@@ -888,36 +863,19 @@ class _UbicacionModalState extends State<UbicacionModal> {
               ),
 
               // Mostrar ubicación actual si se obtuvo
-              if (ubicacionActual != null) ...[
-                const SizedBox(height: 16),
-                Container(
+              if (buscando)
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              if (ubicacionActual != null)
+                Padding(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          ubicacionActual!,
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    ubicacionActual!,
+                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                   ),
                 ),
-              ],
 
               const SizedBox(height: 24),
               const Divider(),

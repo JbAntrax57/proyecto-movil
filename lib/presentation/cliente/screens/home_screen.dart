@@ -6,6 +6,10 @@ import 'negocios_screen.dart';
 import 'historial_pedidos_screen.dart';
 import 'perfil_screen.dart';
 import 'dart:ui'; // Added for ImageFilter
+import 'package:shared_preferences/shared_preferences.dart'; // Added for SharedPreferences
+import 'login_screen.dart';
+import 'package:provider/provider.dart'; // Added for Provider
+import '../../cliente/providers/carrito_provider.dart'; // Added for CarritoProvider
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +27,15 @@ class _HomeScreenState extends State<HomeScreen> {
     print(
       '🏠 HomeScreen initState - Inicializando pantalla principal del cliente',
     );
+    _restaurarEmail();
+  }
+
+  Future<void> _restaurarEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userEmail = prefs.getString('userEmail');
+    if (userEmail != null && userEmail.isNotEmpty) {
+      Provider.of<CarritoProvider>(context, listen: false).setUserEmail(userEmail);
+    }
   }
 
   final List<Widget> _pages = [
@@ -58,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor:
                 Colors.transparent, // El fondo lo pone el Container exterior
             extendBody: true,
+            // Sin AppBar, el logout está solo en el perfil
             body: _pages[_currentIndex],
             bottomNavigationBar: Container(
               // Sin margen, pegado abajo

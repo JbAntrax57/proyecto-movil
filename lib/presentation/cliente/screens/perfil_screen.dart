@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'historial_pedidos_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'login_screen.dart';
 
 // perfil_screen.dart - Pantalla de perfil del cliente
 // Permite ver y editar información del usuario
@@ -140,7 +142,23 @@ class _PerfilScreenState extends State<PerfilScreen> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () => context.go('/login'),
+            onPressed: () async {
+              // Limpia sesión de Supabase (si aplica)
+              await Supabase.instance.client.auth.signOut();
+              // Limpia todas las preferencias
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              if (mounted) {
+                context.read<CarritoProvider>().setUserEmail('');
+                context.read<CarritoProvider>().setUserId('');
+                context.read<CarritoProvider>().setRestauranteId(null);
+              }
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const ClienteLoginScreen()),
+                (route) => false,
+              );
+            },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Cerrar sesión'),
           ),

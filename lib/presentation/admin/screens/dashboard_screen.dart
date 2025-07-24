@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
+import 'package:shared_preferences/shared_preferences.dart'; // Importa SharedPreferences
+import '../../cliente/screens/login_screen.dart'; // Importa ClienteLoginScreen
+import '../../cliente/providers/carrito_provider.dart'; // Importa CarritoProvider
+import 'package:provider/provider.dart'; // Importa Provider
 
 // dashboard_screen.dart - Pantalla principal del administrador
 // Muestra métricas clave, permite gestionar usuarios, negocios y pedidos, y poblar Firestore con datos de ejemplo.
@@ -9,13 +13,39 @@ class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
   @override
   Widget build(BuildContext context) {
+    _restaurarUserIdYEmail(context);
     // Variables simuladas para métricas
     final usuarios = 10;
     final negocios = 3;
     final pedidos = 25;
     // Scaffold principal con cards de métricas y acciones
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard Administrador'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Dashboard Admin'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('isLoggedIn');
+              await prefs.remove('userRol');
+              await prefs.remove('userId');
+              if (context.mounted) {
+                Provider.of<CarritoProvider>(context, listen: false).setUserEmail('');
+                Provider.of<CarritoProvider>(context, listen: false).setUserId('');
+                Provider.of<CarritoProvider>(context, listen: false).setRestauranteId(null);
+              }
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const ClienteLoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
+      ),
       body: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: 1),
         duration: const Duration(milliseconds: 600),
@@ -213,6 +243,18 @@ class AdminDashboardScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _restaurarUserIdYEmail(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    final userEmail = prefs.getString('userEmail');
+    if (userId != null && userId.isNotEmpty) {
+      Provider.of<CarritoProvider>(context, listen: false).setUserId(userId);
+    }
+    if (userEmail != null && userEmail.isNotEmpty) {
+      Provider.of<CarritoProvider>(context, listen: false).setUserEmail(userEmail);
+    }
   }
 
   // Obtiene métricas y datos de Supabase para el dashboard

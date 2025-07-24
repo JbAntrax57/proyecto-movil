@@ -5,9 +5,11 @@ import 'notificaciones_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase/supabase.dart';
 import '../../cliente/providers/carrito_provider.dart';
-import 'package:provider/provider.dart'; // Added missing import
+import 'package:provider/provider.dart';
 import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../cliente/screens/login_screen.dart';
 
 // pedidos_screen.dart - Pantalla de pedidos asignados para el repartidor
 // Permite ver pedidos asignados, simular nuevos pedidos preparados, navegar al mapa y actualizar estado de entrega.
@@ -33,9 +35,22 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
   @override
   void initState() {
     super.initState();
+    _restaurarUserIdYEmail();
     _initNotificacionesLocales();
     _cargarAmbasListas();
     _suscribirseAPedidos();
+  }
+
+  Future<void> _restaurarUserIdYEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    final userEmail = prefs.getString('userEmail');
+    if (userId != null && userId.isNotEmpty) {
+      Provider.of<CarritoProvider>(context, listen: false).setUserId(userId);
+    }
+    if (userEmail != null && userEmail.isNotEmpty) {
+      Provider.of<CarritoProvider>(context, listen: false).setUserEmail(userEmail);
+    }
   }
 
   // Inicializa las notificaciones locales para Android
@@ -235,6 +250,26 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
         title: Text(_selectedIndex == 0 ? 'Pedidos disponibles' : 'Mis pedidos'),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('isLoggedIn');
+              await prefs.remove('userRol');
+              await prefs.remove('userId');
+              if (mounted) {
+                Provider.of<CarritoProvider>(context, listen: false).setUserEmail('');
+                Provider.of<CarritoProvider>(context, listen: false).setUserId('');
+                Provider.of<CarritoProvider>(context, listen: false).setRestauranteId(null);
+              }
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const ClienteLoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.notifications),
             tooltip: 'Ver notificaciones',

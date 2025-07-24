@@ -10,6 +10,8 @@ import '../providers/notificaciones_pedidos_provider.dart'; // Importa el provid
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'asignar_repartidores_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Importa SharedPreferences
+import '../../cliente/screens/login_screen.dart'; // Importa el login del cliente
 
 /// dashboard_screen.dart - Pantalla principal (dashboard) para el dueño
 /// Muestra un menú con las opciones principales para la gestión del restaurante.
@@ -27,14 +29,22 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
   String? _negocioNombre;
   String? _negocioImgUrl;
   bool _cargandoNegocio = true;
+  bool _cargandoDatos = true; // Nuevo flag
+  String? _ultimoRestauranteId;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _restaurarUserIdYEmail();
+      await _restaurarRestauranteId();
+      setState(() {
+        _cargandoDatos = false;
+      });
+    });
     _initNotifications();
     _configurarNotificaciones();
     WidgetsBinding.instance.addPostFrameCallback((_) => _escucharPedidosNuevos());
-    _cargarDatosNegocio(); // Cargar datos del negocio al iniciar
   }
 
   Future<void> _initNotifications() async {
@@ -205,15 +215,65 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
     });
   }
 
+  Future<void> _restaurarRestauranteId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    print('DEBUG: _restaurarRestauranteId userId: $userId');
+    if (userId != null) {
+      final userData = await Supabase.instance.client
+          .from('usuarios')
+          .select('restaurante_id')
+          .eq('id', userId)
+          .maybeSingle();
+      print('DEBUG: _restaurarRestauranteId userData: $userData');
+      if (userData != null && userData['restaurante_id'] != null) {
+        if (mounted) {
+          Provider.of<CarritoProvider>(context, listen: false)
+              .setRestauranteId(userData['restaurante_id'] as String);
+          print('DEBUG: restauranteId restaurado: ${userData['restaurante_id']}');
+        }
+      }
+    }
+  }
+
+  Future<void> _restaurarUserIdYEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    final userEmail = prefs.getString('userEmail');
+    if (userId != null && userId.isNotEmpty) {
+      Provider.of<CarritoProvider>(context, listen: false).setUserId(userId);
+    }
+    if (userEmail != null && userEmail.isNotEmpty) {
+      Provider.of<CarritoProvider>(context, listen: false).setUserEmail(userEmail);
+    }
+  }
+
   @override
   void dispose() {
     _pedidoSub?.cancel();
     super.dispose();
   }
 
+  Future<Map<String, dynamic>?> _cargarDatosNegocioReactivo(String? restauranteId) async {
+    print('DEBUG: _cargarDatosNegocioReactivo restauranteId: $restauranteId');
+    if (restauranteId == null || restauranteId.isEmpty) return null;
+    final data = await Supabase.instance.client
+        .from('negocios')
+        .select()
+        .eq('id', restauranteId)
+        .maybeSingle();
+    print('DEBUG: _cargarDatosNegocioReactivo negocio data: $data');
+    return data;
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Lista de opciones del menú del dueño
+    if (_cargandoDatos) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final restauranteId = Provider.of<CarritoProvider>(context).restauranteId;
     final List<_MenuOption> opciones = [
       _MenuOption(
         icon: Icons.receipt_long,
@@ -248,11 +308,30 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
       ),
       // Puedes agregar más opciones aquí
     ];
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Panel del Dueño'),
+        title: const Text('Dashboard Dueño'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              if (mounted) {
+                Provider.of<CarritoProvider>(context, listen: false).setUserEmail('');
+                Provider.of<CarritoProvider>(context, listen: false).setUserId('');
+                Provider.of<CarritoProvider>(context, listen: false).setRestauranteId(null);
+              }
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const ClienteLoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
@@ -297,70 +376,78 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
             },
           ),
           // --- Foto y nombre del negocio ---
-          if (_cargandoNegocio)
-            const Center(child: CircularProgressIndicator()),
-          if (!_cargandoNegocio)
-            Column(
-              children: [
-                GestureDetector(
-                  onTap: _editarFotoNegocio,
-                  child: Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      CircleAvatar(
-                        radius: 48,
-                        backgroundColor: Colors.blue[50],
-                        backgroundImage: _negocioImgUrl != null && _negocioImgUrl!.isNotEmpty
-                            ? NetworkImage(_negocioImgUrl!)
-                            : null,
-                        child: _negocioImgUrl == null || _negocioImgUrl!.isEmpty
-                            ? const Icon(Icons.store, size: 48, color: Colors.blueGrey)
-                            : null,
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4)],
+          FutureBuilder<Map<String, dynamic>?>(
+            future: _cargarDatosNegocioReactivo(restauranteId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final data = snapshot.data;
+              final nombre = data?['nombre']?.toString() ?? 'Mi Negocio';
+              final imgUrl = data?['img']?.toString();
+              return Column(
+                children: [
+                  GestureDetector(
+                    onTap: _editarFotoNegocio,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 48,
+                          backgroundColor: Colors.blue[50],
+                          backgroundImage: imgUrl != null && imgUrl.isNotEmpty
+                              ? NetworkImage(imgUrl)
+                              : null,
+                          child: imgUrl == null || imgUrl.isEmpty
+                              ? const Icon(Icons.store, size: 48, color: Colors.blueGrey)
+                              : null,
                         ),
-                        padding: const EdgeInsets.all(6),
-                        child: const Icon(Icons.edit, size: 20, color: Colors.blue),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _negocioNombre ?? 'Mi Negocio',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                // --- Botón para ir a la vista de asignar repartidores ---
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.delivery_dining, color: Colors.white),
-                    label: const Text('Asignar repartidores', style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4)],
+                          ),
+                          padding: const EdgeInsets.all(6),
+                          child: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                        ),
+                      ],
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AsignarRepartidoresScreen(),
-                        ),
-                      );
-                    },
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
+                  const SizedBox(height: 12),
+                  Text(
+                    nombre,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  // --- Botón para ir a la vista de asignar repartidores ---
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.delivery_dining, color: Colors.white),
+                      label: const Text('Asignar repartidores', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AsignarRepartidoresScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              );
+            },
+          ),
           // --- Menú de opciones ---
           ...List.generate(opciones.length, (index) {
             final opcion = opciones[index];

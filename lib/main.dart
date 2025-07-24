@@ -20,6 +20,9 @@ import 'presentation/duenio/providers/notificaciones_pedidos_provider.dart';
 import 'core/env.dart'; // Importa las variables de entorno
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importa flutter_dotenv
 import 'core/theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'presentation/repartidor/screens/pedidos_screen.dart';
+import 'presentation/cliente/screens/home_screen.dart';
 // Importa las pantallas principales de cada rol si existen
 // Si no, usa un Scaffold temporal
 
@@ -52,20 +55,26 @@ void main() async {
     );
     print('✅ Supabase inicializado con valores por defecto');
   }
+  // Lee el estado de login antes de lanzar la app
+  final prefs = await SharedPreferences.getInstance();
+  final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+  final userRol = prefs.getString('userRol');
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CarritoProvider()),
         ChangeNotifierProvider(create: (_) => NotificacionesPedidosProvider()),
       ],
-      child: const MyApp(),
+      child: MyApp(isLoggedIn: isLoggedIn, userRol: userRol),
     ),
   );
 }
 
 // Widget raíz de la aplicación. Define el MaterialApp y las rutas principales por rol.
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+  final String? userRol;
+  const MyApp({super.key, required this.isLoggedIn, this.userRol});
   @override
   State<MyApp> createState() => _MyAppState();
 }
@@ -107,12 +116,38 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Si está logueado, navega directo a la pantalla principal según el rol
+    if (widget.isLoggedIn && widget.userRol != null) {
+      Widget home;
+      switch (widget.userRol!.toLowerCase()) {
+        case 'cliente':
+          home = const HomeScreen();
+          break;
+        case 'repartidor':
+          home = const RepartidorPedidosScreen();
+          break;
+        case 'duenio':
+          home = const DuenioDashboardScreen();
+          break;
+        case 'admin':
+          home = const AdminDashboardScreen();
+          break;
+        default:
+          home = const ClienteLoginScreen();
+      }
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'App Demo Multirol',
+        theme: lightTheme,
+        home: home,
+      );
+    }
+    // Si no, usa el router normal (login y flujo estándar)
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'App Demo Multirol',
-      // Usar el nuevo lightTheme personalizado con Montserrat y paleta de azules
       theme: lightTheme,
-      routerConfig: router, // Usar GoRouter centralizado
+      routerConfig: router,
     );
   }
 }

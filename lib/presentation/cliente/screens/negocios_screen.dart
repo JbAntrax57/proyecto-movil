@@ -345,6 +345,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('🟦 NegociosScreen build - showAppBar: ${widget.showAppBar}');
     final carrito = context.watch<CarritoProvider>().carrito;
     final showAppBar = widget.showAppBar ?? true; // Asegurar que sea bool
 
