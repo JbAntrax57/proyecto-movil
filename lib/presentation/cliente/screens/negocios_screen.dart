@@ -40,40 +40,76 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
   // Cache de datos para evitar recargas
   List<Map<String, dynamic>> _todosLosNegocios = [];
+  List<Map<String, dynamic>> _categorias = [];
   bool _isLoading = true;
+  bool _isLoadingCategorias = true;
   String? _error;
 
-  // Lista de categorías disponibles (nombre e ícono)
-  final categorias = [
-    {'nombre': 'Pizza', 'icon': Icons.local_pizza},
-    {'nombre': 'Sushi', 'icon': Icons.rice_bowl},
-    {'nombre': 'Tacos', 'icon': Icons.emoji_food_beverage},
-    {'nombre': 'Hamburguesas', 'icon': Icons.lunch_dining},
-    {'nombre': 'Parrilla', 'icon': Icons.outdoor_grill},
-    {'nombre': 'Vegano', 'icon': Icons.eco},
-    {'nombre': 'Mariscos', 'icon': Icons.set_meal},
-    {'nombre': 'Café', 'icon': Icons.coffee},
-    {'nombre': 'Pollo', 'icon': Icons.set_meal},
-  ];
+  // Obtiene las categorías desde Supabase
+  Future<List<Map<String, dynamic>>> obtenerCategorias() async {
+    try {
+      final data = await Supabase.instance.client
+          .from('categorias_principales')
+          .select()
+          .eq('activo', true)
+          .order('nombre');
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('❌ Error al obtener categorías: $e');
+      return [];
+    }
+  }
 
-  // Obtiene los negocios desde Supabase, filtrando por categoría si aplica
+  // Obtiene los negocios desde Supabase, filtrando por categoría si aplica (relación muchos a muchos)
   Future<List<Map<String, dynamic>>> obtenerNegocios({
-    String? categoria,
+    String? categoriaId,
   }) async {
     try {
-      final query = Supabase.instance.client.from('negocios').select();
-      if (categoria != null && categoria.isNotEmpty) {
-        query.eq('categoria', categoria);
+      if (categoriaId != null && categoriaId.isNotEmpty) {
+        // Si hay filtro de categoría, usar la relación inner con filtro
+        final data = await Supabase.instance.client
+          .from('negocios')
+          .select('*, negocios_categorias!inner(categoria_id)')
+          .eq('negocios_categorias.categoria_id', categoriaId)
+          .order('nombre');
+        return List<Map<String, dynamic>>.from(data);
+      } else {
+        // Si no hay filtro, obtener todos los negocios
+        final data = await Supabase.instance.client
+          .from('negocios')
+          .select('*')
+          .order('nombre');
+        return List<Map<String, dynamic>>.from(data);
       }
-      final data = await query;
-      return List<Map<String, dynamic>>.from(data);
     } catch (e) {
       print('❌ Error al obtener negocios: $e');
       return [];
     }
   }
 
-  // Cargar todos los negocios una sola vez
+  // Cargar categorías desde Supabase
+  Future<void> _cargarCategorias() async {
+    if (_categorias.isNotEmpty) return; // Ya están cargadas
+
+    setState(() {
+      _isLoadingCategorias = true;
+    });
+
+    try {
+      final categoriasData = await obtenerCategorias();
+      setState(() {
+        _categorias = categoriasData;
+        _isLoadingCategorias = false;
+      });
+    } catch (e) {
+      print('❌ Error al cargar categorías: $e');
+      setState(() {
+        _isLoadingCategorias = false;
+      });
+    }
+  }
+
+  // Cargar todos los negocios una sola vez con sus categorías
   Future<void> _cargarNegocios() async {
     if (_todosLosNegocios.isNotEmpty) return; // Ya están cargados
 
@@ -83,7 +119,11 @@ class _NegociosScreenState extends State<NegociosScreen> {
     });
 
     try {
-      final data = await Supabase.instance.client.from('negocios').select();
+      // Cargar todos los negocios con sus categorías para poder filtrar correctamente
+      final data = await Supabase.instance.client
+          .from('negocios')
+          .select('*, negocios_categorias(categoria_id, categorias_principales(nombre))')
+          .order('nombre');
       setState(() {
         _todosLosNegocios = List<Map<String, dynamic>>.from(data);
         _isLoading = false;
@@ -109,21 +149,83 @@ class _NegociosScreenState extends State<NegociosScreen> {
     final noDestacados = negocios.where((n) => n['destacado'] != true);
     if (_categoriaSeleccionada != null) {
       return noDestacados
-          .where(
-            (n) => (n['categoria']?.toString() ?? '') == _categoriaSeleccionada,
-          )
+          .where((n) {
+            // Verificar si el negocio tiene categorías y si alguna coincide con la seleccionada
+            final categorias = n['negocios_categorias'] as List<dynamic>?;
+            if (categorias != null && categorias.isNotEmpty) {
+              return categorias.any((cat) {
+                final categoriaNombre = cat['categorias_principales']?['nombre']?.toString();
+                return categoriaNombre == _categoriaSeleccionada;
+              });
+            }
+            return false;
+          })
           .toList();
     }
     return noDestacados.toList();
   }
 
-  // Simula refresco (pull-to-refresh)
+  // Eliminar función de iconos, ya no se usa
+
+  // Simula refresco (pull-to-refresh) - Actualiza TODO
   Future<void> _onRefresh() async {
     await Future.delayed(const Duration(seconds: 1));
-    await _cargarNegocios(); // Recargar datos
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Negocios actualizados')));
+
+    // 1. Recargar negocios (fuerza recarga completa)
+    setState(() {
+      _todosLosNegocios = []; // Limpiar cache para forzar recarga
+      _isLoading = true;
+      _error = null;
+    });
+    await _cargarNegocios();
+
+    // 2. Recargar categorías (fuerza recarga completa)
+    setState(() {
+      _categorias = []; // Limpiar cache para forzar recarga
+      _isLoadingCategorias = true;
+    });
+    await _cargarCategorias();
+
+    // 3. Actualizar carrito del usuario (limpiar duplicados y recargar)
+    final carritoProvider = context.read<CarritoProvider>();
+    if (carritoProvider.userEmail != null &&
+        carritoProvider.userEmail!.isNotEmpty) {
+      await carritoProvider.limpiarCarritosDuplicados();
+      await carritoProvider.cargarCarrito();
+    }
+
+    // 4. Resetear filtros y búsqueda
+    setState(() {
+      _categoriaSeleccionada = null;
+      _searchText = '';
+      _searchController.clear();
+      _currentPage = 0;
+    });
+
+    // 5. Resetear scroll controllers
+    _pageController?.animateToPage(
+      0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+    _scrollController?.animateTo(
+      0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+
+    // 6. Mostrar confirmación
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '✅ Todo actualizado: negocios, categorías, carrito y filtros',
+          ),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   // Agregar producto al carrito
@@ -316,6 +418,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
     _currentPage = 0;
     _scrollController = ScrollController();
     _cargarNegocios(); // Cargar datos al inicializar
+    _cargarCategorias(); // Cargar categorías al inicializar
   }
 
   @override
@@ -348,18 +451,18 @@ class _NegociosScreenState extends State<NegociosScreen> {
               Colors.transparent, // El fondo lo pone el Container exterior
           appBar: showAppBar
               ? AppBar(
-        backgroundColor: Colors.blue[50],
-        elevation: 0,
-        title: Text(
-          'Negocios destacados',
-          style: GoogleFonts.montserrat(
-            color: Colors.blue[900],
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
+                  backgroundColor: Colors.blue[50],
+                  elevation: 0,
+                  title: Text(
+                    'Negocios destacados',
+                    style: GoogleFonts.montserrat(
+                      color: Colors.blue[900],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
+                  ),
+                  centerTitle: true,
+                  actions: [
                     // Botón del carrito
                     Consumer<CarritoProvider>(
                       builder: (context, carritoProvider, child) {
@@ -426,25 +529,25 @@ class _NegociosScreenState extends State<NegociosScreen> {
                   ],
                 )
               : null,
-      body: Column(
-        children: [
+          body: Column(
+            children: [
               // Título personalizado cuando no hay AppBar
               if (!showAppBar)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
                         color: Colors.black.withOpacity(0.1),
                         blurRadius: 5,
                         offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
+                  child: Row(
+                    children: [
                       const Icon(Icons.store, color: Colors.blue, size: 28),
                       const SizedBox(width: 12),
                       const Text(
@@ -519,9 +622,9 @@ class _NegociosScreenState extends State<NegociosScreen> {
                           );
                         },
                       ),
-                ],
-              ),
-            ),
+                    ],
+                  ),
+                ),
               // Barra de búsqueda animada con botón de limpiar
               Container(
                 padding: const EdgeInsets.all(12),
@@ -543,10 +646,16 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     controller: _searchController,
                     autofocus: false,
                     focusNode: _searchFocusNode, // Asignar el FocusNode
-                    style: GoogleFonts.montserrat(fontSize: 16, color: Colors.blueGrey[900]),
+                    style: GoogleFonts.montserrat(
+                      fontSize: 16,
+                      color: Colors.blueGrey[900],
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Buscar negocios...',
-                      hintStyle: GoogleFonts.montserrat(color: Colors.blueGrey[400], fontSize: 16),
+                      hintStyle: GoogleFonts.montserrat(
+                        color: Colors.blueGrey[400],
+                        fontSize: 16,
+                      ),
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       suffixIcon: _searchText.isNotEmpty
                           ? IconButton(
@@ -575,7 +684,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
               Expanded(
                 child: _isLoading
                     ? const Center(
-                              child: CircularProgressIndicator(
+                        child: CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(
                             Colors.blue,
                           ),
@@ -633,8 +742,8 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     : RefreshIndicator(
                         onRefresh: _onRefresh,
                         child: SingleChildScrollView(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
                           child: Padding(
                             padding: const EdgeInsets.only(
                               bottom: 80,
@@ -666,248 +775,347 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
                                 return Column(
                                   children: [
-                      // Slider de negocios destacados (loop infinito y scroll automático)
-                      if (destacados.isNotEmpty)
+                                    // Slider de negocios destacados (loop infinito y scroll automático)
+                                    if (destacados.isNotEmpty)
                                       Padding(
-    padding: const EdgeInsets.symmetric(vertical: 10),
-    child: CarouselSlider(
-      options: CarouselOptions(
-        height: 200,
-        autoPlay: true,
-        autoPlayInterval: const Duration(seconds: 3),
-        enlargeCenterPage: true,
-        viewportFraction: 0.97,
-        enableInfiniteScroll: true,
-      ),
-      items: destacados.map((negocio) {
-        return Builder(
-          builder: (context) {
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => MenuScreen(
-                      restauranteId: negocio['id']?.toString() ?? '',
-                      restaurante: negocio['nombre']?.toString() ?? 'Sin nombre',
-                    ),
-                  ),
-                );
-              },
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.10),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Stack(
-                    children: [
-                      Image.network(
-                        negocio['img']?.toString() ??
-                            'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.store,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                      // Gradiente oscuro para el texto
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.7),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Contenido del negocio
-                      Positioned(
-                        bottom: 20,
-                        left: 20,
-                        right: 20,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              negocio['nombre']?.toString() ?? 'Sin nombre',
-                              style: GoogleFonts.montserrat(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              negocio['direccion']?.toString() ?? 'Sin dirección',
-                              style: GoogleFonts.montserrat(
-                                color: Colors.white.withOpacity(0.85),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Badge de destacado
-                      Positioned(
-                        top: 16,
-                        right: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.orange,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'Destacado',
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      }).toList(),
-    ),
-  ),
-                      // Barra de categorías horizontal
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                        child: CarouselSlider(
+                                          options: CarouselOptions(
+                                            height: 200,
+                                            autoPlay: true,
+                                            autoPlayInterval: const Duration(
+                                              seconds: 3,
+                                            ),
+                                            enlargeCenterPage: true,
+                                            viewportFraction: 0.97,
+                                            enableInfiniteScroll: true,
+                                          ),
+                                          items: destacados.map((negocio) {
+                                            return Builder(
+                                              builder: (context) {
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (_) => MenuScreen(
+                                                          restauranteId:
+                                                              negocio['id']
+                                                                  ?.toString() ??
+                                                              '',
+                                                          restaurante:
+                                                              negocio['nombre']
+                                                                  ?.toString() ??
+                                                              'Sin nombre',
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    margin:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            20,
+                                                          ),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black
+                                                              .withOpacity(
+                                                                0.10,
+                                                              ),
+                                                          blurRadius: 12,
+                                                          offset: const Offset(
+                                                            0,
+                                                            4,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            20,
+                                                          ),
+                                                      child: Stack(
+                                                        children: [
+                                                          Image.network(
+                                                            negocio['img']
+                                                                    ?.toString() ??
+                                                                'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
+                                                            width:
+                                                                double.infinity,
+                                                            height:
+                                                                double.infinity,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (
+                                                                  context,
+                                                                  error,
+                                                                  stackTrace,
+                                                                ) => Container(
+                                                                  color: Colors
+                                                                      .grey[300],
+                                                                  child: const Icon(
+                                                                    Icons.store,
+                                                                    size: 64,
+                                                                    color: Colors
+                                                                        .grey,
+                                                                  ),
+                                                                ),
+                                                          ),
+                                                          // Gradiente oscuro para el texto
+                                                          Container(
+                                                            decoration: BoxDecoration(
+                                                              gradient: LinearGradient(
+                                                                begin: Alignment
+                                                                    .topCenter,
+                                                                end: Alignment
+                                                                    .bottomCenter,
+                                                                colors: [
+                                                                  Colors
+                                                                      .transparent,
+                                                                  Colors.black
+                                                                      .withOpacity(
+                                                                        0.7,
+                                                                      ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          // Contenido del negocio
+                                                          Positioned(
+                                                            bottom: 20,
+                                                            left: 20,
+                                                            right: 20,
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                Text(
+                                                                  negocio['nombre']
+                                                                          ?.toString() ??
+                                                                      'Sin nombre',
+                                                                  style: GoogleFonts.montserrat(
+                                                                    color: Colors
+                                                                        .white,
+                                                                    fontSize:
+                                                                        22,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  height: 4,
+                                                                ),
+                                                                Text(
+                                                                  negocio['direccion']
+                                                                          ?.toString() ??
+                                                                      'Sin dirección',
+                                                                  style: GoogleFonts.montserrat(
+                                                                    color: Colors
+                                                                        .white
+                                                                        .withOpacity(
+                                                                          0.85,
+                                                                        ),
+                                                                    fontSize:
+                                                                        14,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          // Badge de destacado
+                                                          Positioned(
+                                                            top: 16,
+                                                            right: 16,
+                                                            child: Container(
+                                                              padding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        12,
+                                                                    vertical: 6,
+                                                                  ),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                    color: Colors
+                                                                        .orange,
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                          20,
+                                                                        ),
+                                                                  ),
+                                                              child: Text(
+                                                                'Destacado',
+                                                                style: GoogleFonts.montserrat(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontSize: 12,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                    // Barra de categorías horizontal
                                     Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 8,
-                              ),
-                              child: Column(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        horizontal: 8,
+                                      ),
+                                      child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
+                                        children: [
+                                          Padding(
                                             padding: const EdgeInsets.only(
-                                      left: 8,
-                                      bottom: 6,
-                                    ),
-                                    child: Text(
-                                      'Categorías',
-                                      style: GoogleFonts.montserrat(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blueGrey[950],
+                                              left: 8,
+                                              bottom: 6,
+                                            ),
+                                            child: Text(
+                                              'Categorías',
+                                              style: GoogleFonts.montserrat(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blueGrey[950],
+                                              ),
+                                            ),
+                                          ),
+                                          // En la barra de categorías horizontal
+                                          _isLoadingCategorias
+                                              ? const SizedBox(
+                                                  height: 70,
+                                                  child: Center(
+                                                    child: CircularProgressIndicator(
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                            Color
+                                                          >(Colors.blue),
+                                                    ),
+                                                  ),
+                                                )
+                                              : SizedBox(
+                                                  height: 70,
+                                                  child: ListView.separated(
+                                                    scrollDirection:
+                                                        Axis.horizontal,
+                                                    itemCount:
+                                                        _categorias.length,
+                                                    separatorBuilder: (_, __) =>
+                                                        const SizedBox(
+                                                          width: 12,
+                                                        ),
+                                                    itemBuilder: (context, index) {
+                                                      final cat =
+                                                          _categorias[index];
+                                                      final selected =
+                                                          _categoriaSeleccionada ==
+                                                          cat['nombre'];
+                                                      return ChoiceChip(
+                                                        label: Text(
+                                                          '${cat['icono'] ?? ''} ${cat['nombre'] ?? ''}',
+                                                        ),
+                                                        selected: selected,
+                                                        backgroundColor:
+                                                            Colors.white,
+                                                        selectedColor: Colors
+                                                            .lightBlueAccent[400],
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                18,
+                                                              ),
+                                                          side: BorderSide(
+                                                            color: selected
+                                                                ? Colors
+                                                                      .blue[800]!
+                                                                : Colors
+                                                                      .blueGrey[100]!,
+                                                            width: selected
+                                                                ? 2
+                                                                : 1,
+                                                          ),
+                                                        ),
+                                                        elevation: selected
+                                                            ? 2
+                                                            : 0,
+                                                        pressElevation: 4,
+                                                        onSelected: (_) {
+                                                          setState(() {
+                                                            _categoriaSeleccionada =
+                                                                selected
+                                                                ? null
+                                                                : cat['nombre']
+                                                                      as String;
+                                                          });
+                                                        },
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 12,
+                                                              vertical: 6,
+                                                            ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                  // En la barra de categorías horizontal
-                                  SizedBox(
-                                    height: 70,
-                                    child: ListView.separated(
-                                      scrollDirection: Axis.horizontal,
-                                      itemCount: categorias.length,
-                                      separatorBuilder: (_, __) =>
-                                          const SizedBox(width: 12),
-                                      itemBuilder: (context, index) {
-                                        final cat = categorias[index];
-                                        final selected =
-                                            _categoriaSeleccionada ==
-                                            cat['nombre'];
-                                        return ChoiceChip(
-                                          label: Text(
-                                            cat['nombre'] as String,
-                                            style: GoogleFonts.montserrat(
-                                              fontSize: 13,
-                                              color: selected ? Colors.blue[800] : Colors.blueGrey[800],
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          avatar: Icon(
-                                            cat['icon'] as IconData,
-                                            color: selected ? Colors.blue[800] : Colors.blueGrey[600],
-                                            size: 22,
-                                          ),
-                                          selected: selected,
-                                          backgroundColor: Colors.white,
-                                          selectedColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(18),
-                                            side: BorderSide(
-                                              color: selected ? Colors.blue[800]! : Colors.blueGrey[100]!,
-                                              width: selected ? 2 : 1,
-                                            ),
-                                          ),
-                                          elevation: selected ? 2 : 0,
-                                          pressElevation: 4,
-                                          onSelected: (_) {
-                                            setState(() {
-                                              _categoriaSeleccionada = selected ? null : cat['nombre'] as String;
-                                            });
-                                          },
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                        ),
-                      ),
-                      // Lista de negocios restantes (no destacados)
+                                    // Lista de negocios restantes (no destacados)
                                     ...restantes.map((negocio) {
                                       final index = restantes.indexOf(negocio);
-                          return TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0, end: 1),
+                                      return TweenAnimationBuilder<double>(
+                                        tween: Tween(begin: 0, end: 1),
                                         duration: Duration(
                                           milliseconds: 400 + index * 100,
                                         ),
                                         builder: (context, value, child) =>
                                             Opacity(
-                              opacity: value,
-                              child: Transform.translate(
+                                              opacity: value,
+                                              child: Transform.translate(
                                                 offset: Offset(
                                                   0,
                                                   30 * (1 - value),
                                                 ),
-                                child: child,
-                              ),
-                            ),
-                            child: Card(
-                              elevation: 6,
-                              color: Colors.white,
+                                                child: child,
+                                              ),
+                                            ),
+                                        child: Card(
+                                          elevation: 6,
+                                          color: Colors.white,
                                           shadowColor: Colors.blue.withOpacity(
                                             0.10,
                                           ),
-                              margin: const EdgeInsets.only(
-                                bottom: 16,
-                                left: 16,
-                                right: 16,
-                              ),
-                              shape: RoundedRectangleBorder(
+                                          margin: const EdgeInsets.only(
+                                            bottom: 16,
+                                            left: 16,
+                                            right: 16,
+                                          ),
+                                          shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
                                               18,
                                             ),
-                              ),
-                              child: InkWell(
+                                          ),
+                                          child: InkWell(
                                             borderRadius: BorderRadius.circular(
                                               18,
                                             ),
@@ -915,137 +1123,140 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                 .withOpacity(0.08),
                                             highlightColor: Colors.blue
                                                 .withOpacity(0.04),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => MenuScreen(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => MenuScreen(
                                                     restauranteId:
                                                         negocio['id']
                                                             ?.toString() ??
                                                         '',
-                                        restaurante:
+                                                    restaurante:
                                                         negocio['nombre']
                                                             ?.toString() ??
                                                         'Sin nombre',
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Row(
-                                  children: [
-                                    // Imagen del negocio
-                                    ClipRRect(
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            child: Row(
+                                              children: [
+                                                // Imagen del negocio
+                                                ClipRRect(
                                                   borderRadius:
                                                       const BorderRadius.only(
                                                         topLeft:
                                                             Radius.circular(18),
                                                         bottomLeft:
                                                             Radius.circular(18),
-                                      ),
-                                      child: Image.network(
+                                                      ),
+                                                  child: Image.network(
                                                     negocio['img']
                                                             ?.toString() ??
                                                         'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
-                                        width: 80,
-                                        height: 80,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
+                                                    width: 80,
+                                                    height: 80,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
                                                         (
                                                           context,
                                                           error,
                                                           stackTrace,
                                                         ) => Container(
-                                                  width: 80,
-                                                  height: 80,
+                                                          width: 80,
+                                                          height: 80,
                                                           color:
                                                               Colors.grey[300],
-                                                  child: const Icon(
-                                                    Icons.store,
-                                                    size: 32,
-                                                    color: Colors.grey,
+                                                          child: const Icon(
+                                                            Icons.store,
+                                                            size: 32,
+                                                            color: Colors.grey,
+                                                          ),
+                                                        ),
                                                   ),
                                                 ),
-                                      ),
-                                    ),
-                                    // Detalles del negocio
-                                    Expanded(
-                                      child: Padding(
+                                                // Detalles del negocio
+                                                Expanded(
+                                                  child: Padding(
                                                     padding:
                                                         const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 18,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
+                                                          horizontal: 16,
+                                                          vertical: 18,
+                                                        ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
                                                           CrossAxisAlignment
                                                               .start,
-                                          children: [
-                                            Text(
+                                                      children: [
+                                                        Text(
                                                           negocio['nombre']
                                                                   ?.toString() ??
                                                               'Sin nombre',
-                                              style: GoogleFonts.montserrat(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.blueGrey[800],
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                              height: 8,
-                                            ),
-                                            Row(
-                                              children: [
-                                                const Icon(
-                                                  Icons.location_on,
-                                                  size: 16,
+                                                          style: GoogleFonts.montserrat(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors
+                                                                .blueGrey[800],
+                                                            fontSize: 16,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                        Row(
+                                                          children: [
+                                                            const Icon(
+                                                              Icons.location_on,
+                                                              size: 16,
                                                               color: Colors
                                                                   .redAccent,
-                                                ),
+                                                            ),
                                                             const SizedBox(
                                                               width: 4,
                                                             ),
-                                                Expanded(
-                                                  child: Text(
-                                                    negocio['direccion']
+                                                            Expanded(
+                                                              child: Text(
+                                                                negocio['direccion']
                                                                         ?.toString() ??
                                                                     'Sin dirección',
-                                                    style: GoogleFonts.montserrat(
-                                                        color: Colors.blueGrey[700],
-                                                        fontSize: 13,
-                                                      ),
-                                                    overflow:
+                                                                style: GoogleFonts.montserrat(
+                                                                  color: Colors
+                                                                      .blueGrey[700],
+                                                                  fontSize: 13,
+                                                                ),
+                                                                overflow:
                                                                     TextOverflow
                                                                         .ellipsis,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
+                                                ),
+                                                const Icon(
+                                                  Icons.chevron_right,
+                                                  color: Colors.grey,
+                                                  size: 28,
                                                 ),
                                               ],
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      color: Colors.grey,
-                                      size: 28,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
+                                      );
                                     }).toList(),
                                     const SizedBox(height: 20),
-                    ],
-                );
-              },
+                                  ],
+                                );
+                              },
                             ),
                           ),
                         ),
-            ),
-          ),
-        ],
+                      ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1087,9 +1298,9 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
 
       // Simplemente ir a la siguiente página
       _pageController.nextPage(
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
     });
   }
 
@@ -1112,18 +1323,18 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
       child: Column(
         children: [
           Expanded(
-      child: PageView.builder(
-        controller: _pageController,
+            child: PageView.builder(
+              controller: _pageController,
               onPageChanged: (index) {
                 setState(() => _currentPage = index % widget.destacados.length);
               },
-        itemBuilder: (context, index) {
+              itemBuilder: (context, index) {
                 // Usar módulo para obtener el índice real del negocio
                 final realIndex = index % widget.destacados.length;
                 final negocio = widget.destacados[realIndex];
 
                 return GestureDetector(
-                onTap: () => widget.onTap(negocio),
+                  onTap: () => widget.onTap(negocio),
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
@@ -1146,17 +1357,17 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                                 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
                             width: double.infinity,
                             height: double.infinity,
-                        fit: BoxFit.cover,
+                            fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
                                 Container(
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.store,
+                                  color: Colors.grey[300],
+                                  child: const Icon(
+                                    Icons.store,
                                     size: 64,
-                            color: Colors.grey,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                           ),
-                        ),
-                      ),
                           // Gradiente oscuro para el texto
                           Container(
                             decoration: BoxDecoration(
@@ -1175,10 +1386,10 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                             bottom: 20,
                             left: 20,
                             right: 20,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
                                   negocio['nombre']?.toString() ?? 'Sin nombre',
                                   style: GoogleFonts.montserrat(
                                     color: Colors.white,
@@ -1203,7 +1414,10 @@ class _DestacadosSliderState extends State<DestacadosSlider> {
                             top: 16,
                             right: 16,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.orange,
                                 borderRadius: BorderRadius.circular(20),
