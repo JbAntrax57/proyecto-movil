@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import 'dart:async';
 import '../../../data/services/detalles_pedidos_service.dart';
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../services/puntos_service.dart';
 
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
@@ -261,6 +262,67 @@ class _CarritoScreenState extends State<CarritoScreen> {
           productosPorNegocio.putIfAbsent(negocioId, () => []).add(item);
         }
 
+        // Mostrar puntos totales de los dueños de los negocios involucrados
+        print('🏪 === PUNTOS TOTALES DE LOS DUEÑOS DE NEGOCIOS INVOLUCRADOS ===');
+        final Set<String> duenosProcesados = {};
+        
+        for (final entry in productosPorNegocio.entries) {
+          final negocioId = entry.key;
+          final productos = entry.value;
+          
+          try {
+            // Obtener información del negocio
+            final negocioData = await Supabase.instance.client
+                .from('negocios')
+                .select('nombre')
+                .eq('id', negocioId)
+                .single();
+            
+            final nombreNegocio = negocioData['nombre'] ?? 'Negocio sin nombre';
+            
+                                    // Obtener el dueño del negocio desde la tabla usuarios
+                        final duenoData = await Supabase.instance.client
+                            .from('usuarios')
+                            .select('id')
+                            .eq('restaurante_id', negocioId)
+                            .eq('rol', 'duenio')
+                            .limit(1)
+                            .maybeSingle();
+            
+            final duenoId = duenoData?['id'];
+            
+            if (duenoId != null && !duenosProcesados.contains(duenoId)) {
+              duenosProcesados.add(duenoId);
+              
+              // Obtener puntos del dueño
+              final puntosData = await PuntosService.obtenerPuntosDueno(duenoId);
+              
+              if (puntosData != null) {
+                final puntosDisponibles = puntosData['puntos_disponibles'] ?? 0;
+                final totalAsignado = puntosData['total_asignado'] ?? 0;
+                final puntosConsumidos = totalAsignado - puntosDisponibles;
+                
+                print('📊 NEGOCIO: $nombreNegocio');
+                print('👤 DUEÑO ID: $duenoId');
+                print('💰 PUNTOS DISPONIBLES: $puntosDisponibles');
+                print('📈 TOTAL ASIGNADO: $totalAsignado');
+                print('📉 PUNTOS CONSUMIDOS: $puntosConsumidos');
+                print('📦 PRODUCTOS EN PEDIDO: ${productos.length}');
+                print('---');
+              } else {
+                print('❌ NEGOCIO: $nombreNegocio');
+                print('❌ DUEÑO ID: $duenoId');
+                print('❌ NO SE PUDIERON OBTENER LOS PUNTOS');
+                print('---');
+              }
+            }
+          } catch (e) {
+            print('❌ Error obteniendo información del negocio $negocioId: $e');
+          }
+        }
+        
+        print('🏪 === FIN DE PUNTOS TOTALES ===');
+
         // Crear un pedido por cada negocio
         for (final entry in productosPorNegocio.entries) {
           final negocioId = entry.key;
@@ -302,6 +364,44 @@ class _CarritoScreenState extends State<CarritoScreen> {
             pedidoId: pedidoResult['id'],
             productos: productos,
           );
+
+          // Obtener el dueño del negocio para descuentar puntos
+          try {
+            final duenoData = await Supabase.instance.client
+                .from('usuarios')
+                .select('id')
+                .eq('restaurante_id', negocioId)
+                .eq('rol', 'duenio')
+                .limit(1)
+                .maybeSingle();
+            
+            final duenoId = duenoData?['id'];
+            if (duenoId != null) {
+              // Obtener los puntos por pedido del sistema de puntos
+              final puntosData = await Supabase.instance.client
+                  .from('sistema_puntos')
+                  .select('puntos_por_pedido')
+                  .eq('dueno_id', duenoId)
+                  .single();
+              
+              final puntosPorPedido = puntosData['puntos_por_pedido'] ?? 2;
+              
+              // Descontar puntos del dueño
+              final puntosDescontados = await PuntosService.consumirPuntosEnPedido(
+                duenoId,
+                puntosConsumir: puntosPorPedido,
+              );
+              
+              if (!puntosDescontados) {
+                print('⚠️ No se pudieron descontar puntos del dueño $duenoId');
+              } else {
+                print('✅ Puntos descontados exitosamente: $puntosPorPedido puntos');
+              }
+            }
+          } catch (e) {
+            print('⚠️ Error al procesar puntos del dueño: $e');
+            // Continuar con el pedido aunque falle el descuento de puntos
+          }
         }
 
         // Cerrar loading

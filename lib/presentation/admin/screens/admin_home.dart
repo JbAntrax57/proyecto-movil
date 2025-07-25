@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'usuarios_section.dart';
 import 'negocios_section.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:provider/provider.dart';
-import '../../cliente/providers/carrito_provider.dart';
+import 'reportes_section.dart';
+import 'configuracion_section.dart';
 import '../../cliente/screens/login_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
@@ -21,16 +21,48 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   static const List<Widget> _pages = <Widget>[
     AdminUsuariosSection(),
     AdminNegociosSection(),
-    _AdminSectionPlaceholder(title: 'Reportes', icon: Icons.bar_chart),
-    _AdminSectionPlaceholder(title: 'Pedidos', icon: Icons.receipt_long),
-    _AdminSectionPlaceholder(title: 'Productos', icon: Icons.restaurant_menu),
-    _AdminSectionPlaceholder(title: 'Configuración', icon: Icons.settings),
+    AdminReportesSection(),
+    AdminConfiguracionSection(),
   ];
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  // Función para cerrar sesión
+  Future<void> _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cerrar sesión'),
+        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ClienteLoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+    // No es necesario más lógica aquí, ya que la navegación se hace en el ElevatedButton
   }
 
   @override
@@ -43,42 +75,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar sesión',
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Cerrar sesión'),
-                  content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancelar'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.clear();
-                        if (mounted) {
-                          context.read<CarritoProvider>().limpiarSesion();
-                        }
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ClienteLoginScreen()),
-                          (route) => false,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: const Text('Cerrar sesión'),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                context.read<CarritoProvider>().limpiarSesion();
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-              }
-            },
+            onPressed: _logout,
+            tooltip: 'Cerrar Sesión',
           ),
         ],
       ),
@@ -99,14 +97,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart),
             label: 'Reportes',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'Pedidos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Productos',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

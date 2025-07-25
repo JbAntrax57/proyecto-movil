@@ -41,7 +41,7 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
     {'email': 'cliente@wasp.mx', 'password': 'cliente123', 'rol': 'Cliente'},
     {'email': 'repartidor@wasp.mx', 'password': 'res123', 'rol': 'Repartidor'},
     {'email': 'res@wasp.mx', 'password': 'res123', 'rol': 'Duenio'},
-    {'email': 'admin@wasp.mx', 'password': 'admin123', 'rol': 'Admin'},
+    {'email': 'admin@wasp.mx', 'password': 'res123', 'rol': 'Admin'},
   ];
 
   // Función para encriptar la contraseña con SHA-256

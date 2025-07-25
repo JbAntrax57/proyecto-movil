@@ -13,6 +13,7 @@ import 'asignar_repartidores_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Importa SharedPreferences
 import '../../cliente/screens/login_screen.dart'; // Importa el login del cliente
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../services/puntos_service.dart';
 
 /// dashboard_screen.dart - Pantalla principal (dashboard) para el dueño
 /// Muestra un menú con las opciones principales para la gestión del restaurante.
@@ -262,6 +263,122 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
     }
   }
 
+  // Mostrar diálogo con información de puntos del dueño
+  Future<void> _mostrarDialogoPuntos() async {
+    try {
+      final userProvider = Provider.of<CarritoProvider>(context, listen: false);
+      final userId = userProvider.userId;
+      
+      if (userId == null) {
+        showErrorAlert(context, 'No se pudo identificar al usuario');
+        return;
+      }
+
+      // Mostrar loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Obtener datos de puntos
+      final puntosData = await PuntosService.obtenerPuntosDueno(userId);
+      
+      // Cerrar loading
+      Navigator.pop(context);
+
+      if (puntosData == null) {
+        showErrorAlert(context, 'No se encontraron datos de puntos para este usuario');
+        return;
+      }
+
+      // Mostrar diálogo con información de puntos
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.stars, color: Colors.amber),
+              const SizedBox(width: 8),
+              const Text('Mis Puntos'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPuntoInfo('Puntos Disponibles', '${puntosData['puntos_disponibles'] ?? 0}', Colors.green),
+              const SizedBox(height: 12),
+              _buildPuntoInfo('Total Asignado', '${puntosData['total_asignado'] ?? 0}', Colors.blue),
+              const SizedBox(height: 12),
+              _buildPuntoInfo('Puntos por Pedido', '${puntosData['puntos_por_pedido'] ?? 2}', Colors.orange),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Estado del Negocio',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700]),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      (puntosData['puntos_disponibles'] ?? 0) > 0 
+                          ? '✅ Activo - Puedes recibir pedidos'
+                          : '❌ Inactivo - Sin puntos disponibles',
+                      style: TextStyle(
+                        color: (puntosData['puntos_disponibles'] ?? 0) > 0 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      // Cerrar loading si está abierto
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      showErrorAlert(context, 'Error al cargar información de puntos: $e');
+    }
+  }
+
+  // Widget helper para mostrar información de puntos
+  Widget _buildPuntoInfo(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: color,
+            fontSize: 16,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     _pedidoSub?.cancel();
@@ -318,6 +435,14 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
         onTap: () {
           // Navegar a la pantalla de estadísticas
           // Navigator.pushNamed(context, '/duenio/estadisticas');
+        },
+      ),
+      _MenuOption(
+        icon: Icons.stars,
+        title: 'Mis Puntos',
+        subtitle: 'Ver puntos disponibles y estado',
+        onTap: () {
+          _mostrarDialogoPuntos();
         },
       ),
       // Puedes agregar más opciones aquí
