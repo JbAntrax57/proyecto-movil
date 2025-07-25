@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import 'dart:async';
 import '../../../data/services/detalles_pedidos_service.dart';
+import '../../../shared/widgets/custom_alert.dart';
 
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
@@ -310,11 +311,13 @@ class _CarritoScreenState extends State<CarritoScreen> {
         context.read<CarritoProvider>().limpiarCarrito();
 
         // Mostrar éxito
-        _mostrarAlertaPersonalizada(
-          '¡Pedidos realizados con éxito!',
-          Colors.green,
-          Icons.check_circle,
+        showSuccessAlert(
+          context,
+          '¡Pedidos realizados con éxito! 🎉\nTu pedido está siendo procesado.',
         );
+
+        // Esperar 2 segundos para que el usuario vea el mensaje de éxito
+        await Future.delayed(const Duration(seconds: 2));
 
         // Regresar a la pantalla anterior
         Navigator.pop(context);
