@@ -12,6 +12,7 @@ import '../../cliente/screens/home_screen.dart';
 import '../../repartidor/screens/pedidos_screen.dart';
 import '../../duenio/screens/dashboard_screen.dart';
 import '../../admin/screens/admin_home.dart';
+import '../../common/screens/register_screen.dart';
 
 // login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
 // Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
@@ -146,7 +147,10 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
 
   // Navega a la pantalla de registro
   void _goToRegister() {
-    context.go('/register');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+    );
   }
 
   @override
