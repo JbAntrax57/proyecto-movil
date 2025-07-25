@@ -6,6 +6,7 @@ import '../../cliente/providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart'; // Para personalizar la status bar
 import 'dart:async';
+import '../../../shared/utils/pedidos_helper.dart';
 
 class DuenioPedidosScreen extends StatefulWidget {
   const DuenioPedidosScreen({super.key});
@@ -52,15 +53,37 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
     _pedidosSubscription = Supabase.instance.client
       .from('pedidos')
       .stream(primaryKey: ['id'])
-      .listen((data) {
+      .listen((data) async {
         final userProvider = context.read<CarritoProvider>();
         final negocioId = userProvider.restauranteId;
         final pedidosNegocio = List<Map<String, dynamic>>.from(data)
             .where((p) => p['restaurante_id'] == negocioId)
             .toList();
-        setState(() {
-          _pedidos = pedidosNegocio;
-        });
+        
+        // Obtener detalles para los pedidos filtrados
+        if (pedidosNegocio.isNotEmpty) {
+          final pedidosIds = pedidosNegocio.map((p) => p['id'] as String).toList();
+          final detallesPorPedido = await PedidosHelper.obtenerDetallesMultiplesPedidos(pedidosIds);
+          
+          // Combinar pedidos con sus detalles
+          final pedidosConDetalles = pedidosNegocio.map((pedido) {
+            final pedidoId = pedido['id'] as String;
+            final detalles = detallesPorPedido[pedidoId] ?? [];
+            
+            return {
+              ...pedido,
+              'productos': detalles, // Mantener compatibilidad
+            };
+          }).toList();
+          
+          setState(() {
+            _pedidos = pedidosConDetalles;
+          });
+        } else {
+          setState(() {
+            _pedidos = pedidosNegocio;
+          });
+        }
       });
   }
 
@@ -87,13 +110,14 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
         });
         return;
       }
-      final data = await Supabase.instance.client
-          .from('pedidos')
-          .select()
-          .eq('restaurante_id', negocioId)
-          .order('created_at', ascending: false);
+      
+      // Usar el helper para obtener pedidos con detalles
+      final pedidosConDetalles = await PedidosHelper.obtenerPedidosConDetalles(
+        restauranteId: negocioId,
+      );
+      
       setState(() {
-        _pedidos = List<Map<String, dynamic>>.from(data);
+        _pedidos = pedidosConDetalles;
         _isLoading = false;
       });
     } catch (e) {

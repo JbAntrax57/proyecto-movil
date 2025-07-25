@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/utils/pedidos_helper.dart';
 
 // pedidos_screen.dart - Pantalla de pedidos del cliente
 // Permite ver el historial de pedidos realizados y su estado.
@@ -17,12 +18,9 @@ class ClientePedidosScreen extends StatefulWidget {
 class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
   // Obtiene los pedidos del usuario desde Supabase
   Future<List<Map<String, dynamic>>> obtenerPedidos(String userEmail) async {
-    final data = await Supabase.instance.client
-        .from('pedidos')
-        .select()
-        .eq('usuarioId', userEmail)
-        .order('timestamp', ascending: false);
-    return List<Map<String, dynamic>>.from(data);
+    return await PedidosHelper.obtenerPedidosConDetalles(
+      usuarioEmail: userEmail,
+    );
   }
 
   // Obtiene el color del estado del pedido

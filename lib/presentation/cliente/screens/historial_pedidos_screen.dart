@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/utils/pedidos_helper.dart';
 
 // historial_pedidos_screen.dart - Pantalla de historial de pedidos para el cliente
 // Muestra todos los pedidos realizados por el usuario con su estado actual
@@ -64,14 +65,12 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
         return;
       }
 
-      final data = await Supabase.instance.client
-          .from('pedidos')
-          .select()
-          .eq('usuario_email', userEmail)
-          .order('created_at', ascending: false);
+      final pedidosConDetalles = await PedidosHelper.obtenerPedidosConDetalles(
+        usuarioEmail: userEmail,
+      );
 
       // Ordenar pedidos por estado y fecha
-      final pedidosOrdenados = _ordenarPedidosPorEstado(List<Map<String, dynamic>>.from(data));
+      final pedidosOrdenados = _ordenarPedidosPorEstado(pedidosConDetalles);
 
       setState(() {
         _pedidos = pedidosOrdenados;

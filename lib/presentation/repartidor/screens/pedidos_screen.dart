@@ -11,6 +11,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../cliente/screens/login_screen.dart';
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../shared/utils/pedidos_helper.dart';
 
 // pedidos_screen.dart - Pantalla de pedidos asignados para el repartidor
 // Permite ver pedidos asignados, simular nuevos pedidos preparados, navegar al mapa y actualizar estado de entrega.
@@ -133,17 +134,16 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
   // Pedidos en estado 'listo' no asignados
   Future<void> _cargarPedidosDisponibles() async {
     try {
-      final pedidosListo = await Supabase.instance.client
-        .from('pedidos')
-        .select()
-        .eq('estado', 'listo');
+      final pedidosListo = await PedidosHelper.obtenerPedidosConDetalles(
+        estado: 'listo',
+      );
       print('DEBUG: Pedidos en estado listo: ' + pedidosListo.toString());
       final asignados = await Supabase.instance.client
         .from('pedidos_repartidores')
         .select('pedido_id');
       final idsAsignados = asignados.map((a) => a['pedido_id']).toSet();
       print('DEBUG: Pedidos ya asignados: ' + idsAsignados.toString());
-      final disponibles = List<Map<String, dynamic>>.from(pedidosListo)
+      final disponibles = pedidosListo
           .where((p) => !idsAsignados.contains(p['id']))
           .toList();
       print('DEBUG: Pedidos disponibles para tomar: ' + disponibles.toString());
@@ -177,16 +177,30 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
         .from('pedidos_repartidores')
         .select('pedido_id')
         .eq('repartidor_id', repartidorId);
-      final pedidoIds = asignaciones.map((a) => a['pedido_id']).toList();
+      final pedidoIds = asignaciones.map((a) => a['pedido_id'] as String).toList();
       if (pedidoIds.isEmpty) {
         misPedidos = [];
         return;
       }
+      
+      // Obtener pedidos con detalles usando el helper
+      final pedidosConDetalles = await PedidosHelper.obtenerDetallesMultiplesPedidos(pedidoIds);
+      
+      // Obtener los pedidos base y combinarlos con detalles
       final pedidosDb = await Supabase.instance.client
         .from('pedidos')
         .select()
         .filter('id', 'in', '(${pedidoIds.join(',')})');
-      misPedidos = List<Map<String, dynamic>>.from(pedidosDb);
+      
+      misPedidos = pedidosDb.map((pedido) {
+        final pedidoId = pedido['id'] as String;
+        final detalles = pedidosConDetalles[pedidoId] ?? [];
+        
+        return {
+          ...pedido,
+          'productos': detalles, // Mantener compatibilidad
+        };
+      }).toList();
     } catch (e) {
       misPedidos = [];
     }

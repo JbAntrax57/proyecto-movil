@@ -5,6 +5,7 @@ import '../providers/carrito_provider.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import 'dart:async';
+import '../../../data/services/detalles_pedidos_service.dart';
 
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
@@ -283,16 +284,23 @@ class _CarritoScreenState extends State<CarritoScreen> {
             return sum + (precio * cantidad);
           });
 
-          await Supabase.instance.client.from('pedidos').insert({
+          // Crear el pedido sin el campo productos
+          final pedidoResult = await Supabase.instance.client.from('pedidos').insert({
             'usuario_email': userEmail,
             'restaurante_id': negocioId,
-            'productos': productos,
             'total': total,
             'estado': 'pendiente',
             'direccion_entrega': ubicacionData['ubicacion'],
             'referencias': ubicacionData['referencias'],
             'created_at': DateTime.now().toIso8601String(),
-          });
+          }).select().single();
+
+          // Crear los detalles del pedido usando la nueva tabla
+          final detallesService = DetallesPedidosService();
+          await detallesService.crearDetallesPedido(
+            pedidoId: pedidoResult['id'],
+            productos: productos,
+          );
         }
 
         // Cerrar loading
