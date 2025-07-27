@@ -25,6 +25,7 @@ import 'presentation/duenio/providers/dashboard_provider.dart';
 import 'presentation/duenio/providers/pedidos_duenio_provider.dart';
 import 'presentation/duenio/providers/menu_duenio_provider.dart';
 import 'presentation/duenio/providers/repartidores_provider.dart';
+import 'presentation/repartidor/providers/pedidos_repartidor_provider.dart';
 import 'core/env.dart'; // Importa las variables de entorno
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importa flutter_dotenv
 import 'core/theme.dart';
@@ -76,6 +77,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PedidosDuenioProvider()),
         ChangeNotifierProvider(create: (_) => MenuDuenioProvider()),
         ChangeNotifierProvider(create: (_) => RepartidoresProvider()),
+        ChangeNotifierProvider(create: (_) => PedidosRepartidorProvider()),
         ChangeNotifierProvider(create: (_) => NegociosProvider()),
         ChangeNotifierProvider(create: (_) => MenuProvider()),
         ChangeNotifierProvider(create: (_) => CarritoScreenProvider()),
