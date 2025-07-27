@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../providers/negocios_provider.dart';
+
 import 'menu_screen.dart';
 import 'carrito_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import '../../../shared/widgets/custom_alert.dart';
 
 // Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
@@ -27,143 +27,13 @@ class _NegociosScreenState extends State<NegociosScreen> {
   // Controladores para scroll y refresco
   PageController? _pageController;
   ScrollController? _scrollController;
-  int _currentPage = 0; // Página actual del slider
-  String? _categoriaSeleccionada; // Categoría seleccionada para filtrar
-  final List<Map<String, dynamic>> _carrito = []; // Carrito de compras
-  bool _showCategorias = true; // Controla visibilidad de la barra de categorías
-
-  // Controlador y focus para la barra de búsqueda
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode =
       FocusNode(); // FocusNode temporal para controlar el foco
-  String _searchText = '';
 
-  // Cache de datos para evitar recargas
-  List<Map<String, dynamic>> _todosLosNegocios = [];
-  List<Map<String, dynamic>> _categorias = [];
-  bool _isLoading = true;
-  bool _isLoadingCategorias = true;
-  String? _error;
 
-  // Obtiene las categorías desde Supabase
-  Future<List<Map<String, dynamic>>> obtenerCategorias() async {
-    try {
-      final data = await Supabase.instance.client
-          .from('categorias_principales')
-          .select()
-          .eq('activo', true)
-          .order('nombre');
-      return List<Map<String, dynamic>>.from(data);
-    } catch (e) {
-      print('❌ Error al obtener categorías: $e');
-      return [];
-    }
-  }
 
-  // Obtiene los negocios desde Supabase, filtrando por categoría si aplica (relación muchos a muchos)
-  Future<List<Map<String, dynamic>>> obtenerNegocios({
-    String? categoriaId,
-  }) async {
-    try {
-      if (categoriaId != null && categoriaId.isNotEmpty) {
-        // Si hay filtro de categoría, usar la relación inner con filtro
-        final data = await Supabase.instance.client
-          .from('negocios')
-          .select('*, negocios_categorias!inner(categoria_id)')
-          .eq('negocios_categorias.categoria_id', categoriaId)
-          .order('nombre');
-        return List<Map<String, dynamic>>.from(data);
-      } else {
-        // Si no hay filtro, obtener todos los negocios
-        final data = await Supabase.instance.client
-          .from('negocios')
-          .select('*')
-          .order('nombre');
-        return List<Map<String, dynamic>>.from(data);
-      }
-    } catch (e) {
-      print('❌ Error al obtener negocios: $e');
-      return [];
-    }
-  }
 
-  // Cargar categorías desde Supabase
-  Future<void> _cargarCategorias() async {
-    if (_categorias.isNotEmpty) return; // Ya están cargadas
-
-    setState(() {
-      _isLoadingCategorias = true;
-    });
-
-    try {
-      final categoriasData = await obtenerCategorias();
-      setState(() {
-        _categorias = categoriasData;
-        _isLoadingCategorias = false;
-      });
-    } catch (e) {
-      print('❌ Error al cargar categorías: $e');
-      setState(() {
-        _isLoadingCategorias = false;
-      });
-    }
-  }
-
-  // Cargar todos los negocios una sola vez con sus categorías
-  Future<void> _cargarNegocios() async {
-    if (_todosLosNegocios.isNotEmpty) return; // Ya están cargados
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // Cargar todos los negocios con sus categorías para poder filtrar correctamente
-      final data = await Supabase.instance.client
-          .from('negocios')
-          .select('*, negocios_categorias(categoria_id, categorias_principales(nombre))')
-          .order('nombre');
-      setState(() {
-        _todosLosNegocios = List<Map<String, dynamic>>.from(data);
-        _isLoading = false;
-      });
-    } catch (e) {
-      print('❌ Error al cargar negocios: $e');
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  // Devuelve los negocios destacados (campo 'destacado' == true) para el slider
-  List<Map<String, dynamic>> getDestacados(
-    List<Map<String, dynamic>> negocios,
-  ) {
-    return negocios.where((n) => n['destacado'] == true).toList();
-  }
-
-  // Devuelve el resto de negocios para la lista principal, aplicando filtro de categoría
-  List<Map<String, dynamic>> getRestantes(List<Map<String, dynamic>> negocios) {
-    final noDestacados = negocios.where((n) => n['destacado'] != true);
-    if (_categoriaSeleccionada != null) {
-      return noDestacados
-          .where((n) {
-            // Verificar si el negocio tiene categorías y si alguna coincide con la seleccionada
-            final categorias = n['negocios_categorias'] as List<dynamic>?;
-            if (categorias != null && categorias.isNotEmpty) {
-              return categorias.any((cat) {
-                final categoriaNombre = cat['categorias_principales']?['nombre']?.toString();
-                return categoriaNombre == _categoriaSeleccionada;
-              });
-            }
-            return false;
-          })
-          .toList();
-    }
-    return noDestacados.toList();
-  }
 
   // Eliminar función de iconos, ya no se usa
 
@@ -171,22 +41,11 @@ class _NegociosScreenState extends State<NegociosScreen> {
   Future<void> _onRefresh() async {
     await Future.delayed(const Duration(seconds: 1));
 
-    // 1. Recargar negocios (fuerza recarga completa)
-    setState(() {
-      _todosLosNegocios = []; // Limpiar cache para forzar recarga
-      _isLoading = true;
-      _error = null;
-    });
-    await _cargarNegocios();
+    // 1. Recargar datos desde el provider
+    final negociosProvider = context.read<NegociosProvider>();
+    await negociosProvider.refrescarDatos();
 
-    // 2. Recargar categorías (fuerza recarga completa)
-    setState(() {
-      _categorias = []; // Limpiar cache para forzar recarga
-      _isLoadingCategorias = true;
-    });
-    await _cargarCategorias();
-
-    // 3. Actualizar carrito del usuario (limpiar duplicados y recargar)
+    // 2. Actualizar carrito del usuario (limpiar duplicados y recargar)
     final carritoProvider = context.read<CarritoProvider>();
     if (carritoProvider.userEmail != null &&
         carritoProvider.userEmail!.isNotEmpty) {
@@ -194,15 +53,10 @@ class _NegociosScreenState extends State<NegociosScreen> {
       await carritoProvider.cargarCarrito();
     }
 
-    // 4. Resetear filtros y búsqueda
-    setState(() {
-      _categoriaSeleccionada = null;
-      _searchText = '';
-      _searchController.clear();
-      _currentPage = 0;
-    });
+    // 3. Resetear búsqueda
+    _searchController.clear();
 
-    // 5. Resetear scroll controllers
+    // 4. Resetear scroll controllers
     _pageController?.animateToPage(
       0,
       duration: const Duration(milliseconds: 300),
@@ -214,7 +68,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
       curve: Curves.easeInOut,
     );
 
-    // 6. Mostrar confirmación
+    // 5. Mostrar confirmación
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -228,197 +82,20 @@ class _NegociosScreenState extends State<NegociosScreen> {
     }
   }
 
-  // Agregar producto al carrito
-  void _agregarAlCarrito(Map<String, dynamic> producto) {
-    final productoConCantidad = Map<String, dynamic>.from(producto);
-    productoConCantidad['cantidad'] = 1;
 
-    context.read<CarritoProvider>().agregarProducto(productoConCantidad);
-
-    showSuccessAlert(context, '${producto['nombre']} agregado al carrito');
-  }
-
-  // Mostrar modal para agregar al carrito
-  Future<void> _mostrarModalAgregarCarrito(
-    Map<String, dynamic> producto,
-  ) async {
-    int cantidad = 1;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Imagen del producto
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Image.network(
-                      producto['img']?.toString() ??
-                          'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=200&q=80',
-                      width: 180,
-                      height: 180,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 180,
-                        height: 180,
-                        color: Colors.blue[50],
-                        child: const Icon(
-                          Icons.fastfood,
-                          color: Colors.blueGrey,
-                          size: 70,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Nombre del producto
-                  Text(
-                    producto['nombre']?.toString() ?? 'Sin nombre',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[900],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Descripción
-                  Text(
-                    producto['descripcion']?.toString() ??
-                        'Delicioso y recién hecho',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.blueGrey[700],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Precio
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '\$${producto['precio']?.toString() ?? '0'}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                        fontSize: 22,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Selector de cantidad
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove),
-                        onPressed: cantidad > 1
-                            ? () => setState(() => cantidad--)
-                            : null,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '$cantidad',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add),
-                        onPressed: () => setState(() => cantidad++),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Botón para agregar al carrito
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add_shopping_cart),
-                      label: const Text('Agregar al carrito'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () {
-                        final productoConCantidad = Map<String, dynamic>.from(
-                          producto,
-                        );
-                        productoConCantidad['cantidad'] = cantidad;
-
-                        context.read<CarritoProvider>().agregarProducto(
-                          productoConCantidad,
-                        );
-
-                        Navigator.pop(context);
-
-                        showSuccessAlert(
-                          context,
-                          '${producto['nombre']} x$cantidad agregado al carrito',
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
-    _currentPage = 0;
     _scrollController = ScrollController();
-    _cargarNegocios(); // Cargar datos al inicializar
-    _cargarCategorias(); // Cargar categorías al inicializar
+    
+    // Cargar datos desde el provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final negociosProvider = context.read<NegociosProvider>();
+      negociosProvider.cargarNegocios();
+      negociosProvider.cargarCategorias();
+    });
   }
 
   @override
@@ -432,8 +109,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('🟦 NegociosScreen build - showAppBar: ${widget.showAppBar}');
-    final carrito = context.watch<CarritoProvider>().carrito;
+    final negociosProvider = context.watch<NegociosProvider>();
     final showAppBar = widget.showAppBar ?? true; // Asegurar que sea bool
 
     return Container(
@@ -657,12 +333,12 @@ class _NegociosScreenState extends State<NegociosScreen> {
                         fontSize: 16,
                       ),
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      suffixIcon: _searchText.isNotEmpty
+                      suffixIcon: negociosProvider.searchText.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear, color: Colors.grey),
                               onPressed: () {
                                 _searchController.clear();
-                                setState(() => _searchText = '');
+                                negociosProvider.setSearchText('');
                                 _searchFocusNode
                                     .unfocus(); // Quitar foco al limpiar
                               },
@@ -675,14 +351,14 @@ class _NegociosScreenState extends State<NegociosScreen> {
                       ),
                     ),
                     onChanged: (value) {
-                      setState(() => _searchText = value);
+                      negociosProvider.setSearchText(value);
                     },
                   ),
                 ),
               ),
               // El resto del contenido (slider, lista, etc.)
               Expanded(
-                child: _isLoading
+                child: negociosProvider.isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(
@@ -690,7 +366,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                           ),
                         ),
                       )
-                    : _error != null
+                    : negociosProvider.error != null
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -711,13 +387,13 @@ class _NegociosScreenState extends State<NegociosScreen> {
                             ),
                             const SizedBox(height: 8),
                             ElevatedButton(
-                              onPressed: _cargarNegocios,
+                              onPressed: () => negociosProvider.cargarNegocios(),
                               child: const Text('Reintentar'),
                             ),
                           ],
                         ),
                       )
-                    : _todosLosNegocios.isEmpty
+                    : negociosProvider.todosLosNegocios.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -750,28 +426,9 @@ class _NegociosScreenState extends State<NegociosScreen> {
                             ), // Padding inferior para evitar que el navbar tape el contenido
                             child: Builder(
                               builder: (context) {
-                                // Filtrado por búsqueda (nombre, insensible a mayúsculas)
-                                final filtro = _searchText.trim().toLowerCase();
-                                final destacados =
-                                    getDestacados(_todosLosNegocios)
-                                        .where(
-                                          (n) =>
-                                              filtro.isEmpty ||
-                                              (n['nombre']?.toString() ?? '')
-                                                  .toLowerCase()
-                                                  .contains(filtro),
-                                        )
-                                        .toList();
-                                final restantes =
-                                    getRestantes(_todosLosNegocios)
-                                        .where(
-                                          (n) =>
-                                              filtro.isEmpty ||
-                                              (n['nombre']?.toString() ?? '')
-                                                  .toLowerCase()
-                                                  .contains(filtro),
-                                        )
-                                        .toList();
+                                // Obtener datos filtrados desde el provider
+                                final destacados = negociosProvider.getDestacadosFiltrados();
+                                final restantes = negociosProvider.getRestantesFiltrados();
 
                                 return Column(
                                   children: [
@@ -1001,7 +658,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                             ),
                                           ),
                                           // En la barra de categorías horizontal
-                                          _isLoadingCategorias
+                                          negociosProvider.isLoadingCategorias
                                               ? const SizedBox(
                                                   height: 70,
                                                   child: Center(
@@ -1019,16 +676,16 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                     scrollDirection:
                                                         Axis.horizontal,
                                                     itemCount:
-                                                        _categorias.length,
+                                                        negociosProvider.categorias.length,
                                                     separatorBuilder: (_, __) =>
                                                         const SizedBox(
                                                           width: 12,
                                                         ),
                                                     itemBuilder: (context, index) {
                                                       final cat =
-                                                          _categorias[index];
+                                                          negociosProvider.categorias[index];
                                                       final selected =
-                                                          _categoriaSeleccionada ==
+                                                          negociosProvider.categoriaSeleccionada ==
                                                           cat['nombre'];
                                                       return ChoiceChip(
                                                         label: Text(
@@ -1060,13 +717,12 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                             : 0,
                                                         pressElevation: 4,
                                                         onSelected: (_) {
-                                                          setState(() {
-                                                            _categoriaSeleccionada =
-                                                                selected
+                                                          negociosProvider.setCategoriaSeleccionada(
+                                                            selected
                                                                 ? null
                                                                 : cat['nombre']
-                                                                      as String;
-                                                          });
+                                                                      as String,
+                                                          );
                                                         },
                                                         padding:
                                                             const EdgeInsets.symmetric(

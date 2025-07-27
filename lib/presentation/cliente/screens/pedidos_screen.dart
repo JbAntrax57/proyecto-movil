@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../shared/utils/pedidos_helper.dart';
+import '../providers/pedidos_provider.dart';
 
 // pedidos_screen.dart - Pantalla de pedidos del cliente
 // Permite ver el historial de pedidos realizados y su estado.
@@ -16,53 +15,20 @@ class ClientePedidosScreen extends StatefulWidget {
 }
 
 class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
-  // Obtiene los pedidos del usuario desde Supabase
-  Future<List<Map<String, dynamic>>> obtenerPedidos(String userEmail) async {
-    return await PedidosHelper.obtenerPedidosConDetalles(
-      usuarioEmail: userEmail,
-    );
-  }
-
-  // Obtiene el color del estado del pedido
-  Color _getEstadoColor(String estado) {
-    switch (estado.toLowerCase()) {
-      case 'pendiente':
-        return Colors.orange;
-      case 'preparando':
-        return Colors.blue;
-      case 'en camino':
-        return Colors.purple;
-      case 'entregado':
-        return Colors.green;
-      case 'cancelado':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  // Obtiene el ícono del estado del pedido
-  IconData _getEstadoIcon(String estado) {
-    switch (estado.toLowerCase()) {
-      case 'pendiente':
-        return Icons.schedule;
-      case 'preparando':
-        return Icons.restaurant;
-      case 'en camino':
-        return Icons.delivery_dining;
-      case 'entregado':
-        return Icons.check_circle;
-      case 'cancelado':
-        return Icons.cancel;
-      default:
-        return Icons.info;
-    }
+  @override
+  void initState() {
+    super.initState();
+    // Inicializar el provider con el email del usuario
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userEmail = context.read<CarritoProvider>().userEmail;
+      if (userEmail != null) {
+        context.read<PedidosProvider>().setUserEmail(userEmail);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final userEmail = context.read<CarritoProvider>().userEmail;
-
     return Scaffold(
       backgroundColor: Colors.blue[50],
       appBar: AppBar(
@@ -70,17 +36,20 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
         title: const Text('Mis Pedidos'),
         centerTitle: true,
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: obtenerPedidos(userEmail!),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: Consumer<PedidosProvider>(
+        builder: (context, pedidosProvider, child) {
+          // Mostrar loading
+          if (pedidosProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+
+          // Mostrar error
+          if (pedidosProvider.error != null) {
+            return Center(child: Text('Error: ${pedidosProvider.error}'));
           }
-          final pedidos = snapshot.data ?? [];
-          if (pedidos.isEmpty) {
+
+          // Mostrar estado vacío
+          if (!pedidosProvider.tienePedidos) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -109,17 +78,17 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: pedidos.length,
-            itemBuilder: (context, index) {
-              final pedido = pedidos[index];
-              final productos = List<Map<String, dynamic>>.from(
-                pedido['productos'] ?? [],
-              );
-              final estado = pedido['estado'] as String;
-              final total = pedido['total'] as int;
-              final timestamp = DateTime.parse(pedido['timestamp'] as String);
+          return RefreshIndicator(
+            onRefresh: () => pedidosProvider.recargarPedidos(),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: pedidosProvider.pedidos.length,
+              itemBuilder: (context, index) {
+                final pedido = pedidosProvider.pedidos[index];
+                final productos = pedidosProvider.getProductosPedido(pedido);
+                final estado = pedido['estado'] as String;
+                final total = pedidosProvider.calcularTotalPedido(pedido);
+                final fechaFormateada = pedidosProvider.formatearFechaPedido(pedido);
 
               // Animación de aparición para cada pedido
               return TweenAnimationBuilder<double>(
@@ -140,8 +109,8 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                   ),
                   child: ExpansionTile(
                     leading: CircleAvatar(
-                      backgroundColor: _getEstadoColor(estado),
-                      child: Icon(_getEstadoIcon(estado), color: Colors.white),
+                      backgroundColor: pedidosProvider.getEstadoColor(estado),
+                      child: Icon(pedidosProvider.getEstadoIcon(estado), color: Colors.white),
                     ),
                     title: Text(
                       'Pedido #${pedido['id']}',
@@ -157,15 +126,15 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                         Row(
                           children: [
                             Icon(
-                              _getEstadoIcon(estado),
+                              pedidosProvider.getEstadoIcon(estado),
                               size: 16,
-                              color: _getEstadoColor(estado),
+                              color: pedidosProvider.getEstadoColor(estado),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               estado.toUpperCase(),
                               style: TextStyle(
-                                color: _getEstadoColor(estado),
+                                color: pedidosProvider.getEstadoColor(estado),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
@@ -174,7 +143,7 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${timestamp.day}/${timestamp.month}/${timestamp.year} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}',
+                          fechaFormateada,
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,
@@ -187,7 +156,7 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '\$$total',
+                          '\$${total.toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.blue,
@@ -273,7 +242,7 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                         ),
                       ),
                       // Barra de progreso del estado (opcional)
-                      if (estado != 'entregado' && estado != 'cancelado')
+                      if (pedidosProvider.isPedidoActivo(estado))
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Column(
@@ -284,18 +253,18 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                                 children: [
                                   Expanded(
                                     child: LinearProgressIndicator(
-                                      value: _getEstadoProgress(estado),
+                                      value: pedidosProvider.getEstadoProgress(estado),
                                       backgroundColor: Colors.grey[300],
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                        _getEstadoColor(estado),
+                                        pedidosProvider.getEstadoColor(estado),
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    '${(_getEstadoProgress(estado) * 100).round()}%',
+                                    '${(pedidosProvider.getEstadoProgress(estado) * 100).round()}%',
                                     style: TextStyle(
-                                      color: _getEstadoColor(estado),
+                                      color: pedidosProvider.getEstadoColor(estado),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -310,28 +279,11 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                 ),
               );
             },
-          );
+          ),
+        );
         },
       ),
     );
-  }
-
-  // Calcula el progreso del pedido basado en el estado
-  double _getEstadoProgress(String estado) {
-    switch (estado.toLowerCase()) {
-      case 'pendiente':
-        return 0.25;
-      case 'preparando':
-        return 0.5;
-      case 'en camino':
-        return 0.75;
-      case 'entregado':
-        return 1.0;
-      case 'cancelado':
-        return 0.0;
-      default:
-        return 0.0;
-    }
   }
 }
 // Fin de pedidos_screen.dart (cliente)

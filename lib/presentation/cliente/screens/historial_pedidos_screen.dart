@@ -24,6 +24,30 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
   String? _error;
   bool _mostrarLeyenda = false;
 
+  // Helper para formatear precios como doubles
+  String _formatearPrecio(dynamic precio) {
+    if (precio == null) return '0.00';
+    if (precio is int) return precio.toDouble().toStringAsFixed(2);
+    if (precio is double) return precio.toStringAsFixed(2);
+    if (precio is String) {
+      final doubleValue = double.tryParse(precio);
+      return doubleValue?.toStringAsFixed(2) ?? '0.00';
+    }
+    return '0.00';
+  }
+
+  // Helper para calcular el precio total
+  double _calcularPrecioTotal(dynamic precio, int cantidad) {
+    if (precio == null) return 0.0;
+    if (precio is int) return (precio * cantidad).toDouble();
+    if (precio is double) return precio * cantidad;
+    if (precio is String) {
+      final doubleValue = double.tryParse(precio);
+      return (doubleValue ?? 0.0) * cantidad;
+    }
+    return 0.0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -375,13 +399,13 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                                     final total = productos.fold<double>(
                                       0,
                                       (sum, producto) {
-                                        final precio = double.tryParse(
-                                          producto['precio']?.toString() ?? '0',
-                                        ) ?? 0;
-                                        final cantidad = int.tryParse(
-                                          producto['cantidad']?.toString() ?? '1',
-                                        ) ?? 1;
-                                        return sum + (precio * cantidad);
+                                        final precio = _calcularPrecioTotal(
+                                          producto['precio'],
+                                          int.tryParse(
+                                            producto['cantidad']?.toString() ?? '1',
+                                          ) ?? 1,
+                                        );
+                                        return sum + precio;
                                       },
                                     );
 
@@ -584,13 +608,13 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
         final total = productos.fold<double>(
           0,
           (sum, producto) {
-            final precio = double.tryParse(
-              producto['precio']?.toString() ?? '0',
-            ) ?? 0;
-            final cantidad = int.tryParse(
-              producto['cantidad']?.toString() ?? '1',
-            ) ?? 1;
-            return sum + (precio * cantidad);
+            final precio = _calcularPrecioTotal(
+              producto['precio'],
+              int.tryParse(
+                producto['cantidad']?.toString() ?? '1',
+              ) ?? 1,
+            );
+            return sum + precio;
           },
         );
 
@@ -705,7 +729,7 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        '\$${double.tryParse(producto['precio']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}',
+                        '\$${_formatearPrecio(producto['precio'])}',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,

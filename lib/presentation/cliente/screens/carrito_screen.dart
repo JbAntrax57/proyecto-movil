@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
+import '../providers/carrito_screen_provider.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import 'dart:async';
-import '../../../data/services/detalles_pedidos_service.dart';
 import '../../../shared/widgets/custom_alert.dart';
-import '../../../services/puntos_service.dart';
 
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
@@ -44,33 +42,11 @@ class _CarritoScreenState extends State<CarritoScreen> {
     });
   }
 
-  // Obtiene la mejor ubicación posible escuchando varias posiciones durante unos segundos
-  Future<Position?> obtenerMejorUbicacion({int segundos = 5}) async {
-    Position? mejorPosicion;
-    double mejorPrecision = double.infinity;
-    final completer = Completer<Position?>();
-    final subscription =
-        Geolocator.getPositionStream(
-          locationSettings: LocationSettings(
-            accuracy: LocationAccuracy.bestForNavigation,
-            distanceFilter: 0,
-          ),
-        ).listen((Position position) {
-          if (position.accuracy < mejorPrecision) {
-            mejorPrecision = position.accuracy;
-            mejorPosicion = position;
-          }
-        });
-    // Espera unos segundos y luego cancela el stream
-    await Future.delayed(Duration(seconds: segundos));
-    await subscription.cancel();
-    completer.complete(mejorPosicion);
-    return completer.future;
-  }
-
   @override
   Widget build(BuildContext context) {
     final carrito = context.watch<CarritoProvider>().carrito;
+    final carritoProvider = context.watch<CarritoScreenProvider>();
+    
     print('Carrito en screen: $carrito'); // Debug
     print('Longitud del carrito: ${carrito.length}'); // Debug
 
@@ -111,35 +87,12 @@ class _CarritoScreenState extends State<CarritoScreen> {
       }
     }
 
-    // Verificar si todos los productos tienen negocio_id
-    final productosSinNegocio = carrito
-        .where((item) => item['negocio_id'] == null)
-        .toList();
-    final tieneProductosSinNegocio = productosSinNegocio.isNotEmpty;
+    // Verificar si todos los productos tienen negocio_id usando el provider
+    final tieneProductosSinNegocio = carritoProvider.tieneProductosSinNegocio(carrito);
+    final productosSinNegocio = carritoProvider.getProductosSinNegocio(carrito);
 
-    final total = carrito.fold(0, (int sum, item) {
-      // Helper para convertir precio de forma segura
-      int parsePrecio(dynamic precio) {
-        if (precio is int) return precio;
-        if (precio is String) return int.tryParse(precio) ?? 0;
-        if (precio is double) return precio.toInt();
-        return 0;
-      }
-
-      // Helper para convertir cantidad de forma segura
-      int parseCantidad(dynamic cantidad) {
-        if (cantidad is int) return cantidad;
-        if (cantidad is String) return int.tryParse(cantidad) ?? 1;
-        if (cantidad is double) return cantidad.toInt();
-        return 1;
-      }
-
-      final precio = parsePrecio(item['precio']);
-      final cantidad = parseCantidad(item['cantidad']);
-      return sum + (precio * cantidad);
-    });
-    String? ubicacion; // Ubicación seleccionada para el pedido
-    bool pedidoRealizado = false; // Indica si el pedido fue realizado
+    // Calcular total usando el provider
+    final total = carritoProvider.calcularTotal(carrito);
 
     // Lógica para eliminar un producto del carrito con confirmación
     void _eliminarProducto(int index) async {
@@ -217,7 +170,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
       );
     }
 
-    // Lógica para realizar el pedido usando Supabase
+    // Lógica para realizar el pedido usando el provider
     void _realizarPedido() async {
       if (carrito.isEmpty) {
         _mostrarAlertaPersonalizada(
@@ -254,173 +207,39 @@ class _CarritoScreenState extends State<CarritoScreen> {
           return;
         }
 
-        // Agrupar productos por negocio_id
-        final Map<String, List<Map<String, dynamic>>> productosPorNegocio = {};
-        for (var item in carrito) {
-          final negocioId = item['negocio_id'];
-          if (negocioId == null) continue;
-          productosPorNegocio.putIfAbsent(negocioId, () => []).add(item);
-        }
-
-        // Mostrar puntos totales de los dueños de los negocios involucrados
-        print('🏪 === PUNTOS TOTALES DE LOS DUEÑOS DE NEGOCIOS INVOLUCRADOS ===');
-        final Set<String> duenosProcesados = {};
-        
-        for (final entry in productosPorNegocio.entries) {
-          final negocioId = entry.key;
-          final productos = entry.value;
-          
-          try {
-            // Obtener información del negocio
-            final negocioData = await Supabase.instance.client
-                .from('negocios')
-                .select('nombre')
-                .eq('id', negocioId)
-                .single();
-            
-            final nombreNegocio = negocioData['nombre'] ?? 'Negocio sin nombre';
-            
-                                    // Obtener el dueño del negocio desde la tabla usuarios
-                        final duenoData = await Supabase.instance.client
-                            .from('usuarios')
-                            .select('id')
-                            .eq('restaurante_id', negocioId)
-                            .eq('rol', 'duenio')
-                            .limit(1)
-                            .maybeSingle();
-            
-            final duenoId = duenoData?['id'];
-            
-            if (duenoId != null && !duenosProcesados.contains(duenoId)) {
-              duenosProcesados.add(duenoId);
-              
-              // Obtener puntos del dueño
-              final puntosData = await PuntosService.obtenerPuntosDueno(duenoId);
-              
-              if (puntosData != null) {
-                final puntosDisponibles = puntosData['puntos_disponibles'] ?? 0;
-                final totalAsignado = puntosData['total_asignado'] ?? 0;
-                final puntosConsumidos = totalAsignado - puntosDisponibles;
-                
-                print('📊 NEGOCIO: $nombreNegocio');
-                print('👤 DUEÑO ID: $duenoId');
-                print('💰 PUNTOS DISPONIBLES: $puntosDisponibles');
-                print('📈 TOTAL ASIGNADO: $totalAsignado');
-                print('📉 PUNTOS CONSUMIDOS: $puntosConsumidos');
-                print('📦 PRODUCTOS EN PEDIDO: ${productos.length}');
-                print('---');
-              } else {
-                print('❌ NEGOCIO: $nombreNegocio');
-                print('❌ DUEÑO ID: $duenoId');
-                print('❌ NO SE PUDIERON OBTENER LOS PUNTOS');
-                print('---');
-              }
-            }
-          } catch (e) {
-            print('❌ Error obteniendo información del negocio $negocioId: $e');
-          }
-        }
-        
-        print('🏪 === FIN DE PUNTOS TOTALES ===');
-
-        // Crear un pedido por cada negocio
-        for (final entry in productosPorNegocio.entries) {
-          final negocioId = entry.key;
-          final productos = entry.value;
-          final total = productos.fold(0, (int sum, item) {
-            int parsePrecio(dynamic precio) {
-              if (precio is int) return precio;
-              if (precio is String) return int.tryParse(precio) ?? 0;
-              if (precio is double) return precio.toInt();
-              return 0;
-            }
-
-            int parseCantidad(dynamic cantidad) {
-              if (cantidad is int) return cantidad;
-              if (cantidad is String) return int.tryParse(cantidad) ?? 1;
-              if (cantidad is double) return cantidad.toInt();
-              return 1;
-            }
-
-            final precio = parsePrecio(item['precio']);
-            final cantidad = parseCantidad(item['cantidad']);
-            return sum + (precio * cantidad);
-          });
-
-          // Crear el pedido sin el campo productos
-          final pedidoResult = await Supabase.instance.client.from('pedidos').insert({
-            'usuario_email': userEmail,
-            'restaurante_id': negocioId,
-            'total': total,
-            'estado': 'pendiente',
-            'direccion_entrega': ubicacionData['ubicacion'],
-            'referencias': ubicacionData['referencias'],
-            'created_at': DateTime.now().toIso8601String(),
-          }).select().single();
-
-          // Crear los detalles del pedido usando la nueva tabla
-          final detallesService = DetallesPedidosService();
-          await detallesService.crearDetallesPedido(
-            pedidoId: pedidoResult['id'],
-            productos: productos,
-          );
-
-          // Obtener el dueño del negocio para descuentar puntos
-          try {
-            final duenoData = await Supabase.instance.client
-                .from('usuarios')
-                .select('id')
-                .eq('restaurante_id', negocioId)
-                .eq('rol', 'duenio')
-                .limit(1)
-                .maybeSingle();
-            
-            final duenoId = duenoData?['id'];
-            if (duenoId != null) {
-              // Obtener los puntos por pedido del sistema de puntos
-              final puntosData = await Supabase.instance.client
-                  .from('sistema_puntos')
-                  .select('puntos_por_pedido')
-                  .eq('dueno_id', duenoId)
-                  .single();
-              
-              final puntosPorPedido = puntosData['puntos_por_pedido'] ?? 2;
-              
-              // Descontar puntos del dueño
-              final puntosDescontados = await PuntosService.consumirPuntosEnPedido(
-                duenoId,
-                puntosConsumir: puntosPorPedido,
-              );
-              
-              if (!puntosDescontados) {
-                print('⚠️ No se pudieron descontar puntos del dueño $duenoId');
-              } else {
-                print('✅ Puntos descontados exitosamente: $puntosPorPedido puntos');
-              }
-            }
-          } catch (e) {
-            print('⚠️ Error al procesar puntos del dueño: $e');
-            // Continuar con el pedido aunque falle el descuento de puntos
-          }
-        }
+        // Realizar pedido usando el provider
+        final pedidoExitoso = await carritoProvider.realizarPedido(
+          carrito: carrito,
+          userEmail: userEmail,
+          ubicacion: ubicacionData['ubicacion']!,
+          referencias: ubicacionData['referencias']!,
+        );
 
         // Cerrar loading
         Navigator.pop(context);
 
-        // Limpiar el carrito
-        context.read<CarritoProvider>().limpiarCarrito();
+        if (pedidoExitoso) {
+          // Limpiar el carrito
+          context.read<CarritoProvider>().limpiarCarrito();
 
-        // Mostrar éxito
-        showSuccessAlert(
-          context,
-          '¡Pedidos realizados con éxito! 🎉\nTu pedido está siendo procesado.',
-        );
+          // Mostrar éxito
+          showSuccessAlert(
+            context,
+            '¡Pedidos realizados con éxito! 🎉\nTu pedido está siendo procesado.',
+          );
 
-        // Esperar 2 segundos para que el usuario vea el mensaje de éxito
-        await Future.delayed(const Duration(seconds: 2));
+          // Esperar 2 segundos para que el usuario vea el mensaje de éxito
+          await Future.delayed(const Duration(seconds: 2));
 
-        // Regresar a la pantalla anterior
-        Navigator.pop(context);
+          // Regresar a la pantalla anterior
+          Navigator.pop(context);
+        } else {
+          _mostrarAlertaPersonalizada(
+            carritoProvider.error ?? 'Error al realizar el pedido',
+            Colors.red,
+            Icons.error,
+          );
+        }
       } catch (e) {
         // Cerrar loading
         Navigator.pop(context);
@@ -708,12 +527,12 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                   final item = carrito[index];
 
                                   // Helper functions
-                                  int parsePrecio(dynamic precio) {
-                                    if (precio is int) return precio;
+                                  double parsePrecio(dynamic precio) {
+                                    if (precio is int) return precio.toDouble();
                                     if (precio is String)
-                                      return int.tryParse(precio) ?? 0;
-                                    if (precio is double) return precio.toInt();
-                                    return 0;
+                                      return double.tryParse(precio) ?? 0.0;
+                                    if (precio is double) return precio;
+                                    return 0.0;
                                   }
 
                                   int parseCantidad(dynamic cantidad) {

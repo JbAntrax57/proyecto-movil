@@ -34,6 +34,30 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   int _ultimoTotalPedidosDisponibles = 0;
 
+  // Helper para formatear precios como doubles
+  String _formatearPrecio(dynamic precio) {
+    if (precio == null) return '0.00';
+    if (precio is int) return precio.toDouble().toStringAsFixed(2);
+    if (precio is double) return precio.toStringAsFixed(2);
+    if (precio is String) {
+      final doubleValue = double.tryParse(precio);
+      return doubleValue?.toStringAsFixed(2) ?? '0.00';
+    }
+    return '0.00';
+  }
+
+  // Helper para calcular el precio total
+  double _calcularPrecioTotal(dynamic precio, int cantidad) {
+    if (precio == null) return 0.0;
+    if (precio is int) return (precio * cantidad).toDouble();
+    if (precio is double) return precio * cantidad;
+    if (precio is String) {
+      final doubleValue = double.tryParse(precio);
+      return (doubleValue ?? 0.0) * cantidad;
+    }
+    return 0.0;
+  }
+
   @override
   void initState() {
     super.initState();

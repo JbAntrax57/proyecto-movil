@@ -21,6 +21,30 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
   String? _filtroEstado; // Estado seleccionado para filtrar
   StreamSubscription? _pedidosSubscription;
 
+  // Helper para formatear precios como doubles
+  String _formatearPrecio(dynamic precio) {
+    if (precio == null) return '0.00';
+    if (precio is int) return precio.toDouble().toStringAsFixed(2);
+    if (precio is double) return precio.toStringAsFixed(2);
+    if (precio is String) {
+      final doubleValue = double.tryParse(precio);
+      return doubleValue?.toStringAsFixed(2) ?? '0.00';
+    }
+    return '0.00';
+  }
+
+  // Helper para calcular el precio total
+  double _calcularPrecioTotal(dynamic precio, int cantidad) {
+    if (precio == null) return 0.0;
+    if (precio is int) return (precio * cantidad).toDouble();
+    if (precio is double) return precio * cantidad;
+    if (precio is String) {
+      final doubleValue = double.tryParse(precio);
+      return (doubleValue ?? 0.0) * cantidad;
+    }
+    return 0.0;
+  }
+
   // Lista de estados para los badges
   final List<Map<String, dynamic>> _estados = [
     {'label': 'Pendiente', 'color': Colors.orange},
@@ -357,17 +381,13 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                             sum,
                             producto,
                           ) {
-                            final precio =
-                                double.tryParse(
-                                  producto['precio']?.toString() ?? '0',
-                                ) ??
-                                0;
-                            final cantidad =
-                                int.tryParse(
-                                  producto['cantidad']?.toString() ?? '1',
-                                ) ??
-                                1;
-                            return sum + (precio * cantidad);
+                            final precio = _calcularPrecioTotal(
+                              producto['precio'],
+                              int.tryParse(
+                                producto['cantidad']?.toString() ?? '1',
+                              ) ?? 1,
+                            );
+                            return sum + precio;
                           });
 
                           return Card(
@@ -855,7 +875,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '\$${double.tryParse(producto['precio']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}',
+                          '\$${_formatearPrecio(producto['precio'])}',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,

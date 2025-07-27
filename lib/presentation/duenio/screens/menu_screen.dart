@@ -23,6 +23,30 @@ class _DuenioMenuScreenState extends State<DuenioMenuScreen> {
   String _searchText = '';
   final FocusNode _searchFocusNode =
       FocusNode(); // FocusNode para controlar el foco
+
+  // Helper para formatear precios como doubles
+  String _formatearPrecio(dynamic precio) {
+    if (precio == null) return '0.00';
+    if (precio is int) return precio.toDouble().toStringAsFixed(2);
+    if (precio is double) return precio.toStringAsFixed(2);
+    if (precio is String) {
+      final doubleValue = double.tryParse(precio);
+      return doubleValue?.toStringAsFixed(2) ?? '0.00';
+    }
+    return '0.00';
+  }
+
+  // Helper para calcular el precio total
+  double _calcularPrecioTotal(dynamic precio, int cantidad) {
+    if (precio == null) return 0.0;
+    if (precio is int) return (precio * cantidad).toDouble();
+    if (precio is double) return precio * cantidad;
+    if (precio is String) {
+      final doubleValue = double.tryParse(precio);
+      return (doubleValue ?? 0.0) * cantidad;
+    }
+    return 0.0;
+  }
   // Función para mostrar el formulario de agregar/editar producto
   // Ahora devuelve un Future<bool?> para saber si se agregó/editó un producto
   Future<bool?> _mostrarFormularioProducto(
@@ -503,16 +527,16 @@ class _DuenioMenuScreenState extends State<DuenioMenuScreen> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 10),
-                                      Center(
-                                        child: Text(
-                                          '\$${producto['precio']?.toStringAsFixed != null ? double.tryParse(producto['precio'].toString())?.toStringAsFixed(2) ?? producto['precio'].toString() : producto['precio'].toString()}',
-                                          style: const TextStyle(
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.green,
+                                                                              Center(
+                                          child: Text(
+                                            '\$${_formatearPrecio(producto['precio'])}',
+                                            style: const TextStyle(
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.green,
+                                            ),
                                           ),
                                         ),
-                                      ),
                                     ],
                                   ),
                                 ),

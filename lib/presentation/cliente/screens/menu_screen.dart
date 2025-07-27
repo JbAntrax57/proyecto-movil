@@ -7,7 +7,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../providers/menu_provider.dart';
+
 import 'carrito_screen.dart';
 import '../../../shared/widgets/custom_alert.dart';
 
@@ -26,10 +27,18 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  String _searchText = '';
-  Timer? _timer;
-
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Cargar productos desde el provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final menuProvider = context.read<MenuProvider>();
+      menuProvider.cargarProductos(widget.restauranteId);
+    });
+  }
 
   @override
   void dispose() {
@@ -37,19 +46,7 @@ class _MenuScreenState extends State<MenuScreen> {
     super.dispose();
   }
 
-  // Obtiene el menú del restaurante desde Supabase
-  Future<List<Map<String, dynamic>>> obtenerMenu(String restauranteId) async {
-    try {
-      final data = await Supabase.instance.client
-          .from('productos')
-          .select()
-          .eq('restaurante_id', widget.restauranteId);
-      return List<Map<String, dynamic>>.from(data);
-    } catch (e) {
-      print('❌ Error al obtener menú: $e');
-      return [];
-    }
-  }
+
 
   // Mostrar modal para agregar al carrito
   Future<void> _mostrarModalAgregarCarrito(
@@ -137,7 +134,7 @@ class _MenuScreenState extends State<MenuScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '\$${producto['precio']?.toString() ?? '0'}',
+                            '\$${context.read<MenuProvider>().formatearPrecio(producto['precio'])}',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blue,
@@ -188,7 +185,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
-                                        '\$${(producto['precio'] * cantidad)?.toString() ?? '0'}',
+                                        '\$${context.read<MenuProvider>().formatearPrecio(context.read<MenuProvider>().calcularPrecioTotal(producto['precio'], cantidad))}',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: Colors.blue,
@@ -289,21 +286,12 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  // Determina si el producto es nuevo (menos de 1 mes desde created_at)
-  bool _esNuevo(dynamic createdAt) {
-    if (createdAt == null) return false;
-    try {
-      final fecha = DateTime.tryParse(createdAt.toString());
-      if (fecha == null) return false;
-      final ahora = DateTime.now();
-      return ahora.difference(fecha).inDays < 30;
-    } catch (_) {
-      return false;
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
+    final menuProvider = context.watch<MenuProvider>();
+    
     return Container(
       color: Colors
           .blue[50], // Fondo uniforme para toda la pantalla, incluyendo el área segura superior
@@ -408,12 +396,12 @@ class _MenuScreenState extends State<MenuScreen> {
                   decoration: InputDecoration(
                     hintText: 'Buscar productos...',
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    suffixIcon: _searchText.isNotEmpty
+                    suffixIcon: menuProvider.searchText.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear, color: Colors.grey),
                             onPressed: () {
                               _searchController.clear();
-                              setState(() => _searchText = '');
+                              menuProvider.limpiarBusqueda();
                             },
                           )
                         : null,
@@ -424,17 +412,16 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   ),
                   onChanged: (value) {
-                    setState(() => _searchText = value);
+                    menuProvider.setSearchText(value);
                   },
                 ),
               ),
 
               // Lista de productos
               Expanded(
-                child: FutureBuilder<List<Map<String, dynamic>>>(
-                  future: obtenerMenu(widget.restauranteId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+                child: Consumer<MenuProvider>(
+                  builder: (context, menuProvider, child) {
+                    if (menuProvider.isLoading) {
                       return const Center(
                         child: CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(
@@ -444,7 +431,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       );
                     }
 
-                    if (snapshot.hasError) {
+                    if (menuProvider.error != null) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -463,12 +450,17 @@ class _MenuScreenState extends State<MenuScreen> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: () => menuProvider.refrescarProductos(),
+                              child: const Text('Reintentar'),
+                            ),
                           ],
                         ),
                       );
                     }
 
-                    final productos = snapshot.data ?? [];
+                    final productos = menuProvider.productos;
                     if (productos.isEmpty) {
                       return Center(
                         child: Column(
@@ -493,17 +485,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       );
                     }
 
-                    // Filtrado por búsqueda
-                    final productosFiltrados = productos.where((producto) {
-                      final nombre = (producto['nombre']?.toString() ?? '')
-                          .toLowerCase();
-                      final descripcion =
-                          (producto['descripcion']?.toString() ?? '')
-                              .toLowerCase();
-                      final busqueda = _searchText.toLowerCase();
-                      return nombre.contains(busqueda) ||
-                          descripcion.contains(busqueda);
-                    }).toList();
+                    // Obtener productos filtrados desde el provider
+                    final productosFiltrados = menuProvider.getProductosFiltrados();
 
                     if (productosFiltrados.isEmpty) {
                       return Center(
@@ -584,7 +567,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                                     ),
                                           ),
                                         ),
-                                        if (_esNuevo(producto['created_at']))
+                                        if (menuProvider.esNuevo(producto['created_at']))
                                           Positioned(
                                             top: 8,
                                             left: 8,
@@ -677,7 +660,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                                       BorderRadius.circular(20),
                                                 ),
                                                 child: Text(
-                                                  '\$${producto['precio']?.toString() ?? '0'}',
+                                                  '\$${menuProvider.formatearPrecio(producto['precio'])}',
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     color: Colors.blue,

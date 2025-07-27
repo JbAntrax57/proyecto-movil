@@ -37,11 +37,11 @@ class CarritoProvider extends ChangeNotifier {
   }
 
   // Helper para convertir precio de forma segura
-  int _parsePrecio(dynamic precio) {
-    if (precio is int) return precio;
-    if (precio is String) return int.tryParse(precio) ?? 0;
-    if (precio is double) return precio.toInt();
-    return 0; // Valor por defecto
+  double _parsePrecio(dynamic precio) {
+    if (precio is int) return precio.toDouble();
+    if (precio is String) return double.tryParse(precio) ?? 0.0;
+    if (precio is double) return precio;
+    return 0.0; // Valor por defecto
   }
 
   void setUserEmail(String email) {

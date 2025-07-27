@@ -12,6 +12,10 @@ import 'presentation/duenio/screens/dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
 import 'package:provider/provider.dart';
 import 'presentation/cliente/providers/carrito_provider.dart';
+import 'presentation/cliente/providers/negocios_provider.dart';
+import 'presentation/cliente/providers/menu_provider.dart';
+import 'presentation/cliente/providers/carrito_screen_provider.dart';
+import 'presentation/cliente/providers/pedidos_provider.dart';
 import 'core/router.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io';
@@ -59,11 +63,15 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
   final userRol = prefs.getString('userRol');
-  runApp(
+      runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CarritoProvider()),
         ChangeNotifierProvider(create: (_) => NotificacionesPedidosProvider()),
+        ChangeNotifierProvider(create: (_) => NegociosProvider()),
+        ChangeNotifierProvider(create: (_) => MenuProvider()),
+        ChangeNotifierProvider(create: (_) => CarritoScreenProvider()),
+        ChangeNotifierProvider(create: (_) => PedidosProvider()),
       ],
       child: MyApp(isLoggedIn: isLoggedIn, userRol: userRol),
     ),
