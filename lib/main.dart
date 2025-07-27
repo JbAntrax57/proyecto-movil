@@ -21,6 +21,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'presentation/duenio/providers/notificaciones_pedidos_provider.dart';
+import 'presentation/duenio/providers/dashboard_provider.dart';
+import 'presentation/duenio/providers/pedidos_duenio_provider.dart';
+import 'presentation/duenio/providers/menu_duenio_provider.dart';
+import 'presentation/duenio/providers/repartidores_provider.dart';
 import 'core/env.dart'; // Importa las variables de entorno
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importa flutter_dotenv
 import 'core/theme.dart';
@@ -68,6 +72,10 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => CarritoProvider()),
         ChangeNotifierProvider(create: (_) => NotificacionesPedidosProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => PedidosDuenioProvider()),
+        ChangeNotifierProvider(create: (_) => MenuDuenioProvider()),
+        ChangeNotifierProvider(create: (_) => RepartidoresProvider()),
         ChangeNotifierProvider(create: (_) => NegociosProvider()),
         ChangeNotifierProvider(create: (_) => MenuProvider()),
         ChangeNotifierProvider(create: (_) => CarritoScreenProvider()),
