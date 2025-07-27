@@ -26,6 +26,10 @@ import 'presentation/duenio/providers/pedidos_duenio_provider.dart';
 import 'presentation/duenio/providers/menu_duenio_provider.dart';
 import 'presentation/duenio/providers/repartidores_provider.dart';
 import 'presentation/repartidor/providers/pedidos_repartidor_provider.dart';
+import 'presentation/admin/providers/admin_usuarios_provider.dart';
+import 'presentation/admin/providers/admin_negocios_provider.dart';
+import 'presentation/admin/providers/admin_reportes_provider.dart';
+import 'presentation/admin/providers/admin_configuracion_provider.dart';
 import 'core/env.dart'; // Importa las variables de entorno
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importa flutter_dotenv
 import 'core/theme.dart';
@@ -82,6 +86,10 @@ void main() async {
         ChangeNotifierProvider(create: (_) => MenuProvider()),
         ChangeNotifierProvider(create: (_) => CarritoScreenProvider()),
         ChangeNotifierProvider(create: (_) => PedidosProvider()),
+        ChangeNotifierProvider(create: (_) => AdminUsuariosProvider()),
+        ChangeNotifierProvider(create: (_) => AdminNegociosProvider()),
+        ChangeNotifierProvider(create: (_) => AdminReportesProvider()),
+        ChangeNotifierProvider(create: (_) => AdminConfiguracionProvider()),
       ],
       child: MyApp(isLoggedIn: isLoggedIn, userRol: userRol),
     ),
