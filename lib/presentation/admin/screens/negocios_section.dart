@@ -264,9 +264,9 @@ class _AdminNegociosSectionState extends State<AdminNegociosSection> {
                         case 'delete':
                           negociosProvider.confirmarEliminarNegocio(context, negocio);
                           break;
-                        case 'toggle_destacado':
-                          negociosProvider.toggleDestacado(negocio);
-                          break;
+                                                 case 'toggle_destacado':
+                           negociosProvider.toggleDestacado(context, negocio);
+                           break;
                       }
                     },
                     itemBuilder: (context) => [

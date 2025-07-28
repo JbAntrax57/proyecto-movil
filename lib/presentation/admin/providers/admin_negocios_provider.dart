@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// GlobalKey para acceder al contexto desde el provider
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
 class AdminNegociosProvider extends ChangeNotifier {
   // Estado
   List<Map<String, dynamic>> _negocios = [];
@@ -232,7 +229,7 @@ class AdminNegociosProvider extends ChangeNotifier {
   }
 
   // Toggle destacado
-  Future<void> toggleDestacado(Map<String, dynamic> negocio) async {
+  Future<void> toggleDestacado(BuildContext context, Map<String, dynamic> negocio) async {
     try {
       final nuevoEstado = !(negocio['destacado'] == true);
       
@@ -249,31 +246,35 @@ class AdminNegociosProvider extends ChangeNotifier {
       }
       
       // Mostrar mensaje de confirmación
-      if (nuevoEstado) {
-        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+      if (context.mounted) {
+        if (nuevoEstado) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${negocio['nombre']} marcado como destacado'),
+              backgroundColor: Colors.amber.shade700,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${negocio['nombre']} removido de destacados'),
+              backgroundColor: Colors.grey.shade600,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${negocio['nombre']} marcado como destacado'),
-            backgroundColor: Colors.amber.shade700,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-          SnackBar(
-            content: Text('${negocio['nombre']} removido de destacados'),
-            backgroundColor: Colors.grey.shade600,
-            duration: const Duration(seconds: 2),
+            content: Text('Error al cambiar estado destacado: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        SnackBar(
-          content: Text('Error al cambiar estado destacado: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
     }
   }
 }
