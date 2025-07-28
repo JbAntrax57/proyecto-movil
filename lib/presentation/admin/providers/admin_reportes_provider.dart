@@ -437,6 +437,7 @@ class AdminReportesProvider extends ChangeNotifier {
 
   // Obtener color para categoría
   Color obtenerColorParaCategoria(String categoria) {
+    // Colores predefinidos para categorías comunes
     switch (categoria.toLowerCase()) {
       case 'pizza':
         return Colors.red;
@@ -448,9 +449,79 @@ class AdminReportesProvider extends ChangeNotifier {
         return Colors.yellow;
       case 'ensaladas':
         return Colors.blue;
+      case 'bebidas':
+        return Colors.cyan;
+      case 'postres':
+        return Colors.pink;
+      case 'sopas':
+        return Colors.brown;
+      case 'mariscos':
+        return Colors.teal;
+      case 'carnes':
+        return Colors.deepOrange;
+      case 'vegetariano':
+        return Colors.lightGreen;
+      case 'vegano':
+        return Colors.lime;
+      case 'italiano':
+        return Colors.indigo;
+      case 'mexicano':
+        return Colors.deepPurple;
+      case 'chino':
+        return Colors.red.shade700;
+      case 'japonés':
+        return Colors.red.shade900;
+      case 'tailandés':
+        return Colors.orange.shade700;
+      case 'indio':
+        return Colors.orange.shade900;
+      case 'mediterráneo':
+        return Colors.blue.shade700;
+      case 'americano':
+        return Colors.blue.shade900;
       default:
-        return Colors.grey;
+        // Generar color único basado en el hash del nombre de la categoría
+        return _generarColorUnico(categoria);
     }
+  }
+
+  // Generar color único para cualquier categoría
+  Color _generarColorUnico(String categoria) {
+    // Lista de colores vibrantes
+    final List<Color> colores = [
+      Colors.red,
+      Colors.orange,
+      Colors.yellow,
+      Colors.green,
+      Colors.blue,
+      Colors.indigo,
+      Colors.purple,
+      Colors.pink,
+      Colors.teal,
+      Colors.cyan,
+      Colors.lime,
+      Colors.amber,
+      Colors.deepOrange,
+      Colors.deepPurple,
+      Colors.lightBlue,
+      Colors.lightGreen,
+      Colors.orange.shade700,
+      Colors.red.shade700,
+      Colors.green.shade700,
+      Colors.blue.shade700,
+      Colors.purple.shade700,
+      Colors.pink.shade700,
+      Colors.teal.shade700,
+      Colors.cyan.shade700,
+    ];
+
+    // Generar hash del nombre de la categoría
+    int hash = categoria.hashCode;
+    
+    // Usar el hash para seleccionar un color de la lista
+    int index = hash.abs() % colores.length;
+    
+    return colores[index];
   }
 
   // Setters

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 
 class AdminUsuariosProvider extends ChangeNotifier {
   // Estado
@@ -11,6 +13,13 @@ class AdminUsuariosProvider extends ChangeNotifier {
   String? _error;
   String _busqueda = '';
   String _filtroRol = 'Todos';
+
+  // Función para encriptar la contraseña con SHA-256
+  String hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
 
   // Getters
   List<Map<String, dynamic>> get usuarios => _usuarios;
@@ -339,6 +348,55 @@ class AdminUsuariosProvider extends ChangeNotifier {
                 ),
                 TextButton(
                   onPressed: () async {
+                    // Validar campos requeridos
+                    if (nombreController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('El nombre es requerido')),
+                      );
+                      return;
+                    }
+                    
+                    if (emailController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('El email es requerido')),
+                      );
+                      return;
+                    }
+                    
+                    if (passwordController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('La contraseña es requerida')),
+                      );
+                      return;
+                    }
+                    
+                    if (passwordController.text.length < 6) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('La contraseña debe tener al menos 6 caracteres')),
+                      );
+                      return;
+                    }
+                    
+                    // Validar formato de email
+                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    if (!emailRegex.hasMatch(emailController.text.trim())) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('El formato del email no es válido')),
+                      );
+                      return;
+                    }
+                    
+                    // Verificar que el email no esté duplicado
+                    final emailExistente = _usuarios.any((usuario) => 
+                      usuario['email']?.toString().toLowerCase() == emailController.text.trim().toLowerCase()
+                    );
+                    if (emailExistente) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('El email ya está registrado')),
+                      );
+                      return;
+                    }
+                    
                     try {
                       setStateDialog(() {
                         _isLoading = true;
@@ -347,7 +405,7 @@ class AdminUsuariosProvider extends ChangeNotifier {
                       final userData = {
                         'name': nombreController.text.toUpperCase(),
                         'email': emailController.text,
-                        'password': passwordController.text,
+                        'password': hashPassword(passwordController.text), // Contraseña encriptada
                         'telephone': telefonoController.text,
                         'direccion': direccionController.text,
                         'rol': rolSeleccionado,
@@ -365,7 +423,11 @@ class AdminUsuariosProvider extends ChangeNotifier {
                       await cargarDatos();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Usuario creado correctamente')),
+                          SnackBar(
+                            content: Text('Usuario ${nombreController.text} creado correctamente'),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 3),
+                          ),
                         );
                       }
                     } catch (e) {
