@@ -42,62 +42,71 @@ class _AdminNegociosSectionState extends State<AdminNegociosSection> {
         final categoriasUnicas = negociosProvider.obtenerCategoriasUnicas();
 
         final isDesktop = kIsWeb || MediaQuery.of(context).size.width > 600;
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    // Filtro por nombre
-                    SizedBox(
-                      width: 220,
-                      child: TextField(
-                        decoration: const InputDecoration(
-                          labelText: 'Buscar restaurante',
-                          prefixIcon: Icon(Icons.search),
-                        ),
-                        onChanged: (value) {
-                          negociosProvider.setFiltroNombre(value);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Filtro por categoría
-                    SizedBox(
-                      width: 220,
-                      child: DropdownButtonFormField<int>(
-                        value: negociosProvider.filtroCategoriaId,
-                        decoration: const InputDecoration(
-                          labelText: 'Categoría',
-                          prefixIcon: Icon(Icons.category),
-                        ),
-                        items: [
-                          const DropdownMenuItem<int>(
-                            value: null,
-                            child: Text('Todas'),
+        return Scaffold(
+          body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      // Filtro por nombre
+                      SizedBox(
+                        width: 220,
+                        child: TextField(
+                          decoration: const InputDecoration(
+                            labelText: 'Buscar restaurante',
+                            prefixIcon: Icon(Icons.search),
                           ),
-                          ...categoriasUnicas.entries.map((e) => DropdownMenuItem<int>(
-                            value: e.key,
-                            child: Text(e.value),
-                          )),
-                        ],
-                        onChanged: (value) {
-                          negociosProvider.setFiltroCategoriaId(value);
-                        },
+                          onChanged: (value) {
+                            negociosProvider.setFiltroNombre(value);
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      // Filtro por categoría
+                      SizedBox(
+                        width: 220,
+                        child: DropdownButtonFormField<int>(
+                          value: negociosProvider.filtroCategoriaId,
+                          decoration: const InputDecoration(
+                            labelText: 'Categoría',
+                            prefixIcon: Icon(Icons.category),
+                          ),
+                          items: [
+                            const DropdownMenuItem<int>(
+                              value: null,
+                              child: Text('Todas'),
+                            ),
+                            ...categoriasUnicas.entries.map((e) => DropdownMenuItem<int>(
+                              value: e.key,
+                              child: Text(e.value),
+                            )),
+                          ],
+                          onChanged: (value) {
+                            negociosProvider.setFiltroCategoriaId(value);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: isDesktop
-                  ? _buildDataTable(negocios, negociosProvider)
-                  : _buildListView(negocios, negociosProvider),
-            ),
-          ],
+              Expanded(
+                child: isDesktop
+                    ? _buildDataTable(negocios, negociosProvider)
+                    : _buildListView(negocios, negociosProvider),
+              ),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => negociosProvider.mostrarBottomSheetCrearNegocio(context),
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            child: const Icon(Icons.add),
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         );
       },
     );
