@@ -184,9 +184,22 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
                         style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
                       ),
                     ),
-                    Text(
-                      pedido['created_at']?.toString() ?? '',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Folio: ${pedidosProvider.obtenerFolio(pedido['id']?.toString())}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        Text(
+                          _formatearFechaPedido(pedido['created_at']?.toString()),
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -326,5 +339,19 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
         );
       },
     );
+  }
+
+  String _formatearFechaPedido(String? fecha) {
+    if (fecha == null) return '';
+    try {
+      final date = DateTime.parse(fecha);
+      final now = DateTime.now();
+      if (date.year == now.year && date.month == now.month && date.day == now.day) {
+        return 'Hoy';
+      }
+      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    } catch (e) {
+      return '';
+    }
   }
 } 

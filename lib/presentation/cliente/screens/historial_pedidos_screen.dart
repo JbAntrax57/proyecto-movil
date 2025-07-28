@@ -21,6 +21,12 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
   String? _error;
   bool _mostrarLeyenda = false;
 
+  // Helper para obtener folio del pedido (primeros 8 dígitos del ID)
+  String _obtenerFolio(String? pedidoId) {
+    if (pedidoId == null || pedidoId.isEmpty) return 'N/A';
+    return pedidoId.length >= 8 ? pedidoId.substring(0, 8) : pedidoId;
+  }
+
   // Helper para formatear precios como doubles
   String _formatearPrecio(dynamic precio) {
     if (precio == null) return '0.00';
@@ -501,14 +507,27 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                                         ),
                                       ],
                                     ),
-                                    Text(
-                                      _formatearFecha(
-                                        pedido['created_at']?.toString() ?? '',
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          'Folio: ${_obtenerFolio(pedido['id']?.toString())}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        Text(
+                                          _formatearFecha(
+                                            pedido['created_at']?.toString() ?? '',
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

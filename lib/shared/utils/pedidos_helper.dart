@@ -41,6 +41,7 @@ class PedidosHelper {
   static Future<List<Map<String, dynamic>>> obtenerPedidosConDetalles({
     String? usuarioEmail,
     String? restauranteId,
+    List<String>? restaurantesIds,
     String? estado,
   }) async {
     try {
@@ -53,6 +54,10 @@ class PedidosHelper {
       
       if (restauranteId != null) {
         query = query.eq('restaurante_id', restauranteId);
+      }
+      
+      if (restaurantesIds != null && restaurantesIds.isNotEmpty) {
+        query = query.inFilter('restaurante_id', restaurantesIds);
       }
       
       if (estado != null) {

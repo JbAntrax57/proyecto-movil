@@ -67,9 +67,37 @@ class PedidosRepartidorProvider extends ChangeNotifier {
       .listen((data) async {
         if (!context.mounted) return;
         
-        // Filtrar solo los pedidos en estado 'listo'
+        // Obtener el ID del repartidor
+        final userProvider = context.read<CarritoProvider>();
+        final email = userProvider.userEmail;
+        if (email == null) return;
+
+        final repartidor = await Supabase.instance.client
+          .from('usuarios')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+        final repartidorId = repartidor?['id'];
+        if (repartidorId == null) return;
+
+        // Obtener los restaurantes donde está asignado el repartidor
+        final asignacionesRestaurantes = await Supabase.instance.client
+          .from('negocios_repartidores')
+          .select('negocio_id')
+          .eq('repartidor_id', repartidorId)
+          .eq('estado', 'activo');
+        
+        final restaurantesIds = asignacionesRestaurantes.map((a) => a['negocio_id'] as String).toSet();
+        
+        if (restaurantesIds.isEmpty) {
+          _pedidosDisponibles = [];
+          notifyListeners();
+          return;
+        }
+
+        // Filtrar solo los pedidos en estado 'listo' de restaurantes asignados
         final pedidosListo = List<Map<String, dynamic>>.from(data)
-            .where((p) => p['estado'] == 'listo')
+            .where((p) => p['estado'] == 'listo' && restaurantesIds.contains(p['restaurante_id']))
             .toList();
 
         // Obtener los pedidos ya asignados
@@ -125,19 +153,63 @@ class PedidosRepartidorProvider extends ChangeNotifier {
   // Pedidos en estado 'listo' no asignados
   Future<void> cargarPedidosDisponibles(BuildContext context) async {
     try {
+      final userProvider = context.read<CarritoProvider>();
+      final email = userProvider.userEmail;
+      if (email == null) {
+        _pedidosDisponibles = [];
+        notifyListeners();
+        return;
+      }
+
+      // Obtener el ID del repartidor
+      final repartidor = await Supabase.instance.client
+        .from('usuarios')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      final repartidorId = repartidor?['id'];
+      if (repartidorId == null) {
+        _pedidosDisponibles = [];
+        notifyListeners();
+        return;
+      }
+
+      // Obtener los restaurantes donde está asignado el repartidor
+      final asignacionesRestaurantes = await Supabase.instance.client
+        .from('negocios_repartidores')
+        .select('negocio_id')
+        .eq('repartidor_id', repartidorId)
+        .eq('estado', 'activo');
+      
+      final restaurantesIds = asignacionesRestaurantes.map((a) => a['negocio_id'] as String).toList();
+      
+      if (restaurantesIds.isEmpty) {
+        _pedidosDisponibles = [];
+        notifyListeners();
+        return;
+      }
+
+      // Obtener pedidos en estado 'listo' solo de los restaurantes asignados
       final pedidosListo = await PedidosHelper.obtenerPedidosConDetalles(
         estado: 'listo',
+        restaurantesIds: restaurantesIds,
       );
+
+      // Obtener los pedidos ya asignados a cualquier repartidor
       final asignados = await Supabase.instance.client
         .from('pedidos_repartidores')
         .select('pedido_id');
       final idsAsignados = asignados.map((a) => a['pedido_id']).toSet();
+
+      // Filtrar pedidos disponibles (no asignados)
       final disponibles = pedidosListo
           .where((p) => !idsAsignados.contains(p['id']))
           .toList();
+
       _pedidosDisponibles = disponibles;
       notifyListeners();
     } catch (e) {
+      print('Error cargando pedidos disponibles: $e');
       _pedidosDisponibles = [];
       notifyListeners();
     }
@@ -282,6 +354,12 @@ class PedidosRepartidorProvider extends ChangeNotifier {
     } catch (e) {
       return 'Restaurante desconocido';
     }
+  }
+
+  // Helper para obtener folio del pedido (primeros 8 dígitos del ID)
+  String obtenerFolio(String? pedidoId) {
+    if (pedidoId == null || pedidoId.isEmpty) return 'N/A';
+    return pedidoId.length >= 8 ? pedidoId.substring(0, 8) : pedidoId;
   }
 
   // Helper para formatear precios como doubles

@@ -21,6 +21,12 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
     });
   }
 
+  // Helper para obtener folio del pedido (primeros 8 dígitos del ID)
+  String _obtenerFolio(String? pedidoId) {
+    if (pedidoId == null || pedidoId.isEmpty) return 'N/A';
+    return pedidoId.length >= 8 ? pedidoId.substring(0, 8) : pedidoId;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<PedidosDuenioProvider>(
@@ -226,15 +232,28 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                               ],
                                             ),
                                           ),
-                                          Text(
-                                            pedidosProvider.formatearFecha(
-                                              pedido['created_at']?.toString() ??
-                                                  '',
-                                            ),
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                'Folio: ${_obtenerFolio(pedido['id']?.toString())}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.grey[700],
+                                                ),
+                                              ),
+                                              Text(
+                                                pedidosProvider.formatearFecha(
+                                                  pedido['created_at']?.toString() ??
+                                                      '',
+                                                ),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
