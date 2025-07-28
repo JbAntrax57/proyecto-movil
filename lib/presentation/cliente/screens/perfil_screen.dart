@@ -184,490 +184,499 @@ class _PerfilScreenState extends State<PerfilScreen> {
   Widget build(BuildContext context) {
     final showAppBar = widget.showAppBar ?? true; // Asegurar que sea bool
 
-    return Container(
-      color: Colors
-          .blue[50], // Fondo uniforme para toda la pantalla, incluyendo el área segura superior
-      child: SafeArea(
-        top:
-            false, // Permite que el color de fondo cubra la parte superior (barra de estado)
-        child: Scaffold(
-          extendBody:
-              true, // Permite que el contenido se extienda detrás de widgets flotantes
-          backgroundColor:
-              Colors.transparent, // El fondo lo pone el Container exterior
-          appBar: showAppBar
-              ? AppBar(
-                  title: const Text('Mi Perfil'),
-                  centerTitle: true,
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.pop(context),
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: showAppBar
+          ? AppBar(
+              title: const Text('Mi Perfil'),
+              centerTitle: true,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+              ),
+              actions: [
+                if (!_isLoading && _usuario != null)
+                  IconButton(
+                    icon: Icon(_isEditing ? Icons.close : Icons.edit),
+                    onPressed: () {
+                      setState(() {
+                        if (_isEditing) {
+                          // Cancelar edición
+                          _nombreController.text =
+                              _usuario!['name']?.toString() ?? '';
+                          _telefonoController.text =
+                              _usuario!['telefono']?.toString() ?? '';
+                          _direccionController.text =
+                              _usuario!['direccion']?.toString() ?? '';
+                        }
+                        _isEditing = !_isEditing;
+                      });
+                    },
+                    tooltip: _isEditing ? 'Cancelar' : 'Editar',
                   ),
-                  actions: [
-                    if (!_isLoading && _usuario != null)
-                      IconButton(
-                        icon: Icon(_isEditing ? Icons.close : Icons.edit),
-                        onPressed: () {
-                          setState(() {
-                            if (_isEditing) {
-                              // Cancelar edición
-                              _nombreController.text =
-                                  _usuario!['name']?.toString() ?? '';
-                              _telefonoController.text =
-                                  _usuario!['telefono']?.toString() ?? '';
-                              _direccionController.text =
-                                  _usuario!['direccion']?.toString() ?? '';
-                            }
-                            _isEditing = !_isEditing;
-                          });
-                        },
-                        tooltip: _isEditing ? 'Cancelar' : 'Editar',
-                      ),
-                  ],
-                )
-              : null,
-          body: Column(
-            children: [
-              // Título personalizado cuando no hay AppBar
-              if (!showAppBar)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+              ],
+            )
+          : null,
+      body: Column(
+        children: [
+          // Título personalizado cuando no hay AppBar
+          if (!showAppBar)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person, color: Colors.purple, size: 28),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Mi Perfil',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.purple,
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.person, color: Colors.purple, size: 28),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Mi Perfil',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Espacio extra para evitar que el contenido quede tapado por la barra de estado o AppBar
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    ),
+                  )
+                : _error != null
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.grey[400],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              // Espacio extra para evitar que el contenido quede tapado por la barra de estado o AppBar
-              Expanded(
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.blue,
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error al cargar perfil',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      )
-                    : _error != null
-                    ? Center(
+                        const SizedBox(height: 8),
+                        Text(
+                          _error!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _cargarPerfil,
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  )
+                : _usuario == null
+                ? const Center(child: Text('No se pudo cargar el perfil'))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: 10,
+                      ), // Padding inferior para evitar que el navbar tape el contenido
+                      child: Form(
+                        key: _formKey,
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Error al cargar perfil',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
+                            // Avatar y email
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 50,
+                                    backgroundColor: Colors.blue[100],
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _usuario!['email']?.toString() ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green[50],
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.green[200]!,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Cliente',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green[700],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _error!,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[500],
+                            const SizedBox(height: 24),
+
+                            // Información del perfil
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
                               ),
-                              textAlign: TextAlign.center,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Información Personal',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // Nombre
+                                  TextFormField(
+                                    controller: _nombreController,
+                                    enabled: _isEditing,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Nombre completo',
+                                      prefixIcon: Icon(Icons.person_outline),
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    validator: (value) {
+                                      if (_isEditing &&
+                                          (value == null ||
+                                              value.trim().isEmpty)) {
+                                        return 'Por favor ingresa tu nombre';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Teléfono
+                                  TextFormField(
+                                    controller: _telefonoController,
+                                    enabled: _isEditing,
+                                    keyboardType: TextInputType.phone,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Teléfono',
+                                      prefixIcon: Icon(Icons.phone_outlined),
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    validator: (value) {
+                                      if (_isEditing &&
+                                          (value == null ||
+                                              value.trim().isEmpty)) {
+                                        return 'Por favor ingresa tu teléfono';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Dirección
+                                  TextFormField(
+                                    controller: _direccionController,
+                                    enabled: _isEditing,
+                                    maxLines: 3,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Dirección',
+                                      prefixIcon: Icon(
+                                        Icons.location_on_outlined,
+                                      ),
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    validator: (value) {
+                                      if (_isEditing &&
+                                          (value == null ||
+                                              value.trim().isEmpty)) {
+                                        return 'Por favor ingresa tu dirección';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+
+                                  // Botón guardar si está editando
+                                  if (_isEditing) ...[
+                                    const SizedBox(height: 20),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        onPressed: _isLoading
+                                            ? null
+                                            : _guardarPerfil,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.blue,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 16,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                        ),
+                                        child: _isLoading
+                                            ? const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: Colors.white,
+                                                    ),
+                                              )
+                                            : const Text(
+                                                'Guardar cambios',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _cargarPerfil,
-                              child: const Text('Reintentar'),
+                            const SizedBox(height: 24),
+
+                            // Acciones
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Acciones',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Historial de pedidos
+                                  ListTile(
+                                    leading: const Icon(
+                                      Icons.receipt_long,
+                                      color: Colors.blue,
+                                    ),
+                                    title: const Text('Historial de pedidos'),
+                                    subtitle: const Text(
+                                      'Ver todos mis pedidos',
+                                    ),
+                                    trailing: const Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 16,
+                                    ),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const HistorialPedidosScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+
+                                  const Divider(),
+
+                                  // Cerrar sesión
+                                  ListTile(
+                                    leading: const Icon(
+                                      Icons.logout,
+                                      color: Colors.red,
+                                    ),
+                                    title: const Text('Cerrar sesión'),
+                                    subtitle: const Text(
+                                      'Salir de la aplicación',
+                                    ),
+                                    onTap: _cerrarSesion,
+                                  ),
+
+                                  // Botón: Quiero ser repartidor
+                                  const Divider(),
+                                  ListTile(
+                                    leading: const Icon(
+                                      Icons.delivery_dining,
+                                      color: Colors.purple,
+                                    ),
+                                    title: const Text('Quiero ser repartidor'),
+                                    subtitle: const Text(
+                                      'Notificar a los restaurantes que estoy disponible',
+                                    ),
+                                    onTap: () async {
+                                      // Verificar datos del usuario
+                                      final nombre = _nombreController.text
+                                          .trim();
+                                      final correo =
+                                          _usuario?['email']?.toString() ?? '';
+                                      final direccion = _direccionController
+                                          .text
+                                          .trim();
+                                      final telefono = _telefonoController.text
+                                          .trim();
+                                      if (nombre.isEmpty ||
+                                          correo.isEmpty ||
+                                          direccion.isEmpty ||
+                                          telefono.isEmpty) {
+                                        showWarningAlert(
+                                          context,
+                                          'Por favor, completa todos tus datos (nombre, correo, dirección y teléfono) antes de solicitar ser repartidor.',
+                                        );
+                                        return;
+                                      }
+                                      // Mostrar loading
+                                      showDialog(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (context) => const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      );
+                                      try {
+                                        // Obtener todos los dueños de negocios
+                                        final duenos = await Supabase
+                                            .instance
+                                            .client
+                                            .from('usuarios')
+                                            .select()
+                                            .eq('rol', 'duenio');
+
+                                        print(
+                                          '🔔 Encontrados ${duenos.length} dueños de restaurantes',
+                                        );
+
+                                        // Insertar notificación para cada dueño
+                                        for (final dueno in duenos) {
+                                          final usuarioId =
+                                              dueno['id']?.toString() ??
+                                              dueno['user_id']?.toString() ??
+                                              dueno['uid']?.toString();
+                                          if (usuarioId != null &&
+                                              usuarioId.isNotEmpty) {
+                                            await Supabase.instance.client
+                                                .from('notificaciones')
+                                                .insert({
+                                                  'usuario_id': usuarioId,
+                                                  'mensaje':
+                                                      'El cliente $nombre ($correo) quiere ser repartidor. Dirección: $direccion, Teléfono: $telefono',
+                                                  'tipo':
+                                                      'repartidor_disponible',
+                                                  'leida': false,
+                                                  'fecha': DateTime.now()
+                                                      .toIso8601String(),
+                                                });
+                                            print(
+                                              '🔔 Notificación enviada a dueño: ${dueno['email']}',
+                                            );
+                                          } else {
+                                            print(
+                                              '⚠️ No se pudo obtener ID de usuario para: ${dueno['email']}',
+                                            );
+                                          }
+                                        }
+                                        Navigator.pop(
+                                          context,
+                                        ); // Cerrar loading
+                                        showSuccessAlert(
+                                          context,
+                                          '¡Se notificó a los restaurantes que quieres ser repartidor!',
+                                        );
+                                      } catch (e) {
+                                        Navigator.pop(
+                                          context,
+                                        ); // Cerrar loading
+                                        showErrorAlert(
+                                          context,
+                                          'Error al notificar: ${e.toString()}',
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      )
-                    : _usuario == null
-                    ? const Center(child: Text('No se pudo cargar el perfil'))
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: 10,
-                          ), // Padding inferior para evitar que el navbar tape el contenido
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              children: [
-                                // Avatar y email
-                                Container(
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 50,
-                                        backgroundColor: Colors.blue[100],
-                                        child: Icon(
-                                          Icons.person,
-                                          size: 50,
-                                          color: Colors.blue[700],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        _usuario!['email']?.toString() ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blue,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green[50],
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.green[200]!,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'Cliente',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.green[700],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-
-                                // Información del perfil
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Información Personal',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 20),
-
-                                      // Nombre
-                                      TextFormField(
-                                        controller: _nombreController,
-                                        enabled: _isEditing,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Nombre completo',
-                                          prefixIcon: Icon(
-                                            Icons.person_outline,
-                                          ),
-                                          border: OutlineInputBorder(),
-                                        ),
-                                        validator: (value) {
-                                          if (_isEditing &&
-                                              (value == null ||
-                                                  value.trim().isEmpty)) {
-                                            return 'Por favor ingresa tu nombre';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      const SizedBox(height: 16),
-
-                                      // Teléfono
-                                      TextFormField(
-                                        controller: _telefonoController,
-                                        enabled: _isEditing,
-                                        keyboardType: TextInputType.phone,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Teléfono',
-                                          prefixIcon: Icon(
-                                            Icons.phone_outlined,
-                                          ),
-                                          border: OutlineInputBorder(),
-                                        ),
-                                        validator: (value) {
-                                          if (_isEditing &&
-                                              (value == null ||
-                                                  value.trim().isEmpty)) {
-                                            return 'Por favor ingresa tu teléfono';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      const SizedBox(height: 16),
-
-                                      // Dirección
-                                      TextFormField(
-                                        controller: _direccionController,
-                                        enabled: _isEditing,
-                                        maxLines: 3,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Dirección',
-                                          prefixIcon: Icon(
-                                            Icons.location_on_outlined,
-                                          ),
-                                          border: OutlineInputBorder(),
-                                        ),
-                                        validator: (value) {
-                                          if (_isEditing &&
-                                              (value == null ||
-                                                  value.trim().isEmpty)) {
-                                            return 'Por favor ingresa tu dirección';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-
-                                      // Botón guardar si está editando
-                                      if (_isEditing) ...[
-                                        const SizedBox(height: 20),
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: ElevatedButton(
-                                            onPressed: _isLoading
-                                                ? null
-                                                : _guardarPerfil,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.blue,
-                                              foregroundColor: Colors.white,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 16,
-                                                  ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                            ),
-                                            child: _isLoading
-                                                ? const SizedBox(
-                                                    width: 20,
-                                                    height: 20,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          color: Colors.white,
-                                                        ),
-                                                  )
-                                                : const Text(
-                                                    'Guardar cambios',
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-
-                                // Acciones
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Acciones',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-
-                                      // Historial de pedidos
-                                      ListTile(
-                                        leading: const Icon(
-                                          Icons.receipt_long,
-                                          color: Colors.blue,
-                                        ),
-                                        title: const Text(
-                                          'Historial de pedidos',
-                                        ),
-                                        subtitle: const Text(
-                                          'Ver todos mis pedidos',
-                                        ),
-                                        trailing: const Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 16,
-                                        ),
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const HistorialPedidosScreen(),
-                                            ),
-                                          );
-                                        },
-                                      ),
-
-                                      const Divider(),
-
-                                      // Cerrar sesión
-                                      ListTile(
-                                        leading: const Icon(
-                                          Icons.logout,
-                                          color: Colors.red,
-                                        ),
-                                        title: const Text('Cerrar sesión'),
-                                        subtitle: const Text(
-                                          'Salir de la aplicación',
-                                        ),
-                                        onTap: _cerrarSesion,
-                                      ),
-
-                                      // Botón: Quiero ser repartidor
-                                      const Divider(),
-                                      ListTile(
-                                        leading: const Icon(
-                                          Icons.delivery_dining,
-                                          color: Colors.purple,
-                                        ),
-                                        title: const Text('Quiero ser repartidor'),
-                                        subtitle: const Text('Notificar a los restaurantes que estoy disponible'),
-                                        onTap: () async {
-                                          // Verificar datos del usuario
-                                          final nombre = _nombreController.text.trim();
-                                          final correo = _usuario?['email']?.toString() ?? '';
-                                          final direccion = _direccionController.text.trim();
-                                          final telefono = _telefonoController.text.trim();
-                                          if (nombre.isEmpty || correo.isEmpty || direccion.isEmpty || telefono.isEmpty) {
-                                            showWarningAlert(
-                                              context,
-                                              'Por favor, completa todos tus datos (nombre, correo, dirección y teléfono) antes de solicitar ser repartidor.',
-                                            );
-                                            return;
-                                          }
-                                          // Mostrar loading
-                                          showDialog(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (context) => const Center(child: CircularProgressIndicator()),
-                                          );
-                                          try {
-                                            // Obtener todos los dueños de negocios
-                                            final duenos = await Supabase.instance.client
-                                              .from('usuarios')
-                                              .select()
-                                              .eq('rol', 'duenio');
-                                            
-                                            print('🔔 Encontrados ${duenos.length} dueños de restaurantes');
-                                            
-                                            // Insertar notificación para cada dueño
-                                            for (final dueno in duenos) {
-                                              final usuarioId = dueno['id']?.toString() ?? dueno['user_id']?.toString() ?? dueno['uid']?.toString();
-                                              if (usuarioId != null && usuarioId.isNotEmpty) {
-                                                await Supabase.instance.client.from('notificaciones').insert({
-                                                  'usuario_id': usuarioId,
-                                                  'mensaje': 'El cliente $nombre ($correo) quiere ser repartidor. Dirección: $direccion, Teléfono: $telefono',
-                                                  'tipo': 'repartidor_disponible',
-                                                  'leida': false,
-                                                  'fecha': DateTime.now().toIso8601String(),
-                                                });
-                                                print('🔔 Notificación enviada a dueño: ${dueno['email']}');
-                                              } else {
-                                                print('⚠️ No se pudo obtener ID de usuario para: ${dueno['email']}');
-                                              }
-                                            }
-                                            Navigator.pop(context); // Cerrar loading
-                                            showSuccessAlert(
-                                              context,
-                                              '¡Se notificó a los restaurantes que quieres ser repartidor!',
-                                            );
-                                          } catch (e) {
-                                            Navigator.pop(context); // Cerrar loading
-                                            showErrorAlert(
-                                              context,
-                                              'Error al notificar: ${e.toString()}',
-                                            );
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                       ),
-              ),
-            ],
+                    ),
+                  ),
           ),
-        ),
+        ],
       ),
     );
   }
