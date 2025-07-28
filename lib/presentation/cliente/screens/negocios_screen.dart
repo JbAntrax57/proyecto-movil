@@ -237,7 +237,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                      gradient: LinearGradient(
                                        begin: Alignment.topLeft,
                                        end: Alignment.bottomRight,
-                                       colors: [Colors.white, Colors.blue[50]!],
+                                       colors: [Colors.orange[400]!, Colors.red[400]!],
                                      ),
                                      borderRadius: BorderRadius.circular(16),
                                      boxShadow: [
@@ -288,7 +288,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                               style: GoogleFonts.montserrat(
                                                 fontSize: 22,
                                                 fontWeight: FontWeight.w600,
-                                                color: Colors.grey[800],
+                                                color: Colors.black,
                                                 letterSpacing: -0.3,
                                               ),
                                             ),
@@ -301,7 +301,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                         style: GoogleFonts.montserrat(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500,
-                                          color: Colors.grey[600],
+                                          color: Colors.white,
                                           letterSpacing: -0.2,
                                         ),
                                       ),
