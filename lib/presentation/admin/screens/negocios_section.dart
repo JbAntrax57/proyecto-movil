@@ -149,54 +149,315 @@ class _AdminNegociosSectionState extends State<AdminNegociosSection> {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: negocios.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final negocio = negocios[index];
-        return Card(
-          child: ListTile(
-            leading: Stack(
-              children: [
-                const Icon(Icons.store),
-                if (negocio['destacado'] == true)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Icon(
-                      Icons.star,
-                      size: 16,
-                      color: Colors.amber,
+        return _buildNegocioCard(negocio, negociosProvider);
+      },
+    );
+  }
+
+  Widget _buildNegocioCard(Map<String, dynamic> negocio, AdminNegociosProvider negociosProvider) {
+    final categorias = (negocio['categorias'] as List<String>?) ?? [];
+    final isDestacado = negocio['destacado'] == true;
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isDestacado ? Colors.amber.shade300 : Colors.grey.shade200,
+          width: isDestacado ? 2 : 1,
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: isDestacado 
+            ? LinearGradient(
+                colors: [Colors.amber.shade50, Colors.white],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header con nombre y badge destacado
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.store,
+                            color: Colors.blue.shade700,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                negocio['nombre'] ?? 'Sin nombre',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (isDestacado)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.amber.shade300),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.star,
+                                        size: 12,
+                                        color: Colors.amber.shade700,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Destacado',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amber.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-              ],
-            ),
-            title: Text(negocio['nombre'] ?? ''),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Dueño: ${negocio['duenio_nombre'] ?? ''}'),
-                Text('Dirección: ${negocio['direccion'] ?? ''}'),
-                Text('Teléfono: ${negocio['telefono'] ?? ''}'),
-                Text('Categorías: ${(negocio['categorias'] as List<String>?)?.join(', ') ?? ''}'),
-                if (negocio['descripcion'] != null && negocio['descripcion'].toString().isNotEmpty)
-                  Text('Descripción: ${negocio['descripcion']}'),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () => negociosProvider.mostrarBottomSheetEditarNegocio(context, negocio),
+                  // Botones de acción
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          negociosProvider.mostrarBottomSheetEditarNegocio(context, negocio);
+                          break;
+                        case 'delete':
+                          negociosProvider.confirmarEliminarNegocio(context, negocio);
+                          break;
+                        case 'toggle_destacado':
+                          negociosProvider.toggleDestacado(negocio);
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Text('Editar'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'toggle_destacado',
+                        child: Row(
+                          children: [
+                            Icon(
+                              isDestacado ? Icons.star_border : Icons.star,
+                              color: Colors.amber,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(isDestacado ? 'Quitar destacado' : 'Marcar destacado'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Eliminar'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Información del dueño
+              Row(
+                children: [
+                  Icon(
+                    Icons.person,
+                    size: 16,
+                    color: Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Dueño: ${negocio['duenio_nombre'] ?? 'No asignado'}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 8),
+              
+              // Dirección
+              if (negocio['direccion'] != null && negocio['direccion'].toString().isNotEmpty)
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        negocio['direccion'],
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => negociosProvider.confirmarEliminarNegocio(context, negocio),
+              
+              if (negocio['direccion'] != null && negocio['direccion'].toString().isNotEmpty)
+                const SizedBox(height: 8),
+              
+              // Teléfono
+              if (negocio['telefono'] != null && negocio['telefono'].toString().isNotEmpty)
+                Row(
+                  children: [
+                    Icon(
+                      Icons.phone,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      negocio['telefono'],
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              
+              if (negocio['telefono'] != null && negocio['telefono'].toString().isNotEmpty)
+                const SizedBox(height: 12),
+              
+              // Categorías
+              if (categorias.isNotEmpty) ...[
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: categorias.map((categoria) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green.shade300),
+                      ),
+                      child: Text(
+                        categoria,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+              
+              // Descripción
+              if (negocio['descripcion'] != null && negocio['descripcion'].toString().isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.description,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Descripción',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        negocio['descripcion'],
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 } 

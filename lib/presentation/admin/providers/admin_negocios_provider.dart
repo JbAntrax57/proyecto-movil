@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// GlobalKey para acceder al contexto desde el provider
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class AdminNegociosProvider extends ChangeNotifier {
   // Estado
   List<Map<String, dynamic>> _negocios = [];
@@ -226,6 +229,52 @@ class AdminNegociosProvider extends ChangeNotifier {
   void _setError(String? error) {
     _error = error;
     notifyListeners();
+  }
+
+  // Toggle destacado
+  Future<void> toggleDestacado(Map<String, dynamic> negocio) async {
+    try {
+      final nuevoEstado = !(negocio['destacado'] == true);
+      
+      await Supabase.instance.client
+          .from('negocios')
+          .update({'destacado': nuevoEstado})
+          .eq('id', negocio['id']);
+      
+      // Actualizar el estado local
+      final index = _negocios.indexWhere((n) => n['id'] == negocio['id']);
+      if (index != -1) {
+        _negocios[index]['destacado'] = nuevoEstado;
+        aplicarFiltros();
+      }
+      
+      // Mostrar mensaje de confirmación
+      if (nuevoEstado) {
+        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+          SnackBar(
+            content: Text('${negocio['nombre']} marcado como destacado'),
+            backgroundColor: Colors.amber.shade700,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+          SnackBar(
+            content: Text('${negocio['nombre']} removido de destacados'),
+            backgroundColor: Colors.grey.shade600,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+        SnackBar(
+          content: Text('Error al cambiar estado destacado: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 }
 
