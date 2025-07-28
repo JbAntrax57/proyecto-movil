@@ -549,113 +549,188 @@ class _NegocioFormState extends State<NegocioForm> {
     );
   }
 
-  Future<void> guardarNegocio() async {
-    if (usuarioidSeleccionado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes seleccionar un dueño')),
-      );
-      return;
-    }
-    if (categoriasSeleccionadas.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes seleccionar al menos una categoría')),
-      );
-      return;
-    }
-    
-    try {
-      if (widget.negocio == null) {
-        // Crear
-        final insertNegocio = await Supabase.instance.client
-            .from('negocios')
-            .insert({
-              'nombre': nombreController.text,
-              'direccion': direccionController.text,
-              'telefono': telefonoController.text,
-              'descripcion': descripcionController.text,
-              'destacado': destacado,
-              'usuarioid': usuarioidSeleccionado,
-            })
-            .select();
-        
-        final negocioId = insertNegocio[0]['id'];
-        
-        // Insertar categorías
-        for (final catId in categoriasSeleccionadas) {
-          await Supabase.instance.client
-              .from('negocios_categorias')
-              .insert({
-                'negocio_id': negocioId,
-                'categoria_id': catId,
-              });
-        }
-        
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Negocio creado correctamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          
-          await Future.delayed(const Duration(milliseconds: 500));
-        }
-        
-        widget.onSuccess();
-        
-      } else {
-        // Editar
-        await Supabase.instance.client
-            .from('negocios')
-            .update({
-              'nombre': nombreController.text,
-              'direccion': direccionController.text,
-              'telefono': telefonoController.text,
-              'descripcion': descripcionController.text,
-              'destacado': destacado,
-            })
-            .eq('id', widget.negocio!['id']);
-        
-        // Eliminar categorías anteriores
-        await Supabase.instance.client
-            .from('negocios_categorias')
-            .delete()
-            .eq('negocio_id', widget.negocio!['id']);
-        
-        // Insertar nuevas categorías
-        for (final catId in categoriasSeleccionadas) {
-          await Supabase.instance.client
-              .from('negocios_categorias')
-              .insert({
-                'negocio_id': widget.negocio!['id'],
-                'categoria_id': catId,
-              });
-        }
-        
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Negocio actualizado correctamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          
-          await Future.delayed(const Duration(milliseconds: 500));
-        }
-        
-        widget.onSuccess();
-      }
-      
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar negocio: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    }
-  }
+     Future<void> guardarNegocio() async {
+     print('🔄 Guardando negocio...');
+     print('📊 Dueño seleccionado: $usuarioidSeleccionado');
+     print('📊 Categorías seleccionadas: $categoriasSeleccionadas');
+     
+     if (usuarioidSeleccionado == null) {
+       showTopInfoMessage(
+         context,
+         'Debes seleccionar un dueño',
+         icon: Icons.warning,
+         backgroundColor: Colors.orange[50],
+         textColor: Colors.orange[700],
+         iconColor: Colors.orange[700],
+       );
+       return;
+     }
+     if (categoriasSeleccionadas.isEmpty) {
+       showTopInfoMessage(
+         context,
+         'Debes seleccionar al menos una categoría',
+         icon: Icons.warning,
+         backgroundColor: Colors.orange[50],
+         textColor: Colors.orange[700],
+         iconColor: Colors.orange[700],
+       );
+       return;
+     }
+     
+     try {
+       if (widget.negocio == null) {
+         // Crear
+         final insertNegocio = await Supabase.instance.client
+             .from('negocios')
+             .insert({
+               'nombre': nombreController.text,
+               'direccion': direccionController.text,
+               'telefono': telefonoController.text,
+               'descripcion': descripcionController.text,
+               'destacado': destacado,
+               'usuarioid': usuarioidSeleccionado,
+             })
+             .select();
+         
+         final negocioId = insertNegocio[0]['id'];
+         
+         // Actualizar el restaurante_id del usuario dueño
+         if (usuarioidSeleccionado != null) {
+           print('🔄 Actualizando restaurante_id del usuario: $usuarioidSeleccionado');
+           
+           // Primero limpiar cualquier restaurante_id anterior de este usuario
+           await Supabase.instance.client
+               .from('usuarios')
+               .update({'restaurante_id': null})
+               .eq('id', usuarioidSeleccionado!);
+           
+           // Luego asignar el nuevo restaurante_id
+           await Supabase.instance.client
+               .from('usuarios')
+               .update({'restaurante_id': negocioId})
+               .eq('id', usuarioidSeleccionado!);
+           print('✅ Usuario actualizado con restaurante_id: $negocioId');
+         }
+         
+         // Insertar categorías
+         for (final catId in categoriasSeleccionadas) {
+           await Supabase.instance.client
+               .from('negocios_categorias')
+               .insert({
+                 'negocio_id': negocioId,
+                 'categoria_id': catId,
+               });
+         }
+         
+         if (context.mounted) {
+           showTopInfoMessage(
+             context,
+             'Negocio creado correctamente',
+             icon: Icons.check_circle,
+             backgroundColor: Colors.green[50],
+             textColor: Colors.green[700],
+             iconColor: Colors.green[700],
+           );
+           
+           await Future.delayed(const Duration(milliseconds: 500));
+         }
+         
+         widget.onSuccess();
+         
+       } else {
+         // Editar
+         print('🔄 Actualizando negocio con ID: ${widget.negocio!['id']}');
+         print('📊 Nuevo dueño asignado: $usuarioidSeleccionado');
+         
+                   // Obtener el dueño anterior para limpiar su restaurante_id
+          final duenioAnterior = widget.negocio!['usuarioid']?.toString();
+         
+         await Supabase.instance.client
+             .from('negocios')
+             .update({
+               'nombre': nombreController.text,
+               'direccion': direccionController.text,
+               'telefono': telefonoController.text,
+               'descripcion': descripcionController.text,
+               'destacado': destacado,
+               'usuarioid': usuarioidSeleccionado,
+             })
+             .eq('id', widget.negocio!['id']);
+         
+         print('✅ Negocio actualizado correctamente');
+         
+                   // Limpiar restaurante_id del dueño anterior si existe
+          if (duenioAnterior != null && duenioAnterior != usuarioidSeleccionado) {
+            print('🔄 Limpiando restaurante_id del dueño anterior: $duenioAnterior');
+            await Supabase.instance.client
+                .from('usuarios')
+                .update({'restaurante_id': null})
+                .eq('id', duenioAnterior);
+            print('✅ Dueño anterior limpiado');
+          }
+         
+         // Actualizar el restaurante_id del nuevo usuario dueño
+         if (usuarioidSeleccionado != null) {
+           print('🔄 Actualizando restaurante_id del nuevo usuario: $usuarioidSeleccionado');
+           
+           // Primero limpiar cualquier restaurante_id anterior de este usuario
+           await Supabase.instance.client
+               .from('usuarios')
+               .update({'restaurante_id': null})
+               .eq('id', usuarioidSeleccionado!);
+           
+           // Luego asignar el nuevo restaurante_id
+           await Supabase.instance.client
+               .from('usuarios')
+               .update({'restaurante_id': widget.negocio!['id']})
+               .eq('id', usuarioidSeleccionado!);
+           print('✅ Nuevo usuario actualizado con restaurante_id');
+         }
+         
+         // Eliminar categorías anteriores
+         await Supabase.instance.client
+             .from('negocios_categorias')
+             .delete()
+             .eq('negocio_id', widget.negocio!['id']);
+         
+         // Insertar nuevas categorías
+         for (final catId in categoriasSeleccionadas) {
+           await Supabase.instance.client
+               .from('negocios_categorias')
+               .insert({
+                 'negocio_id': widget.negocio!['id'],
+                 'categoria_id': catId,
+               });
+         }
+         
+         if (context.mounted) {
+           showTopInfoMessage(
+             context,
+             'Negocio actualizado correctamente',
+             icon: Icons.check_circle,
+             backgroundColor: Colors.green[50],
+             textColor: Colors.green[700],
+             iconColor: Colors.green[700],
+           );
+           
+           await Future.delayed(const Duration(milliseconds: 500));
+         }
+         
+         widget.onSuccess();
+       }
+       
+     } catch (e) {
+       print('⚠️ Error al guardar negocio: $e');
+       if (context.mounted) {
+         showTopInfoMessage(
+           context,
+           'Error al guardar negocio: $e',
+           icon: Icons.error,
+           backgroundColor: Colors.red[50],
+           textColor: Colors.red[700],
+           iconColor: Colors.red[700],
+         );
+       }
+     }
+   }
 } 

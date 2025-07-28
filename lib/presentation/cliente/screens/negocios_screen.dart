@@ -464,87 +464,82 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                   children: [
                                     // Widget de saludo personalizado
                                     if (!_isLoadingUser)
-                                                                             Container(
-                                         width: double.infinity,
-                                         padding: const EdgeInsets.only(
-                                           bottom: 16,
-                                         ),
-                                                                                                                                 child: Container(
-                                               width: double.infinity,
-                                               height: 160,
-                                               padding: const EdgeInsets.all(24),
-                                               decoration: BoxDecoration(
-                                                 gradient: LinearGradient(
-                                                   begin: Alignment.topLeft,
-                                                   end: Alignment.bottomRight,
-                                                   colors: [
-                                                     Colors.white,
-                                                     Colors.grey[50]!,
-                                                   ],
-                                                 ),
-                                                 borderRadius:
-                                                     const BorderRadius.only(
-                                                       bottomLeft:
-                                                           Radius.circular(20),
-                                                       bottomRight:
-                                                           Radius.circular(20),
-                                                     ),
-                                                 boxShadow: [
-                                                   BoxShadow(
-                                                     color: Colors.black
-                                                         .withOpacity(0.08),
-                                                     blurRadius: 15,
-                                                     offset: const Offset(0, 6),
-                                                   ),
-                                                   BoxShadow(
-                                                     color: Colors.blue.withOpacity(0.05),
-                                                     blurRadius: 20,
-                                                     offset: const Offset(0, 8),
-                                                   ),
-                                                 ],
-                                               ),
-                                                                                            child: TweenAnimationBuilder<double>(
-                                                 tween: Tween(begin: 0, end: 1),
-                                                 duration: const Duration(milliseconds: 600),
-                                                 builder: (context, value, child) =>
-                                                     Opacity(
-                                                       opacity: value,
-                                                       child: Transform.translate(
-                                                         offset: Offset(
-                                                           0,
-                                                           30 * (1 - value),
-                                                         ),
-                                                         child: Column(
-                                                           crossAxisAlignment: CrossAxisAlignment.start,
-                                                           mainAxisAlignment: MainAxisAlignment.start,
-                                                           children: [
-                                                             const SizedBox(height: 8),
-                                                             Text(
-                                                               '$_saludoActual ${_userName ?? 'Usuario'}',
-                                                               style: GoogleFonts.montserrat(
-                                                                 fontSize: 24,
-                                                                 fontWeight: FontWeight.w600,
-                                                                 color: Colors.black87,
-                                                                 letterSpacing: -0.5,
-                                                               ),
-                                                             ),
-                                                             const SizedBox(height: 12),
-                                                             Text(
-                                                               _fraseActual,
-                                                               style: GoogleFonts.montserrat(
-                                                                 fontSize: 20,
-                                                                 fontWeight: FontWeight.w500,
-                                                                 color: Colors.black54,
-                                                                 letterSpacing: -0.3,
-                                                               ),
-                                                             ),
-                                                           ],
-                                                         ),
-                                                       ),
-                                                     ),
-                                               ),
-                                           ),
-                                       ),
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.only(
+                                          bottom: 16,
+                                        ),
+                                        child: Container(
+                                          width: double.infinity,
+                                          height: 160,
+                                          padding: const EdgeInsets.all(24),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                Colors.white,
+                                                Colors.grey[50]!,
+                                              ],
+                                            ),
+                                            borderRadius: const BorderRadius.only(
+                                              bottomLeft: Radius.circular(20),
+                                              bottomRight: Radius.circular(20),
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.08),
+                                                blurRadius: 15,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                              BoxShadow(
+                                                color: Colors.blue.withOpacity(0.05),
+                                                blurRadius: 20,
+                                                offset: const Offset(0, 8),
+                                              ),
+                                            ],
+                                          ),
+                                          child: TweenAnimationBuilder<double>(
+                                            tween: Tween(begin: 0, end: 1),
+                                            duration: const Duration(milliseconds: 600),
+                                            builder: (context, value, child) => Opacity(
+                                              opacity: value.clamp(0.0, 1.0),
+                                              child: Transform.translate(
+                                                offset: Offset(
+                                                  0,
+                                                  30 * (1 - value),
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisAlignment: MainAxisAlignment.start,
+                                                  children: [
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      '$_saludoActual ${_userName ?? 'Usuario'}',
+                                                      style: GoogleFonts.montserrat(
+                                                        fontSize: 24,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: Colors.black87,
+                                                        letterSpacing: -0.5,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    Text(
+                                                      _fraseActual,
+                                                      style: GoogleFonts.montserrat(
+                                                        fontSize: 20,
+                                                        fontWeight: FontWeight.w500,
+                                                        color: Colors.black54,
+                                                        letterSpacing: -0.3,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     // Barra de búsqueda animada con botón de limpiar
                                     Container(
                                       padding: const EdgeInsets.all(12),
