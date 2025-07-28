@@ -6,6 +6,7 @@ import '../providers/carrito_screen_provider.dart';
 import 'package:geocoding/geocoding.dart';
 import 'dart:async';
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../shared/widgets/top_info_message.dart';
 
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
@@ -223,9 +224,14 @@ class _CarritoScreenState extends State<CarritoScreen> {
           context.read<CarritoProvider>().limpiarCarrito();
 
           // Mostrar éxito
-          showSuccessAlert(
+          showTopInfoMessage(
             context,
             '¡Pedidos realizados con éxito! 🎉\nTu pedido está siendo procesado.',
+            icon: Icons.check_circle,
+            backgroundColor: Colors.green[50],
+            textColor: Colors.green[700],
+            iconColor: Colors.green[700],
+            showDuration: const Duration(seconds: 4),
           );
 
           // Esperar 2 segundos para que el usuario vea el mensaje de éxito

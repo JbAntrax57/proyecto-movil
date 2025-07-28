@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/widgets/top_info_message.dart';
 
 class AdminNegociosProvider extends ChangeNotifier {
   // Estado
@@ -187,14 +188,24 @@ class AdminNegociosProvider extends ChangeNotifier {
                   Navigator.of(context).pop();
                   await cargarNegocios();
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Negocio eliminado correctamente')),
+                    showTopInfoMessage(
+                      context,
+                      'Negocio eliminado correctamente',
+                      icon: Icons.check_circle,
+                      backgroundColor: Colors.green[50],
+                      textColor: Colors.green[700],
+                      iconColor: Colors.green[700],
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al eliminar: $e')),
+                    showTopInfoMessage(
+                      context,
+                      'Error al eliminar: $e',
+                      icon: Icons.error,
+                      backgroundColor: Colors.red[50],
+                      textColor: Colors.red[700],
+                      iconColor: Colors.red[700],
                     );
                   }
                 }
@@ -248,31 +259,37 @@ class AdminNegociosProvider extends ChangeNotifier {
       // Mostrar mensaje de confirmación
       if (context.mounted) {
         if (nuevoEstado) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${negocio['nombre']} marcado como destacado'),
-              backgroundColor: Colors.amber.shade700,
-              duration: const Duration(seconds: 2),
-            ),
+          showTopInfoMessage(
+            context,
+            '${negocio['nombre']} marcado como destacado',
+            icon: Icons.star,
+            backgroundColor: Colors.amber[50],
+            textColor: Colors.amber[700],
+            iconColor: Colors.amber[700],
+            showDuration: const Duration(seconds: 2),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${negocio['nombre']} removido de destacados'),
-              backgroundColor: Colors.grey.shade600,
-              duration: const Duration(seconds: 2),
-            ),
+          showTopInfoMessage(
+            context,
+            '${negocio['nombre']} removido de destacados',
+            icon: Icons.star_border,
+            backgroundColor: Colors.grey[50],
+            textColor: Colors.grey[700],
+            iconColor: Colors.grey[700],
+            showDuration: const Duration(seconds: 2),
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cambiar estado destacado: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        showTopInfoMessage(
+          context,
+          'Error al cambiar estado destacado: $e',
+          icon: Icons.error,
+          backgroundColor: Colors.red[50],
+          textColor: Colors.red[700],
+          iconColor: Colors.red[700],
+          showDuration: const Duration(seconds: 3),
         );
       }
     }

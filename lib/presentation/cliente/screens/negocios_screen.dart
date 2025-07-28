@@ -12,6 +12,8 @@ import 'menu_screen.dart';
 import 'carrito_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/widgets/top_info_message.dart';
 
 // Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
@@ -31,9 +33,79 @@ class _NegociosScreenState extends State<NegociosScreen> {
   final FocusNode _searchFocusNode =
       FocusNode(); // FocusNode temporal para controlar el foco
 
+  // Variables para el saludo personalizado
+  String? _userName;
+  String _saludoActual = '';
+  String _fraseActual = '';
+  bool _isLoadingUser = true;
 
+  // Arreglos de saludos y frases motivacionales
+  final List<String> _saludos = [
+    'Hola',
+    'Buen día',
+    '¡Hola!',
+    'Buenos días',
+    '¡Hola!',
+    'Saludos',
+    '¡Qué tal!',
+    'Hola de nuevo',
+    '¡Buen día!',
+    '¡Hola!',
+  ];
 
+  final List<String> _frases = [
+    '¿Qué se te antoja hoy?',
+    '¿Qué vamos a pedir?',
+    '¿En busca de algo delicioso?',
+    '¿Qué te gustaría comer?',
+    '¿Hambriento? ¡Encuentra tu favorito!',
+    '¿Qué tal un buen platillo?',
+    '¿Listo para descubrir sabores?',
+    '¿Qué te apetece hoy?',
+    '¡Explora nuestros negocios!',
+    '¿Qué vamos a comer hoy?',
+  ];
 
+  // Función para obtener el nombre del usuario
+  Future<void> _cargarNombreUsuario() async {
+    try {
+      final userEmail = context.read<CarritoProvider>().userEmail;
+      if (userEmail != null && userEmail.isNotEmpty) {
+        final data = await Supabase.instance.client
+            .from('usuarios')
+            .select('name')
+            .eq('email', userEmail)
+            .single();
+
+        setState(() {
+          _userName = data['name']?.toString();
+          _isLoadingUser = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingUser = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingUser = false;
+      });
+    }
+  }
+
+  // Función para generar saludo aleatorio
+  String _generarSaludo() {
+    final random = DateTime.now().millisecondsSinceEpoch;
+    final saludo = _saludos[random % _saludos.length];
+    return saludo;
+  }
+
+  // Función para generar frase motivacional aleatoria
+  String _generarFrase() {
+    final random = DateTime.now().millisecondsSinceEpoch;
+    final frase = _frases[random % _frases.length];
+    return frase;
+  }
 
   // Eliminar función de iconos, ya no se usa
 
@@ -56,45 +128,54 @@ class _NegociosScreenState extends State<NegociosScreen> {
     // 3. Resetear búsqueda
     _searchController.clear();
 
-    // 4. Resetear scroll controllers
-    _pageController?.animateToPage(
-      0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-    _scrollController?.animateTo(
-      0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    // 4. Resetear scroll controllers (solo si están inicializados)
+    if (_pageController != null && _pageController!.hasClients) {
+      _pageController!.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+    if (_scrollController != null && _scrollController!.hasClients) {
+      _scrollController!.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
 
     // 5. Mostrar confirmación
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '✅ Todo actualizado: negocios, categorías, carrito y filtros',
-          ),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
+      showTopInfoMessage(
+        context,
+        '✅ Todo actualizado: negocios, categorías, carrito y filtros',
+        icon: Icons.check_circle,
+        backgroundColor: Colors.green[50],
+        textColor: Colors.green[700],
+        iconColor: Colors.green[700],
+        showDuration: const Duration(seconds: 3),
       );
     }
   }
-
-
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
     _scrollController = ScrollController();
-    
+
     // Cargar datos desde el provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final negociosProvider = context.read<NegociosProvider>();
       negociosProvider.cargarNegocios();
       negociosProvider.cargarCategorias();
+      _cargarNombreUsuario(); // Cargar el nombre del usuario al iniciar
+
+      // Generar saludo y frase iniciales
+      setState(() {
+        _saludoActual = _generarSaludo();
+        _fraseActual = _generarFrase();
+      });
     });
   }
 
@@ -301,61 +382,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                     ],
                   ),
                 ),
-              // Barra de búsqueda animada con botón de limpiar
-              Container(
-                padding: const EdgeInsets.all(12),
-                color: Colors.transparent,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    autofocus: false,
-                    focusNode: _searchFocusNode, // Asignar el FocusNode
-                    style: GoogleFonts.montserrat(
-                      fontSize: 16,
-                      color: Colors.blueGrey[900],
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Buscar negocios...',
-                      hintStyle: GoogleFonts.montserrat(
-                        color: Colors.blueGrey[400],
-                        fontSize: 16,
-                      ),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      suffixIcon: negociosProvider.searchText.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.grey),
-                              onPressed: () {
-                                _searchController.clear();
-                                negociosProvider.setSearchText('');
-                                _searchFocusNode
-                                    .unfocus(); // Quitar foco al limpiar
-                              },
-                            )
-                          : null,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 15,
-                      ),
-                    ),
-                    onChanged: (value) {
-                      negociosProvider.setSearchText(value);
-                    },
-                  ),
-                ),
-              ),
+
               // El resto del contenido (slider, lista, etc.)
               Expanded(
                 child: negociosProvider.isLoading
@@ -387,7 +414,8 @@ class _NegociosScreenState extends State<NegociosScreen> {
                             ),
                             const SizedBox(height: 8),
                             ElevatedButton(
-                              onPressed: () => negociosProvider.cargarNegocios(),
+                              onPressed: () =>
+                                  negociosProvider.cargarNegocios(),
                               child: const Text('Reintentar'),
                             ),
                           ],
@@ -427,11 +455,171 @@ class _NegociosScreenState extends State<NegociosScreen> {
                             child: Builder(
                               builder: (context) {
                                 // Obtener datos filtrados desde el provider
-                                final destacados = negociosProvider.getDestacadosFiltrados();
-                                final restantes = negociosProvider.getRestantesFiltrados();
+                                final destacados = negociosProvider
+                                    .getDestacadosFiltrados();
+                                final restantes = negociosProvider
+                                    .getRestantesFiltrados();
 
                                 return Column(
                                   children: [
+                                    // Widget de saludo personalizado
+                                    if (!_isLoadingUser)
+                                                                             Container(
+                                         width: double.infinity,
+                                         padding: const EdgeInsets.only(
+                                           bottom: 16,
+                                         ),
+                                                                                                                                 child: Container(
+                                               width: double.infinity,
+                                               height: 160,
+                                               padding: const EdgeInsets.all(24),
+                                               decoration: BoxDecoration(
+                                                 gradient: LinearGradient(
+                                                   begin: Alignment.topLeft,
+                                                   end: Alignment.bottomRight,
+                                                   colors: [
+                                                     Colors.white,
+                                                     Colors.grey[50]!,
+                                                   ],
+                                                 ),
+                                                 borderRadius:
+                                                     const BorderRadius.only(
+                                                       bottomLeft:
+                                                           Radius.circular(20),
+                                                       bottomRight:
+                                                           Radius.circular(20),
+                                                     ),
+                                                 boxShadow: [
+                                                   BoxShadow(
+                                                     color: Colors.black
+                                                         .withOpacity(0.08),
+                                                     blurRadius: 15,
+                                                     offset: const Offset(0, 6),
+                                                   ),
+                                                   BoxShadow(
+                                                     color: Colors.blue.withOpacity(0.05),
+                                                     blurRadius: 20,
+                                                     offset: const Offset(0, 8),
+                                                   ),
+                                                 ],
+                                               ),
+                                                                                            child: TweenAnimationBuilder<double>(
+                                                 tween: Tween(begin: 0, end: 1),
+                                                 duration: const Duration(milliseconds: 600),
+                                                 builder: (context, value, child) =>
+                                                     Opacity(
+                                                       opacity: value,
+                                                       child: Transform.translate(
+                                                         offset: Offset(
+                                                           0,
+                                                           30 * (1 - value),
+                                                         ),
+                                                         child: Column(
+                                                           crossAxisAlignment: CrossAxisAlignment.start,
+                                                           mainAxisAlignment: MainAxisAlignment.start,
+                                                           children: [
+                                                             const SizedBox(height: 8),
+                                                             Text(
+                                                               '$_saludoActual ${_userName ?? 'Usuario'}',
+                                                               style: GoogleFonts.montserrat(
+                                                                 fontSize: 24,
+                                                                 fontWeight: FontWeight.w600,
+                                                                 color: Colors.black87,
+                                                                 letterSpacing: -0.5,
+                                                               ),
+                                                             ),
+                                                             const SizedBox(height: 12),
+                                                             Text(
+                                                               _fraseActual,
+                                                               style: GoogleFonts.montserrat(
+                                                                 fontSize: 20,
+                                                                 fontWeight: FontWeight.w500,
+                                                                 color: Colors.black54,
+                                                                 letterSpacing: -0.3,
+                                                               ),
+                                                             ),
+                                                           ],
+                                                         ),
+                                                       ),
+                                                     ),
+                                               ),
+                                           ),
+                                       ),
+                                    // Barra de búsqueda animada con botón de limpiar
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      color: Colors.transparent,
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 300,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            25,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.1,
+                                              ),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 5),
+                                            ),
+                                          ],
+                                        ),
+                                        child: TextField(
+                                          controller: _searchController,
+                                          autofocus: false,
+                                          focusNode:
+                                              _searchFocusNode, // Asignar el FocusNode
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: 16,
+                                            color: Colors.blueGrey[900],
+                                          ),
+                                          decoration: InputDecoration(
+                                            hintText: 'Buscar negocios...',
+                                            hintStyle: GoogleFonts.montserrat(
+                                              color: Colors.blueGrey[400],
+                                              fontSize: 16,
+                                            ),
+                                            prefixIcon: const Icon(
+                                              Icons.search,
+                                              color: Colors.grey,
+                                            ),
+                                            suffixIcon:
+                                                negociosProvider
+                                                    .searchText
+                                                    .isNotEmpty
+                                                ? IconButton(
+                                                    icon: const Icon(
+                                                      Icons.clear,
+                                                      color: Colors.grey,
+                                                    ),
+                                                    onPressed: () {
+                                                      _searchController.clear();
+                                                      negociosProvider
+                                                          .setSearchText('');
+                                                      _searchFocusNode
+                                                          .unfocus(); // Quitar foco al limpiar
+                                                    },
+                                                  )
+                                                : null,
+                                            border: InputBorder.none,
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 20,
+                                                  vertical: 15,
+                                                ),
+                                          ),
+                                          onChanged: (value) {
+                                            negociosProvider.setSearchText(
+                                              value,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
                                     // Slider de negocios destacados (loop infinito y scroll automático)
                                     if (destacados.isNotEmpty)
                                       Padding(
@@ -675,17 +863,20 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                   child: ListView.separated(
                                                     scrollDirection:
                                                         Axis.horizontal,
-                                                    itemCount:
-                                                        negociosProvider.categorias.length,
+                                                    itemCount: negociosProvider
+                                                        .categorias
+                                                        .length,
                                                     separatorBuilder: (_, __) =>
                                                         const SizedBox(
                                                           width: 12,
                                                         ),
                                                     itemBuilder: (context, index) {
                                                       final cat =
-                                                          negociosProvider.categorias[index];
+                                                          negociosProvider
+                                                              .categorias[index];
                                                       final selected =
-                                                          negociosProvider.categoriaSeleccionada ==
+                                                          negociosProvider
+                                                              .categoriaSeleccionada ==
                                                           cat['nombre'];
                                                       return ChoiceChip(
                                                         label: Text(
@@ -717,12 +908,13 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                             : 0,
                                                         pressElevation: 4,
                                                         onSelected: (_) {
-                                                          negociosProvider.setCategoriaSeleccionada(
-                                                            selected
-                                                                ? null
-                                                                : cat['nombre']
-                                                                      as String,
-                                                          );
+                                                          negociosProvider
+                                                              .setCategoriaSeleccionada(
+                                                                selected
+                                                                    ? null
+                                                                    : cat['nombre']
+                                                                          as String,
+                                                              );
                                                         },
                                                         padding:
                                                             const EdgeInsets.symmetric(

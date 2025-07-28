@@ -7,6 +7,7 @@ import 'dart:io';
 import '../../cliente/providers/carrito_provider.dart';
 import '../../../services/puntos_service.dart';
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../shared/widgets/top_info_message.dart';
 
 class DashboardProvider extends ChangeNotifier {
   // Estado del dashboard
@@ -127,7 +128,14 @@ class DashboardProvider extends ChangeNotifier {
       _negocioImgUrl = publicUrl;
       notifyListeners();
       
-      showSuccessAlert(context, 'Foto actualizada');
+      showTopInfoMessage(
+        context,
+        'Foto actualizada',
+        icon: Icons.check_circle,
+        backgroundColor: Colors.green[50],
+        textColor: Colors.green[700],
+        iconColor: Colors.green[700],
+      );
     } catch (e) {
       print('❌ Error actualizando foto del negocio: $e');
       showErrorAlert(context, 'Error al actualizar la foto');

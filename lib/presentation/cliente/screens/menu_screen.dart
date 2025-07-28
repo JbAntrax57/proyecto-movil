@@ -11,6 +11,8 @@ import '../providers/menu_provider.dart';
 
 import 'carrito_screen.dart';
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../shared/widgets/carrito_success_message.dart';
+import '../../../shared/widgets/top_info_message.dart';
 
 class MenuScreen extends StatefulWidget {
   final String restauranteId;
@@ -270,9 +272,13 @@ class _MenuScreenState extends State<MenuScreen> {
 
                         Navigator.pop(context);
 
-                        showSuccessAlert(
+                        showTopInfoMessage(
                           context,
                           '${producto['nombre']} x$cantidad agregado al carrito',
+                          icon: Icons.check_circle,
+                          backgroundColor: Colors.green[50],
+                          textColor: Colors.green[700],
+                          iconColor: Colors.green[700],
                         );
                       },
                     ),

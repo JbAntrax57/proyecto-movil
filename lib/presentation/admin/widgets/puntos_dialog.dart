@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/top_info_message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/puntos_service.dart';
 
@@ -67,40 +68,42 @@ class _PuntosDialogState extends State<PuntosDialog> {
 
       if (success) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                _tipoOperacion == 'agregar' 
-                  ? 'Puntos agregados exitosamente' 
-                  : 'Puntos quitados exitosamente',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          showTopInfoMessage(
+            context,
+            _tipoOperacion == 'agregar' 
+              ? 'Puntos agregados exitosamente' 
+              : 'Puntos quitados exitosamente',
+            icon: Icons.check_circle,
+            backgroundColor: Colors.green[50],
+            textColor: Colors.green[700],
+            iconColor: Colors.green[700],
           );
           widget.onPuntosUpdated();
           Navigator.of(context).pop();
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                _tipoOperacion == 'agregar' 
-                  ? 'Error al agregar puntos. Verifica que tengas permisos de admin.' 
-                  : 'Error al quitar puntos. Verifica que tengas permisos de admin y que el dueño tenga suficientes puntos.',
-              ),
-              backgroundColor: Colors.red,
-            ),
+          showTopInfoMessage(
+            context,
+            _tipoOperacion == 'agregar' 
+              ? 'Error al agregar puntos. Verifica que tengas permisos de admin.' 
+              : 'Error al quitar puntos. Verifica que tengas permisos de admin y que el dueño tenga suficientes puntos.',
+            icon: Icons.error,
+            backgroundColor: Colors.red[50],
+            textColor: Colors.red[700],
+            iconColor: Colors.red[700],
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+        showTopInfoMessage(
+          context,
+          'Error: $e',
+          icon: Icons.error,
+          backgroundColor: Colors.red[50],
+          textColor: Colors.red[700],
+          iconColor: Colors.red[700],
         );
       }
     } finally {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../cliente/providers/carrito_provider.dart';
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../shared/widgets/top_info_message.dart';
 
 class RepartidoresProvider extends ChangeNotifier {
   // Estado de repartidores
@@ -154,7 +155,14 @@ class RepartidoresProvider extends ChangeNotifier {
       });
       
       if (context.mounted) {
-        showSuccessAlert(context, 'Repartidor asignado por teléfono correctamente.');
+        showTopInfoMessage(
+          context,
+          'Repartidor asignado por teléfono correctamente.',
+          icon: Icons.check_circle,
+          backgroundColor: Colors.green[50],
+          textColor: Colors.green[700],
+          iconColor: Colors.green[700],
+        );
       }
       
       telefonoController.clear();

@@ -7,6 +7,7 @@ import 'historial_pedidos_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../shared/widgets/top_info_message.dart';
 
 // perfil_screen.dart - Pantalla de perfil del cliente
 // Permite ver y editar información del usuario
@@ -116,7 +117,14 @@ class _PerfilScreenState extends State<PerfilScreen> {
         _isLoading = false;
       });
 
-      showSuccessAlert(context, 'Perfil actualizado correctamente');
+      showTopInfoMessage(
+        context,
+        'Perfil actualizado correctamente',
+        icon: Icons.check_circle,
+        backgroundColor: Colors.green[50],
+        textColor: Colors.green[700],
+        iconColor: Colors.green[700],
+      );
     } catch (e) {
       setState(() {
         _error = 'Error al actualizar perfil: $e';

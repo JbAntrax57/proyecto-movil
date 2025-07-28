@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart'; // Para encriptar la contraseña
 import 'dart:convert'; // Para utf8.encode
 import 'package:go_router/go_router.dart'; // Importa context.go
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../shared/widgets/top_info_message.dart';
 
 // register_screen.dart (común) - Pantalla de registro genérica
 // Muestra un formulario de registro simple para cualquier rol.
@@ -66,9 +67,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
       // Navega o muestra mensaje de éxito
       if (mounted) {
-        showSuccessAlert(
+        showTopInfoMessage(
           context,
           'Registro exitoso. Ahora puedes iniciar sesión.',
+          icon: Icons.check_circle,
+          backgroundColor: Colors.green[50],
+          textColor: Colors.green[700],
+          iconColor: Colors.green[700],
         );
         // Navega a login después de un frame
         Future.delayed(Duration.zero, () {

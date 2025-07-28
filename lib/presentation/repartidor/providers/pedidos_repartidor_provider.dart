@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/widgets/custom_alert.dart';
+import '../../../shared/widgets/top_info_message.dart';
 import '../../../shared/utils/pedidos_helper.dart';
 
 class PedidosRepartidorProvider extends ChangeNotifier {
@@ -232,7 +233,14 @@ class PedidosRepartidorProvider extends ChangeNotifier {
       .eq('id', pedido['id']);
     
     if (context.mounted) {
-      showSuccessAlert(context, '¡Pedido tomado!');
+      showTopInfoMessage(
+        context,
+        '¡Pedido tomado!',
+        icon: Icons.check_circle,
+        backgroundColor: Colors.green[50],
+        textColor: Colors.green[700],
+        iconColor: Colors.green[700],
+      );
     }
     
     await cargarAmbasListas(context); // Refresca la lista y el badge
@@ -248,7 +256,14 @@ class PedidosRepartidorProvider extends ChangeNotifier {
       .eq('id', pedido['id']);
     
     if (context.mounted) {
-      showInfoAlert(context, '¡Pedido marcado como entregado!');
+      showTopInfoMessage(
+        context,
+        '¡Pedido marcado como entregado!',
+        icon: Icons.delivery_dining,
+        backgroundColor: Colors.blue[50],
+        textColor: Colors.blue[700],
+        iconColor: Colors.blue[700],
+      );
     }
     
     await cargarAmbasListas(context); // Refresca la lista y el badge

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/widgets/top_info_message.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
+import '../providers/admin_configuracion_provider.dart';
+import '../providers/admin_reportes_provider.dart';
 
 class AdminUsuariosProvider extends ChangeNotifier {
   // Estado
@@ -185,15 +188,29 @@ class AdminUsuariosProvider extends ChangeNotifier {
 
                   Navigator.of(context).pop();
                   await cargarDatos();
+                  
+                  // Notificar a otros providers para que se actualicen
+                  await _notificarOtrosProviders(context);
+                  
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Usuario actualizado correctamente')),
+                    showTopInfoMessage(
+                      context,
+                      'Usuario actualizado correctamente',
+                      icon: Icons.check_circle,
+                      backgroundColor: Colors.green[50],
+                      textColor: Colors.green[700],
+                      iconColor: Colors.green[700],
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al actualizar: $e')),
+                    showTopInfoMessage(
+                      context,
+                      'Error al actualizar: $e',
+                      icon: Icons.error,
+                      backgroundColor: Colors.red[50],
+                      textColor: Colors.red[700],
+                      iconColor: Colors.red[700],
                     );
                   }
                 }
@@ -229,15 +246,29 @@ class AdminUsuariosProvider extends ChangeNotifier {
 
                   Navigator.of(context).pop();
                   await cargarDatos();
+                  
+                  // Notificar a otros providers para que se actualicen
+                  await _notificarOtrosProviders(context);
+                  
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Usuario eliminado correctamente')),
+                    showTopInfoMessage(
+                      context,
+                      'Usuario eliminado correctamente',
+                      icon: Icons.check_circle,
+                      backgroundColor: Colors.green[50],
+                      textColor: Colors.green[700],
+                      iconColor: Colors.green[700],
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al eliminar: $e')),
+                    showTopInfoMessage(
+                      context,
+                      'Error al eliminar: $e',
+                      icon: Icons.error,
+                      backgroundColor: Colors.red[50],
+                      textColor: Colors.red[700],
+                      iconColor: Colors.red[700],
                     );
                   }
                 }
@@ -350,29 +381,49 @@ class AdminUsuariosProvider extends ChangeNotifier {
                   onPressed: () async {
                     // Validar campos requeridos
                     if (nombreController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('El nombre es requerido')),
+                      showTopInfoMessage(
+                        context,
+                        'El nombre es requerido',
+                        icon: Icons.warning,
+                        backgroundColor: Colors.orange[50],
+                        textColor: Colors.orange[700],
+                        iconColor: Colors.orange[700],
                       );
                       return;
                     }
                     
                     if (emailController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('El email es requerido')),
+                      showTopInfoMessage(
+                        context,
+                        'El email es requerido',
+                        icon: Icons.warning,
+                        backgroundColor: Colors.orange[50],
+                        textColor: Colors.orange[700],
+                        iconColor: Colors.orange[700],
                       );
                       return;
                     }
                     
                     if (passwordController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('La contraseña es requerida')),
+                      showTopInfoMessage(
+                        context,
+                        'La contraseña es requerida',
+                        icon: Icons.warning,
+                        backgroundColor: Colors.orange[50],
+                        textColor: Colors.orange[700],
+                        iconColor: Colors.orange[700],
                       );
                       return;
                     }
                     
                     if (passwordController.text.length < 6) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('La contraseña debe tener al menos 6 caracteres')),
+                      showTopInfoMessage(
+                        context,
+                        'La contraseña debe tener al menos 6 caracteres',
+                        icon: Icons.warning,
+                        backgroundColor: Colors.orange[50],
+                        textColor: Colors.orange[700],
+                        iconColor: Colors.orange[700],
                       );
                       return;
                     }
@@ -380,8 +431,13 @@ class AdminUsuariosProvider extends ChangeNotifier {
                     // Validar formato de email
                     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                     if (!emailRegex.hasMatch(emailController.text.trim())) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('El formato del email no es válido')),
+                      showTopInfoMessage(
+                        context,
+                        'El formato del email no es válido',
+                        icon: Icons.warning,
+                        backgroundColor: Colors.orange[50],
+                        textColor: Colors.orange[700],
+                        iconColor: Colors.orange[700],
                       );
                       return;
                     }
@@ -391,8 +447,13 @@ class AdminUsuariosProvider extends ChangeNotifier {
                       usuario['email']?.toString().toLowerCase() == emailController.text.trim().toLowerCase()
                     );
                     if (emailExistente) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('El email ya está registrado')),
+                      showTopInfoMessage(
+                        context,
+                        'El email ya está registrado',
+                        icon: Icons.warning,
+                        backgroundColor: Colors.orange[50],
+                        textColor: Colors.orange[700],
+                        iconColor: Colors.orange[700],
                       );
                       return;
                     }
@@ -415,19 +476,58 @@ class AdminUsuariosProvider extends ChangeNotifier {
                         userData['restaurante_id'] = restauranteSeleccionado!;
                       }
 
-                      await Supabase.instance.client
-                          .from('usuarios')
-                          .insert(userData);
+                                             // Insertar usuario en la tabla usuarios
+                       print('🔄 Insertando usuario en tabla usuarios...');
+                       final usuarioResult = await Supabase.instance.client
+                           .from('usuarios')
+                           .insert(userData)
+                           .select()
+                           .single();
+                       print('✅ Usuario creado con ID: ${usuarioResult['id']}');
+
+                                             // Si el usuario se creó exitosamente, insertar en dashboard_puntos
+                       if (usuarioResult != null) {
+                         final usuarioId = usuarioResult['id'];
+                         
+                         try {
+                            print('🔄 Insertando en sistema_puntos...');
+                            // Insertar en sistema_puntos con puntos iniciales de 0
+                            final sistemaPuntosData = {
+                              'dueno_id': usuarioId,
+                              'puntos_disponibles': 0,
+                              'total_asignado': 0,
+                              'created_at': DateTime.now().toIso8601String(),
+                            };
+                            
+                            print('📊 Datos a insertar en sistema_puntos: $sistemaPuntosData');
+                            
+                            await Supabase.instance.client
+                                .from('sistema_puntos')
+                                .insert(sistemaPuntosData);
+                            
+                            print('✅ Usuario insertado en sistema_puntos con ID: $usuarioId');
+                          } catch (e) {
+                            print('⚠️ Error al insertar en sistema_puntos: $e');
+                            print('⚠️ Detalles del error: ${e.toString()}');
+                            // Continuar aunque falle la inserción en sistema_puntos
+                          }
+                       }
 
                       Navigator.of(context).pop();
                       await cargarDatos();
+                      
+                      // Notificar a otros providers para que se actualicen
+                      await _notificarOtrosProviders(context);
+                      
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Usuario ${nombreController.text} creado correctamente'),
-                            backgroundColor: Colors.green,
-                            duration: const Duration(seconds: 3),
-                          ),
+                        showTopInfoMessage(
+                          context,
+                          'Usuario ${nombreController.text} creado correctamente',
+                          icon: Icons.check_circle,
+                          backgroundColor: Colors.green[50],
+                          textColor: Colors.green[700],
+                          iconColor: Colors.green[700],
+                          showDuration: const Duration(seconds: 3),
                         );
                       }
                     } catch (e) {
@@ -435,8 +535,13 @@ class AdminUsuariosProvider extends ChangeNotifier {
                         _error = 'Error al crear usuario: $e';
                       });
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error al crear usuario: $e')),
+                        showTopInfoMessage(
+                          context,
+                          'Error al crear usuario: $e',
+                          icon: Icons.error,
+                          backgroundColor: Colors.red[50],
+                          textColor: Colors.red[700],
+                          iconColor: Colors.red[700],
                         );
                       }
                     }
@@ -449,6 +554,27 @@ class AdminUsuariosProvider extends ChangeNotifier {
         );
       },
     );
+  }
+
+  // Notificar a otros providers para que se actualicen
+  Future<void> _notificarOtrosProviders(BuildContext context) async {
+    try {
+      // Notificar al provider de configuración
+      if (context.mounted) {
+        final configProvider = context.read<AdminConfiguracionProvider>();
+        await configProvider.refrescarDatos();
+      }
+      
+      // Notificar al provider de reportes
+      if (context.mounted) {
+        final reportesProvider = context.read<AdminReportesProvider>();
+        await reportesProvider.cargarReportes();
+      }
+      
+      print('✅ Otros providers actualizados después de crear usuario');
+    } catch (e) {
+      print('⚠️ Error al notificar otros providers: $e');
+    }
   }
 
   // Setters

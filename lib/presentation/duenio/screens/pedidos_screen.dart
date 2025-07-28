@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/pedidos_duenio_provider.dart';
 import 'package:flutter/services.dart'; // Para personalizar la status bar
+import '../../../shared/widgets/top_info_message.dart';
 
 class DuenioPedidosScreen extends StatefulWidget {
   const DuenioPedidosScreen({super.key});
@@ -359,30 +360,26 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                                   context,
                                                 );
                                                 if (context.mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        'Estado actualizado a $nuevoEstado',
-                                                      ),
-                                                      backgroundColor: Colors.green,
-                                                      duration: const Duration(seconds: 2),
-                                                      behavior: SnackBarBehavior.floating,
-                                                      margin: const EdgeInsets.only(top: 60, left: 16, right: 16),
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                                    ),
+                                                  showTopInfoMessage(
+                                                    context,
+                                                    'Estado actualizado a $nuevoEstado',
+                                                    icon: Icons.check_circle,
+                                                    backgroundColor: Colors.green[50],
+                                                    textColor: Colors.green[700],
+                                                    iconColor: Colors.green[700],
+                                                    showDuration: const Duration(seconds: 2),
                                                   );
                                                 }
                                               } catch (e) {
                                                 if (context.mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text('Error al actualizar estado: $e'),
-                                                      backgroundColor: Colors.red,
-                                                      duration: const Duration(seconds: 2),
-                                                      behavior: SnackBarBehavior.floating,
-                                                      margin: const EdgeInsets.only(top: 60, left: 16, right: 16),
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                                    ),
+                                                  showTopInfoMessage(
+                                                    context,
+                                                    'Error al actualizar estado: $e',
+                                                    icon: Icons.error,
+                                                    backgroundColor: Colors.red[50],
+                                                    textColor: Colors.red[700],
+                                                    iconColor: Colors.red[700],
+                                                    showDuration: const Duration(seconds: 2),
                                                   );
                                                 }
                                               }

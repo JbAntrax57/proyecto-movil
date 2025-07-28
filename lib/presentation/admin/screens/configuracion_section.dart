@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/admin_configuracion_provider.dart';
 import '../widgets/puntos_dialog.dart';
+import '../../../shared/widgets/top_info_message.dart';
 import 'package:intl/intl.dart';
 
 class AdminConfiguracionSection extends StatefulWidget {
@@ -29,12 +30,14 @@ class _AdminConfiguracionSectionState extends State<AdminConfiguracionSection> {
       // Mostrar mensaje al usuario
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('⚠️ Usuario no autenticado. Algunas funciones pueden no estar disponibles.'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 3),
-            ),
+          showTopInfoMessage(
+            context,
+            '⚠️ Usuario no autenticado. Algunas funciones pueden no estar disponibles.',
+            icon: Icons.warning,
+            backgroundColor: Colors.orange[50],
+            textColor: Colors.orange[700],
+            iconColor: Colors.orange[700],
+            showDuration: const Duration(seconds: 3),
           );
         }
       });
