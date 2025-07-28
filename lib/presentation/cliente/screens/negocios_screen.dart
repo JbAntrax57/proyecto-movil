@@ -160,7 +160,6 @@ class _NegociosScreenState extends State<NegociosScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      extendBody: true,
       appBar: showAppBar
           ? AppBar(
               backgroundColor: Colors.white,
@@ -174,71 +173,6 @@ class _NegociosScreenState extends State<NegociosScreen> {
                 ),
               ),
               centerTitle: true,
-              actions: [
-                Consumer<CarritoProvider>(
-                  builder: (context, carritoProvider, child) {
-                    return Stack(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.shopping_cart_outlined,
-                            color: Colors.grey[700],
-                            size: 24,
-                          ),
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const CarritoScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        if (carritoProvider.carrito.isNotEmpty)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: GestureDetector(
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const CarritoScreen(),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange[600],
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 20,
-                                  minHeight: 20,
-                                ),
-                                child: Text(
-                                  carritoProvider.carrito.length > 99
-                                      ? '99+'
-                                      : '${carritoProvider.carrito.length}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-              ],
             )
           : null,
       body: Column(
@@ -1043,13 +977,14 @@ class _NegociosScreenState extends State<NegociosScreen> {
                             ),
                           );
                                                  }).toList(),
-                         const SizedBox(height: 100),
+                         const SizedBox(height: 80),
                        ],
                     ),
                   ),
           ),
-        ],
-      ),
-    );
-  }
-}
+                 ],
+       ),
+       
+     );
+   }
+ }

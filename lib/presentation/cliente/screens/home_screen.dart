@@ -5,11 +5,12 @@ import 'package:flutter/services.dart'; // Para personalizar la barra de estado
 import 'negocios_screen.dart';
 import 'historial_pedidos_screen.dart';
 import 'perfil_screen.dart';
+import 'carrito_screen.dart';
 import 'dart:ui'; // Added for ImageFilter
 import 'package:shared_preferences/shared_preferences.dart'; // Added for SharedPreferences
 import 'login_screen.dart';
 import 'package:provider/provider.dart'; // Added for Provider
-import '../../cliente/providers/carrito_provider.dart'; // Added for CarritoProvider
+import '../providers/carrito_provider.dart'; // Added for CarritoProvider
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -48,10 +49,17 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   final List<Map<String, dynamic>> _navItems = [
-    {'icon': Icons.store, 'label': 'Negocios', 'color': Colors.blue},
-    {'icon': Icons.receipt_long, 'label': 'Historial', 'color': Colors.green},
-    {'icon': Icons.person, 'label': 'Perfil', 'color': Colors.purple},
+    {'icon': Icons.home_outlined, 'label': 'Inicio', 'color': Colors.blue},
+    {'icon': Icons.receipt_outlined, 'label': 'Pedidos', 'color': Colors.green},
+    {'icon': Icons.person_outline, 'label': 'Perfil', 'color': Colors.purple},
   ];
+
+  IconData _getSelectedIcon(IconData outlinedIcon) {
+    if (outlinedIcon == Icons.home_outlined) return Icons.home;
+    if (outlinedIcon == Icons.receipt_outlined) return Icons.receipt;
+    if (outlinedIcon == Icons.person_outline) return Icons.person;
+    return outlinedIcon;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,64 +85,154 @@ class _HomeScreenState extends State<HomeScreen> {
             // Sin AppBar, el logout está solo en el perfil
             body: _pages[_currentIndex],
             bottomNavigationBar: Container(
-              // Sin margen, pegado abajo
-              decoration: const BoxDecoration(
-                color: Colors.white, // Fondo blanco minimalista
-                // Sin borderRadius ni sombra
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 40,
+                    offset: const Offset(0, 16),
+                    spreadRadius: 0,
+                  ),
+                ],
               ),
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: _navItems.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  final isSelected = _currentIndex == index;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _currentIndex = index;
-                      });
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  child: Row(
+                    children: [
+                      // Botones de navegación
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: _navItems.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final item = entry.value;
+                            final isSelected = _currentIndex == index;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _currentIndex = index;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isSelected ? 16 : 12,
+                                  vertical: isSelected ? 8 : 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? item['color'].withOpacity(0.1) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isSelected ? _getSelectedIcon(item['icon']) : item['icon'],
+                                      color: isSelected ? item['color'] : Colors.grey[400],
+                                      size: 24,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      item['label'],
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                        color: isSelected ? item['color'] : Colors.grey[500],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? item['color'].withOpacity(0.15)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
-                        border: isSelected
-                            ? Border.all(color: item['color'], width: 2)
-                            : null,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            item['icon'],
-                            color: isSelected
-                                ? item['color']
-                                : Colors.grey[600],
-                            size: 28,
-                          ),
-                          if (isSelected) ...[
-                            const SizedBox(width: 8),
-                            Text(
-                              item['label'],
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: item['color'],
+                      // Botón del carrito
+                      const SizedBox(width: 16),
+                      Consumer<CarritoProvider>(
+                        builder: (context, carritoProvider, child) {
+                          return GestureDetector(
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CarritoScreen(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.blue.withOpacity(0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Stack(
+                                children: [
+                                  const Icon(
+                                    Icons.shopping_cart_outlined,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                  if (carritoProvider.carrito.isNotEmpty)
+                                    Positioned(
+                                      right: 0,
+                                      top: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange[600],
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 18,
+                                          minHeight: 18,
+                                        ),
+                                        child: Text(
+                                          carritoProvider.carrito.length > 99
+                                              ? '99+'
+                                              : '${carritoProvider.carrito.length}',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                          ],
-                        ],
+                          );
+                        },
                       ),
-                    ),
-                  );
-                }).toList(),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
