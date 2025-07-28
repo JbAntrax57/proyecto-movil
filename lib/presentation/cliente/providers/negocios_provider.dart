@@ -127,6 +127,12 @@ class NegociosProvider extends ChangeNotifier {
           .from('negocios')
           .select('*, negocios_categorias(categoria_id, categorias_principales(nombre))')
           .order('nombre');
+      
+      print('📊 cargarNegocios - Datos obtenidos: ${data.length} negocios');
+      if (data.isNotEmpty) {
+        print('📊 cargarNegocios - Primer negocio: ${data.first}');
+      }
+      
       setState(() {
         _todosLosNegocios = List<Map<String, dynamic>>.from(data);
         _isLoading = false;
@@ -147,23 +153,36 @@ class NegociosProvider extends ChangeNotifier {
 
   // Devuelve el resto de negocios para la lista principal, aplicando filtro de categoría
   List<Map<String, dynamic>> getRestantes(List<Map<String, dynamic>> negocios) {
-    final noDestacados = negocios.where((n) => n['destacado'] != true);
-    if (_categoriaSeleccionada != null) {
-      return noDestacados
-          .where((n) {
-            // Verificar si el negocio tiene categorías y si alguna coincide con la seleccionada
-            final categorias = n['negocios_categorias'] as List<dynamic>?;
-            if (categorias != null && categorias.isNotEmpty) {
-              return categorias.any((cat) {
-                final categoriaNombre = cat['categorias_principales']?['nombre']?.toString();
-                return categoriaNombre == _categoriaSeleccionada;
-              });
-            }
-            return false;
-          })
-          .toList();
+    print('🔍 getRestantes - Total negocios: ${negocios.length}');
+    print('🔍 getRestantes - Categoría seleccionada: $_categoriaSeleccionada');
+    
+    final noDestacados = negocios.where((n) => n['destacado'] != true).toList();
+    print('🔍 getRestantes - No destacados: ${noDestacados.length}');
+    
+    if (_categoriaSeleccionada != null && _categoriaSeleccionada!.isNotEmpty) {
+      final filtrados = noDestacados.where((n) {
+        // Verificar si el negocio tiene categorías y si alguna coincide con la seleccionada
+        final categorias = n['negocios_categorias'] as List<dynamic>?;
+        print('🔍 Negocio ${n['nombre']} - Categorías: $categorias');
+        
+        if (categorias != null && categorias.isNotEmpty) {
+          final tieneCategoria = categorias.any((cat) {
+            final categoriaNombre = cat['categorias_principales']?['nombre']?.toString();
+            print('🔍 Comparando: "$categoriaNombre" con "$_categoriaSeleccionada"');
+            return categoriaNombre == _categoriaSeleccionada;
+          });
+          print('🔍 Negocio ${n['nombre']} - Tiene categoría: $tieneCategoria');
+          return tieneCategoria;
+        }
+        return false;
+      }).toList();
+      
+      print('🔍 getRestantes - Filtrados por categoría: ${filtrados.length}');
+      return filtrados;
     }
-    return noDestacados.toList();
+    
+    print('🔍 getRestantes - Sin filtro de categoría: ${noDestacados.length}');
+    return noDestacados;
   }
 
   // Aplicar filtro de búsqueda a una lista de negocios
@@ -184,15 +203,25 @@ class NegociosProvider extends ChangeNotifier {
 
   // Obtener negocios restantes con filtro de búsqueda aplicado
   List<Map<String, dynamic>> getRestantesFiltrados() {
+    print('📊 getRestantesFiltrados - Llamado');
     final restantes = getRestantes(_todosLosNegocios);
-    return aplicarFiltroBusqueda(restantes);
+    print('📊 getRestantesFiltrados - Restantes sin búsqueda: ${restantes.length}');
+    final conBusqueda = aplicarFiltroBusqueda(restantes);
+    print('📊 getRestantesFiltrados - Con búsqueda: ${conBusqueda.length}');
+    return conBusqueda;
   }
 
   // Actualizar categoría seleccionada
   void setCategoriaSeleccionada(String? categoria) {
+    print('🔄 setCategoriaSeleccionada - Categoría anterior: $_categoriaSeleccionada');
+    print('🔄 setCategoriaSeleccionada - Nueva categoría: $categoria');
+    
     if (_categoriaSeleccionada != categoria) {
       _categoriaSeleccionada = categoria;
+      print('🔄 setCategoriaSeleccionada - Categoría actualizada, notificando...');
       notifyListeners();
+    } else {
+      print('🔄 setCategoriaSeleccionada - No hay cambios, no se notifica');
     }
   }
 
@@ -230,8 +259,28 @@ class NegociosProvider extends ChangeNotifier {
     });
     await cargarCategorias();
 
-    // Limpiar filtros
-    limpiarFiltros();
+    // NO limpiar filtros para mantener la categoría seleccionada
+    // limpiarFiltros();
+  }
+
+  // Refrescar datos manteniendo filtros actuales
+  Future<void> refrescarDatosConFiltros() async {
+    // Limpiar cache para forzar recarga
+    _todosLosNegocios = [];
+    _categorias = [];
+    
+    // Recargar negocios
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    await cargarNegocios();
+
+    // Recargar categorías
+    setState(() {
+      _isLoadingCategorias = true;
+    });
+    await cargarCategorias();
   }
 
   // Método helper para actualizar el estado
