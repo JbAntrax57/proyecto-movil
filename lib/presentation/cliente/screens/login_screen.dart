@@ -36,6 +36,7 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
   String password = '';
   String? error; // Mensaje de error si el login falla
   bool loading = false; // Estado de carga para mostrar spinner
+  bool _obscurePassword = true; // Para mostrar/ocultar contraseña
 
   // Usuarios demo por rol (Cliente, Repartidor, Dueño, Admin)
   final demoUsers = [
@@ -201,8 +202,18 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
                       decoration: InputDecoration(
                         labelText: AppLocalizations.of(context).get('contraseña'),
                         prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                       ),
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       onChanged: (v) => password = v.trim(),
                       validator: (v) => v == null || v.isEmpty
                           ? AppLocalizations.of(context).get('ingrese_contraseña')

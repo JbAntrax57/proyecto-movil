@@ -25,6 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String direccion = '';
   String? error;
   bool loading = false;
+  bool _obscurePassword = true; // Para mostrar/ocultar contraseña
 
   // Función para encriptar la contraseña con SHA-256
   String hashPassword(String password) {
@@ -160,11 +161,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Contraseña',
-                        prefixIcon: Icon(Icons.lock),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                       ),
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       onChanged: (v) => password = v.trim(),
                       validator: (v) => v == null || v.isEmpty
                           ? 'Ingrese su contraseña'
