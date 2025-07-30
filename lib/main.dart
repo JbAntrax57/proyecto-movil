@@ -4,6 +4,7 @@
 // Cada pantalla principal está documentada y comentada para facilitar el onboarding de nuevos desarrolladores.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'presentation/cliente/screens/login_screen.dart';
 import 'presentation/cliente/screens/menu_screen.dart';
 import 'presentation/cliente/screens/negocios_screen.dart';
@@ -36,6 +37,8 @@ import 'core/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'presentation/repartidor/screens/pedidos_screen.dart';
 import 'presentation/cliente/screens/home_screen.dart';
+import 'application/providers/language_provider.dart';
+import 'core/localization.dart';
 // Importa las pantallas principales de cada rol si existen
 // Si no, usa un Scaffold temporal
 
@@ -90,6 +93,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AdminNegociosProvider()),
         ChangeNotifierProvider(create: (_) => AdminReportesProvider()),
         ChangeNotifierProvider(create: (_) => AdminConfiguracionProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
       ],
       child: MyApp(isLoggedIn: isLoggedIn, userRol: userRol),
     ),
@@ -181,19 +185,49 @@ class _MyAppState extends State<MyApp> {
         default:
           home = const ClienteLoginScreen();
       }
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'App Demo Multirol',
-        theme: lightTheme,
-        home: home,
+      return Consumer<LanguageProvider>(
+        builder: (context, languageProvider, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'App Demo Multirol',
+            theme: lightTheme,
+            home: home,
+            locale: languageProvider.currentLocale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('es', 'ES'), // Español
+              Locale('en', 'US'), // Inglés
+            ],
+          );
+        },
       );
     }
     // Si no, usa el router normal (login y flujo estándar)
-    return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
-      title: 'App Demo Multirol',
-      theme: lightTheme,
-      routerConfig: router,
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          title: 'App Demo Multirol',
+          theme: lightTheme,
+          routerConfig: router,
+          locale: languageProvider.currentLocale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('es', 'ES'), // Español
+            Locale('en', 'US'), // Inglés
+          ],
+        );
+      },
     );
   }
 }

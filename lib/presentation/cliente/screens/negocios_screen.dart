@@ -14,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/widgets/top_info_message.dart';
+import '../../../core/localization.dart';
 
 // Pantalla principal donde el cliente ve los negocios disponibles
 class NegociosScreen extends StatefulWidget {
@@ -165,7 +166,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
               backgroundColor: Colors.white,
               elevation: 0,
               title: Text(
-                'Descubre',
+                AppLocalizations.of(context).get('descubre'),
                 style: GoogleFonts.montserrat(
                   color: Colors.grey[800],
                   fontWeight: FontWeight.w600,
@@ -196,26 +197,17 @@ class _NegociosScreenState extends State<NegociosScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Error al cargar negocios',
+                          AppLocalizations.of(context).get('error_conexion'),
                           style: GoogleFonts.montserrat(
                             fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          negociosProvider.error!,
-                          style: GoogleFonts.montserrat(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => negociosProvider.refrescarDatos(),
-                          child: const Text('Reintentar'),
+                          child: Text(AppLocalizations.of(context).get('intentar_nuevamente')),
                         ),
                       ],
                     ),
@@ -237,7 +229,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                      gradient: LinearGradient(
                                        begin: Alignment.topLeft,
                                        end: Alignment.bottomRight,
-                                       colors: [Colors.orange[400]!, Colors.red[400]!],
+                                       colors: [Colors.blue[100]!, Colors.blue[600]!],
                                      ),
                                      borderRadius: BorderRadius.circular(16),
                                      boxShadow: [
@@ -284,12 +276,11 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: Text(
-                                              '$_saludoActual ${_userName ?? 'Usuario'}',
+                                              '$_saludoActual ${_userName ?? AppLocalizations.of(context).get('nombre')}',
                                               style: GoogleFonts.montserrat(
                                                 fontSize: 22,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.black,
-                                                letterSpacing: -0.3,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
                                               ),
                                             ),
                                           ),
@@ -301,7 +292,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                         style: GoogleFonts.montserrat(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500,
-                                          color: Colors.white,
+                                          color: Colors.black,
                                           letterSpacing: -0.2,
                                         ),
                                       ),
@@ -336,34 +327,20 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                 color: Colors.grey[800],
                               ),
                               decoration: InputDecoration(
-                                hintText: 'Buscar restaurantes...',
+                                hintText: AppLocalizations.of(context).get('buscar_negocios'),
                                 hintStyle: GoogleFonts.montserrat(
                                   color: Colors.grey[400],
-                                  fontSize: 16,
+                                  fontSize: 14,
                                 ),
                                 prefixIcon: Icon(
                                   Icons.search,
-                                  color: Colors.grey[500],
+                                  color: Colors.grey[400],
                                   size: 20,
                                 ),
-                                suffixIcon:
-                                    negociosProvider.searchText.isNotEmpty
-                                    ? IconButton(
-                                        icon: Icon(
-                                          Icons.clear,
-                                          color: Colors.grey[500],
-                                          size: 20,
-                                        ),
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          negociosProvider.setSearchText('');
-                                        },
-                                      )
-                                    : null,
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
-                                  vertical: 16,
+                                  vertical: 12,
                                 ),
                               ),
                               onChanged: (value) {
@@ -408,7 +385,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Destacados',
+                                        AppLocalizations.of(context).get('featured_title'),
                                         style: GoogleFonts.montserrat(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w600,
@@ -471,7 +448,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                     restaurante:
                                                         negocio['nombre']
                                                             ?.toString() ??
-                                                        'Sin nombre',
+                                                        AppLocalizations.of(context).get('sin_nombre'),
                                                   ),
                                                 ),
                                               );
@@ -599,7 +576,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                               width: 4,
                                                             ),
                                                             Text(
-                                                              'Destacado',
+                                                              AppLocalizations.of(context).get('featured_badge'),
                                                               style: GoogleFonts.montserrat(
                                                                 color: Colors
                                                                     .white,
@@ -649,7 +626,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                             Text(
                                                               negocio['nombre']
                                                                       ?.toString() ??
-                                                                  'Sin nombre',
+                                                                  AppLocalizations.of(context).get('sin_nombre'),
                                                               style: GoogleFonts.montserrat(
                                                                 fontSize: 20,
                                                                 fontWeight:
@@ -680,16 +657,15 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                                   child: Text(
                                                                     negocio['direccion']
                                                                             ?.toString() ??
-                                                                        'Sin dirección',
-                                                                    style: GoogleFonts.montserrat(
-                                                                      fontSize:
-                                                                          13,
-                                                                      color: Colors
-                                                                          .white
-                                                                          .withOpacity(
-                                                                            0.9,
-                                                                          ),
-                                                                    ),
+                                                                        AppLocalizations.of(context).get('sin_direccion'),
+                                                                    style:
+                                                                        GoogleFonts.montserrat(
+                                                                          color:
+                                                                              Colors.white
+                                                                                  .withOpacity(
+                                                                                    0.9,
+                                                                                  ),
+                                                                        ),
                                                                     overflow:
                                                                         TextOverflow
                                                                             .ellipsis,
@@ -757,7 +733,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Categorías',
+                                    AppLocalizations.of(context).get('categories_title'),
                                     style: GoogleFonts.montserrat(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
@@ -883,7 +859,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                             negocio['id']?.toString() ?? '',
                                         restaurante:
                                             negocio['nombre']?.toString() ??
-                                            'Sin nombre',
+                                            AppLocalizations.of(context).get('sin_nombre'),
                                       ),
                                     ),
                                   );
@@ -929,7 +905,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                           children: [
                                             Text(
                                               negocio['nombre']?.toString() ??
-                                                  'Sin nombre',
+                                                  AppLocalizations.of(context).get('sin_nombre'),
                                               style: GoogleFonts.montserrat(
                                                 fontWeight: FontWeight.w600,
                                                 color: Colors.grey[800],
@@ -949,7 +925,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
                                                   child: Text(
                                                     negocio['direccion']
                                                             ?.toString() ??
-                                                        'Sin dirección',
+                                                        AppLocalizations.of(context).get('sin_direccion'),
                                                     style:
                                                         GoogleFonts.montserrat(
                                                           color:

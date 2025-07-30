@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/pedidos_duenio_provider.dart';
 import 'package:flutter/services.dart'; // Para personalizar la status bar
 import '../../../shared/widgets/top_info_message.dart';
+import '../../../core/localization.dart';
 
 class DuenioPedidosScreen extends StatefulWidget {
   const DuenioPedidosScreen({super.key});
@@ -25,6 +26,24 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
   String _obtenerFolio(String? pedidoId) {
     if (pedidoId == null || pedidoId.isEmpty) return 'N/A';
     return pedidoId.length >= 8 ? pedidoId.substring(0, 8) : pedidoId;
+  }
+
+  // Helper para traducir estados de pedidos
+  String _traducirEstado(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'pendiente':
+        return AppLocalizations.of(context).get('estado_pendiente');
+      case 'preparando':
+        return AppLocalizations.of(context).get('estado_preparando');
+      case 'en camino':
+        return AppLocalizations.of(context).get('estado_en_camino');
+      case 'entregado':
+        return AppLocalizations.of(context).get('estado_entregado');
+      case 'cancelado':
+        return AppLocalizations.of(context).get('estado_cancelado');
+      default:
+        return AppLocalizations.of(context).get('estado_pendiente');
+    }
   }
 
   @override
@@ -124,7 +143,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
-                            children: pedidosProvider.estados.map((estado) {
+                            children: pedidosProvider.getEstados(context).map((estado) {
                               final selected = pedidosProvider.filtroEstado == estado['label'];
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -215,10 +234,9 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  pedido['estado']
-                                                          ?.toString()
-                                                          .toUpperCase() ??
-                                                      'PENDIENTE',
+                                                  _traducirEstado(
+                                                    pedido['estado']?.toString() ?? 'pendiente',
+                                                  ).toUpperCase(),
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.bold,

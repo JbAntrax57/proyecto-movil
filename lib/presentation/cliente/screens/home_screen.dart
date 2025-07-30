@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart'; // Added for Shared
 import 'login_screen.dart';
 import 'package:provider/provider.dart'; // Added for Provider
 import '../providers/carrito_provider.dart'; // Added for CarritoProvider
+import '../../../core/localization.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -48,17 +49,19 @@ class _HomeScreenState extends State<HomeScreen> {
     const PerfilScreen(showAppBar: false),
   ];
 
-  final List<Map<String, dynamic>> _navItems = [
-    {'icon': Icons.home_outlined, 'label': 'Inicio', 'color': Colors.blue},
-    {'icon': Icons.receipt_outlined, 'label': 'Pedidos', 'color': Colors.green},
-    {'icon': Icons.person_outline, 'label': 'Perfil', 'color': Colors.purple},
-  ];
-
   IconData _getSelectedIcon(IconData outlinedIcon) {
     if (outlinedIcon == Icons.home_outlined) return Icons.home;
     if (outlinedIcon == Icons.receipt_outlined) return Icons.receipt;
     if (outlinedIcon == Icons.person_outline) return Icons.person;
     return outlinedIcon;
+  }
+
+  List<Map<String, dynamic>> _getNavItems(BuildContext context) {
+    return [
+      {'icon': Icons.home_outlined, 'label': AppLocalizations.of(context).get('inicio'), 'color': Colors.blue},
+      {'icon': Icons.receipt_outlined, 'label': AppLocalizations.of(context).get('pedidos'), 'color': Colors.green},
+      {'icon': Icons.person_outline, 'label': AppLocalizations.of(context).get('perfil'), 'color': Colors.purple},
+    ];
   }
 
   @override
@@ -113,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: _navItems.asMap().entries.map((entry) {
+                          children: _getNavItems(context).asMap().entries.map((entry) {
                             final index = entry.key;
                             final item = entry.value;
                             final isSelected = _currentIndex == index;

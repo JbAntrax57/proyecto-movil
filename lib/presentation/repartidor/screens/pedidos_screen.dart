@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../cliente/screens/login_screen.dart';
 import '../../cliente/providers/carrito_provider.dart';
 import '../providers/pedidos_repartidor_provider.dart';
+import '../../../core/localization.dart';
 
 // pedidos_screen.dart - Pantalla de pedidos asignados para el repartidor
 // Refactorizada para usar PedidosRepartidorProvider y separar lógica de negocio
@@ -21,6 +22,24 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<PedidosRepartidorProvider>().inicializarPedidos(context);
     });
+  }
+
+  // Helper para traducir estados de pedidos
+  String _traducirEstado(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'pendiente':
+        return AppLocalizations.of(context).get('estado_pendiente');
+      case 'preparando':
+        return AppLocalizations.of(context).get('estado_preparando');
+      case 'en camino':
+        return AppLocalizations.of(context).get('estado_en_camino');
+      case 'entregado':
+        return AppLocalizations.of(context).get('estado_entregado');
+      case 'cancelado':
+        return AppLocalizations.of(context).get('estado_cancelado');
+      default:
+        return AppLocalizations.of(context).get('estado_pendiente');
+    }
   }
 
   @override
@@ -180,7 +199,7 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        pedido['estado']?.toString().toUpperCase() ?? 'PENDIENTE',
+                        _traducirEstado(pedido['estado']?.toString() ?? 'pendiente').toUpperCase(),
                         style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
                       ),
                     ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/utils/pedidos_helper.dart';
+import '../../../core/localization.dart';
 
 // historial_pedidos_screen.dart - Pantalla de historial de pedidos para el cliente
 // Muestra todos los pedidos realizados por el usuario con su estado actual
@@ -49,6 +50,24 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
       return (doubleValue ?? 0.0) * cantidad;
     }
     return 0.0;
+  }
+
+  // Helper para traducir estados de pedidos
+  String _traducirEstado(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'pendiente':
+        return AppLocalizations.of(context).get('estado_pendiente');
+      case 'preparando':
+        return AppLocalizations.of(context).get('estado_preparando');
+      case 'en camino':
+        return AppLocalizations.of(context).get('estado_en_camino');
+      case 'entregado':
+        return AppLocalizations.of(context).get('estado_entregado');
+      case 'cancelado':
+        return AppLocalizations.of(context).get('estado_cancelado');
+      default:
+        return AppLocalizations.of(context).get('estado_pendiente');
+    }
   }
 
   @override
@@ -204,7 +223,7 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
       appBar: showAppBar
           ? AppBar(
               backgroundColor: Colors.blue[50],
-              title: const Text('Historial de Pedidos'),
+              title: Text(AppLocalizations.of(context).get('historial_pedidos')),
               centerTitle: true,
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -240,9 +259,9 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                 children: [
                   const Icon(Icons.receipt_long, color: Colors.green, size: 28),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Historial de Pedidos',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context).get('historial_pedidos'),
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
@@ -310,8 +329,8 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                           fontWeight: FontWeight.w500,
                           height: 1.3,
                         ),
-                        child: const Text(
-                          'Los pedidos están ordenados por estado: Pendiente → Preparando → En camino → Entregado → Cancelado',
+                        child: Text(
+                          AppLocalizations.of(context).get('ordenamiento_pedidos'),
                         ),
                       ),
                     ),
@@ -358,7 +377,7 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _cargarPedidos,
-                          child: const Text('Reintentar'),
+                          child: Text(AppLocalizations.of(context).get('reintentar')),
                         ),
                       ],
                     ),
@@ -375,7 +394,7 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No tienes pedidos aún',
+                          AppLocalizations.of(context).get('sin_pedidos'),
                           style: TextStyle(
                             fontSize: 20,
                             color: Colors.grey[600],
@@ -384,7 +403,7 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Realiza tu primer pedido para verlo aquí',
+                          AppLocalizations.of(context).get('realizar_primer_pedido'),
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[500],
@@ -487,21 +506,20 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                                                 ),
                                               ),
                                               const SizedBox(width: 4),
-                                              Text(
-                                                pedido['estado']
-                                                        ?.toString()
-                                                        .toUpperCase() ??
-                                                    'PENDIENTE',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: _getEstadoColor(
-                                                    pedido['estado']
-                                                            ?.toString() ??
-                                                        'pendiente',
-                                                  ),
-                                                ),
-                                              ),
+                                                                                             Text(
+                                                 _traducirEstado(
+                                                   pedido['estado']?.toString() ?? 'pendiente',
+                                                 ).toUpperCase(),
+                                                 style: TextStyle(
+                                                   fontSize: 12,
+                                                   fontWeight: FontWeight.bold,
+                                                   color: _getEstadoColor(
+                                                     pedido['estado']
+                                                             ?.toString() ??
+                                                         'pendiente',
+                                                   ),
+                                                 ),
+                                               ),
                                             ],
                                           ),
                                         ),
@@ -535,11 +553,8 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
 
                                 // Productos
                                 Text(
-                                  'Productos:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey[700],
-                                  ),
+                                  '${AppLocalizations.of(context).get('productos')}:',
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 8),
                                 ...productos
@@ -595,7 +610,7 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Total: \$${total.toStringAsFixed(2)}',
+                                          '${AppLocalizations.of(context).get('total')}: \$${total.toStringAsFixed(2)}',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
@@ -672,9 +687,9 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Detalles del Pedido',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context).get('detalles_pedido'),
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -717,17 +732,18 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        pedido['estado']?.toString().toUpperCase() ??
-                            'PENDIENTE',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: _getEstadoColor(
-                            pedido['estado']?.toString() ?? 'pendiente',
-                          ),
-                        ),
-                      ),
+                                             Text(
+                         _traducirEstado(
+                           pedido['estado']?.toString() ?? 'pendiente',
+                         ).toUpperCase(),
+                         style: TextStyle(
+                           fontSize: 12,
+                           fontWeight: FontWeight.bold,
+                           color: _getEstadoColor(
+                             pedido['estado']?.toString() ?? 'pendiente',
+                           ),
+                         ),
+                       ),
                     ],
                   ),
                 ),
@@ -735,7 +751,7 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
 
                 // Fecha
                 Text(
-                  'Fecha: ${_formatearFecha(pedido['created_at']?.toString() ?? '')}',
+                  '${AppLocalizations.of(context).get('fecha')}: ${_formatearFecha(pedido['created_at']?.toString() ?? '')}',
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 16),
@@ -753,7 +769,7 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            '${producto['nombre']?.toString() ?? 'Sin nombre'}',
+                            '${producto['nombre']?.toString() ?? AppLocalizations.of(context).get('sin_nombre')}',
                             style: const TextStyle(fontSize: 14),
                           ),
                         ),
@@ -804,9 +820,9 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
 
                 // Ubicación
                 if (pedido['direccion_entrega'] != null) ...[
-                  const Text(
-                    'Ubicación de entrega:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Text(
+                    '${AppLocalizations.of(context).get('ubicacion_entrega')}:',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -819,9 +835,9 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen> {
                 if (pedido['referencias'] != null &&
                     pedido['referencias'].toString().isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  const Text(
-                    'Referencias:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Text(
+                    '${AppLocalizations.of(context).get('referencias')}:',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(

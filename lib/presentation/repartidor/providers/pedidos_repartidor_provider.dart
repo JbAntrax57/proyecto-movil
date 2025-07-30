@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/widgets/custom_alert.dart';
 import '../../../shared/widgets/top_info_message.dart';
 import '../../../shared/utils/pedidos_helper.dart';
+import '../../../core/localization.dart';
 
 class PedidosRepartidorProvider extends ChangeNotifier {
   // Estado de pedidos
@@ -115,8 +116,8 @@ class PedidosRepartidorProvider extends ChangeNotifier {
         if (totalActual > _ultimoTotalPedidosDisponibles) {
           await _flutterLocalNotificationsPlugin.show(
             0,
-            '¡Nuevo pedido disponible!',
-            'Hay $totalActual pedidos listos para tomar.',
+            AppLocalizations.of(context).get('nuevo_pedido_disponible'),
+            AppLocalizations.of(context).get('pedidos_listos_para_tomar').replaceAll('{count}', totalActual.toString()),
             const NotificationDetails(
               android: AndroidNotificationDetails(
                 'pedidos_channel',
@@ -330,7 +331,7 @@ class PedidosRepartidorProvider extends ChangeNotifier {
     if (context.mounted) {
       showTopInfoMessage(
         context,
-        '¡Pedido marcado como entregado!',
+        AppLocalizations.of(context).get('pedido_entregado'),
         icon: Icons.delivery_dining,
         backgroundColor: Colors.blue[50],
         textColor: Colors.blue[700],

@@ -13,6 +13,7 @@ import '../../repartidor/screens/pedidos_screen.dart';
 import '../../duenio/screens/dashboard_screen.dart';
 import '../../admin/screens/admin_home.dart';
 import '../../common/screens/register_screen.dart';
+import '../../../core/localization.dart';
 
 // login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
 // Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
@@ -177,7 +178,7 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
                     const SizedBox(height: 18),
                     // Título
                     Text(
-                      'Iniciar sesión',
+                      AppLocalizations.of(context).get('iniciar_sesion'),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -185,26 +186,26 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
                     const SizedBox(height: 24),
                     // Campo de email
                     TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).get('email'),
+                        prefixIcon: const Icon(Icons.email),
                       ),
                       keyboardType: TextInputType.emailAddress,
                       onChanged: (v) => email = v.trim(),
                       validator: (v) =>
-                          v == null || v.isEmpty ? 'Ingrese su email' : null,
+                          v == null || v.isEmpty ? AppLocalizations.of(context).get('ingrese_email') : null,
                     ),
                     const SizedBox(height: 16),
                     // Campo de contraseña
                     TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: Icon(Icons.lock),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).get('contraseña'),
+                        prefixIcon: const Icon(Icons.lock),
                       ),
                       obscureText: true,
                       onChanged: (v) => password = v.trim(),
                       validator: (v) => v == null || v.isEmpty
-                          ? 'Ingrese su contraseña'
+                          ? AppLocalizations.of(context).get('ingrese_contraseña')
                           : null,
                     ),
                     // Mensaje de error
@@ -238,22 +239,22 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text('Entrar'),
+                            : Text(AppLocalizations.of(context).get('entrar')),
                       ),
                     ),
                     const SizedBox(height: 12),
                     // Botón para crear cuenta
                     TextButton(
                       onPressed: loading ? null : _goToRegister,
-                      child: const Text('Crear cuenta'),
+                      child: Text(AppLocalizations.of(context).get('crear_cuenta')),
                     ),
                     const SizedBox(height: 18),
                     const Divider(),
                     const SizedBox(height: 8),
                     // Demo rápido para cada usuario demo real de Firestore
-                    const Text(
-                      'Demo rápido:',
-                      style: TextStyle(color: Colors.grey),
+                    Text(
+                      AppLocalizations.of(context).get('demo_rapido'),
+                      style: const TextStyle(color: Colors.grey),
                     ),
                     const SizedBox(height: 6),
                     ...demoUsers.map(

@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 import '../../../shared/widgets/custom_alert.dart';
 import '../../../shared/widgets/top_info_message.dart';
+import '../../common/screens/configuracion_screen.dart';
+import '../../../core/localization.dart';
 
 // perfil_screen.dart - Pantalla de perfil del cliente
 // Permite ver y editar información del usuario
@@ -138,12 +140,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        title: Text(AppLocalizations.of(context).get('cerrar_sesion')),
+        content: Text(AppLocalizations.of(context).get('confirmar_cerrar_sesion')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(AppLocalizations.of(context).get('cancelar')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -164,7 +166,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Cerrar sesión'),
+            child: Text(AppLocalizations.of(context).get('cerrar_sesion')),
           ),
         ],
       ),
@@ -188,7 +190,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       backgroundColor: Colors.grey[50],
       appBar: showAppBar
           ? AppBar(
-              title: const Text('Mi Perfil'),
+              title: Text(AppLocalizations.of(context).get('mi_perfil')),
               centerTitle: true,
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -238,9 +240,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 children: [
                   const Icon(Icons.person, color: Colors.purple, size: 28),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Mi Perfil',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context).get('perfil'),
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.purple,
@@ -269,7 +271,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Error al cargar perfil',
+                          AppLocalizations.of(context).get('error'),
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.grey[600],
@@ -288,7 +290,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _cargarPerfil,
-                          child: const Text('Reintentar'),
+                          child: Text(AppLocalizations.of(context).get('intentar_nuevamente')),
                         ),
                       ],
                     ),
@@ -533,9 +535,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                       Icons.receipt_long,
                                       color: Colors.blue,
                                     ),
-                                    title: const Text('Historial de pedidos'),
-                                    subtitle: const Text(
-                                      'Ver todos mis pedidos',
+                                    title: Text(AppLocalizations.of(context).get('historial_pedidos')),
+                                    subtitle: Text(
+                                      AppLocalizations.of(context).get('ver_mis_pedidos'),
                                     ),
                                     trailing: const Icon(
                                       Icons.arrow_forward_ios,
@@ -554,15 +556,39 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
                                   const Divider(),
 
+                                  // Configuración de idioma
+                                  ListTile(
+                                    leading: const Icon(
+                                      Icons.language,
+                                      color: Colors.orange,
+                                    ),
+                                    title: Text(AppLocalizations.of(context).get('configuracion')),
+                                    subtitle: Text(AppLocalizations.of(context).get('idioma')),
+                                    trailing: const Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 16,
+                                    ),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ConfiguracionScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+
+                                  const Divider(),
+
                                   // Cerrar sesión
                                   ListTile(
                                     leading: const Icon(
                                       Icons.logout,
                                       color: Colors.red,
                                     ),
-                                    title: const Text('Cerrar sesión'),
-                                    subtitle: const Text(
-                                      'Salir de la aplicación',
+                                    title: Text(AppLocalizations.of(context).get('cerrar_sesion')),
+                                    subtitle: Text(
+                                      AppLocalizations.of(context).get('salir_aplicacion'),
                                     ),
                                     onTap: _cerrarSesion,
                                   ),
@@ -574,9 +600,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                                       Icons.delivery_dining,
                                       color: Colors.purple,
                                     ),
-                                    title: const Text('Quiero ser repartidor'),
-                                    subtitle: const Text(
-                                      'Notificar a los restaurantes que estoy disponible',
+                                    title: Text(AppLocalizations.of(context).get('quiero_ser_repartidor')),
+                                    subtitle: Text(
+                                      AppLocalizations.of(context).get('notificar_disponibilidad'),
                                     ),
                                     onTap: () async {
                                       // Verificar datos del usuario

@@ -7,6 +7,7 @@ import 'package:geocoding/geocoding.dart';
 import 'dart:async';
 import '../../../shared/widgets/custom_alert.dart';
 import '../../../shared/widgets/top_info_message.dart';
+import '../../../core/localization.dart';
 
 // carrito_screen.dart - Pantalla de carrito de compras para el cliente
 // Permite ver, modificar y eliminar productos del carrito, calcular el total y realizar el pedido.
@@ -100,19 +101,19 @@ class _CarritoScreenState extends State<CarritoScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Eliminar producto'),
-          content: const Text(
-            '¿Estás seguro de que deseas eliminar este producto del carrito?',
+          title: Text(AppLocalizations.of(context).get('eliminar_producto')),
+          content: Text(
+            AppLocalizations.of(context).get('confirmar_eliminar_producto'),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
+              child: Text(AppLocalizations.of(context).get('cancelar')),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Eliminar'),
+              child: Text(AppLocalizations.of(context).get('eliminar')),
             ),
           ],
         ),
@@ -120,7 +121,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
       if (confirm == true) {
         context.read<CarritoProvider>().eliminarProducto(index);
         _mostrarAlertaPersonalizada(
-          'Producto eliminado del carrito',
+          AppLocalizations.of(context).get('producto_eliminado'),
           Colors.orange,
           Icons.delete,
         );
@@ -132,19 +133,19 @@ class _CarritoScreenState extends State<CarritoScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Vaciar carrito'),
-          content: const Text(
-            '¿Estás seguro de que deseas vaciar todo el carrito?',
+          title: Text(AppLocalizations.of(context).get('vaciar_carrito')),
+          content: Text(
+            AppLocalizations.of(context).get('confirmar_vaciar_carrito'),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
+              child: Text(AppLocalizations.of(context).get('cancelar')),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Vaciar'),
+              child: Text(AppLocalizations.of(context).get('vaciar')),
             ),
           ],
         ),
@@ -152,7 +153,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
       if (confirm == true) {
         context.read<CarritoProvider>().limpiarCarrito();
         _mostrarAlertaPersonalizada(
-          'Carrito vaciado',
+          AppLocalizations.of(context).get('carrito_vaciado'),
           Colors.blue,
           Icons.clear_all,
         );
@@ -175,7 +176,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
     void _realizarPedido() async {
       if (carrito.isEmpty) {
         _mostrarAlertaPersonalizada(
-          'El carrito está vacío',
+          AppLocalizations.of(context).get('carrito_vacio'),
           Colors.orange,
           Icons.shopping_cart_outlined,
         );
@@ -288,9 +289,9 @@ class _CarritoScreenState extends State<CarritoScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Mi Carrito',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context).get('mi_carrito'),
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,

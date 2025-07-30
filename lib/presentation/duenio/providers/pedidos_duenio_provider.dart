@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import '../../cliente/providers/carrito_provider.dart';
 import '../../../shared/utils/pedidos_helper.dart';
+import '../../../core/localization.dart';
 
 class PedidosDuenioProvider extends ChangeNotifier {
   // Estado de los pedidos
@@ -20,14 +21,15 @@ class PedidosDuenioProvider extends ChangeNotifier {
   String? get filtroEstado => _filtroEstado;
 
   // Lista de estados para los badges
-  final List<Map<String, dynamic>> estados = [
-    {'label': 'Pendiente', 'color': Colors.orange},
-    {'label': 'Preparando', 'color': Colors.blue},
-    {'label': 'En camino', 'color': Colors.purple},
-    {'label': 'Listo', 'color': Colors.green},
-    {'label': 'Entregado', 'color': Colors.teal},
-    {'label': 'Cancelado', 'color': Colors.red},
-  ];
+  List<Map<String, dynamic>> getEstados(BuildContext context) {
+    return [
+      {'label': AppLocalizations.of(context).get('estado_pendiente'), 'color': Colors.orange},
+      {'label': AppLocalizations.of(context).get('estado_preparando'), 'color': Colors.blue},
+      {'label': AppLocalizations.of(context).get('estado_en_camino'), 'color': Colors.purple},
+      {'label': AppLocalizations.of(context).get('estado_entregado'), 'color': Colors.teal},
+      {'label': AppLocalizations.of(context).get('estado_cancelado'), 'color': Colors.red},
+    ];
+  }
 
   // Orden personalizado de estados
   final List<String> ordenEstados = [

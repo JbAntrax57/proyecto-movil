@@ -14,6 +14,7 @@ import '../../../shared/widgets/custom_alert.dart';
 import '../../../shared/widgets/carrito_success_message.dart';
 import '../../../shared/widgets/top_info_message.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/localization.dart';
 
 class MenuScreen extends StatefulWidget {
   final String restauranteId;
@@ -251,7 +252,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.add_shopping_cart, size: 24),
                         label: Text(
-                          'Agregar al carrito - \$${((double.tryParse(producto['precio']?.toString() ?? '0') ?? 0.0) * cantidad).toStringAsFixed(2)}',
+                          '${AppLocalizations.of(context).get('agregar_carrito')} - \$${((double.tryParse(producto['precio']?.toString() ?? '0') ?? 0.0) * cantidad).toStringAsFixed(2)}',
                           style: GoogleFonts.montserrat(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -281,7 +282,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
                           showTopInfoMessage(
                             context,
-                            '${producto['nombre']} x$cantidad agregado al carrito',
+                            '${producto['nombre']} x$cantidad ${AppLocalizations.of(context).get('producto_agregado')}',
                             icon: Icons.check_circle,
                             backgroundColor: Colors.green[50],
                             textColor: Colors.green[700],
@@ -413,12 +414,16 @@ class _MenuScreenState extends State<MenuScreen> {
               controller: _searchController,
               focusNode: _searchFocusNode,
               decoration: InputDecoration(
-                hintText: 'Buscar productos...',
+                hintText: AppLocalizations.of(context).get('buscar_productos'),
                 hintStyle: GoogleFonts.montserrat(
                   color: Colors.grey[400],
-                  fontSize: 16,
+                  fontSize: 14,
                 ),
-                prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Colors.grey[400],
+                  size: 20,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: Icon(Icons.clear, color: Colors.grey[600]),
@@ -430,8 +435,8 @@ class _MenuScreenState extends State<MenuScreen> {
                     : null,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
+                  horizontal: 16,
+                  vertical: 12,
                 ),
               ),
               onChanged: (value) {
@@ -460,26 +465,17 @@ class _MenuScreenState extends State<MenuScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Error al cargar productos',
+                              AppLocalizations.of(context).get('error_conexion'),
                               style: GoogleFonts.montserrat(
                                 fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[700],
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              menuProvider.error!,
-                              style: GoogleFonts.montserrat(
-                                fontSize: 14,
-                                color: Colors.grey[500],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _onRefresh,
-                              child: const Text('Reintentar'),
+                              child: Text(AppLocalizations.of(context).get('intentar_nuevamente')),
                             ),
                           ],
                         ),
@@ -496,19 +492,19 @@ class _MenuScreenState extends State<MenuScreen> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'No se encontraron productos',
+                                  AppLocalizations.of(context).get('sin_productos'),
                                   style: GoogleFonts.montserrat(
                                     fontSize: 20,
-                                    color: Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[700],
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Intenta con otra búsqueda',
+                                  AppLocalizations.of(context).get('intentar_nuevamente'),
                                   style: GoogleFonts.montserrat(
                                     fontSize: 16,
-                                    color: Colors.grey[500],
+                                    color: Colors.grey[600],
                                   ),
                                 ),
                               ],
