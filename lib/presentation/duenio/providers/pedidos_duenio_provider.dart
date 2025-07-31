@@ -327,276 +327,464 @@ class PedidosDuenioProvider extends ChangeNotifier {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
         final productos = List<Map<String, dynamic>>.from(pedido['productos'] ?? []);
         final total = calcularTotalPedido(pedido);
 
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header con título y cerrar
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          getEstadoIcon(pedido['estado']?.toString() ?? 'pendiente'),
-                          color: getEstadoColor(pedido['estado']?.toString() ?? 'pendiente'),
-                          size: 28,
-                        ),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Detalles del Pedido',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                // Estado visual
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: getEstadoColor(
-                      pedido['estado']?.toString() ?? 'pendiente',
-                    ).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: getEstadoColor(
-                        pedido['estado']?.toString() ?? 'pendiente',
-                      ),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  // Handle del modal
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        getEstadoIcon(
-                          pedido['estado']?.toString() ?? 'pendiente',
-                        ),
-                        size: 18,
-                        color: getEstadoColor(
-                          pedido['estado']?.toString() ?? 'pendiente',
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        pedido['estado']?.toString().toUpperCase() ?? 'PENDIENTE',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: getEstadoColor(
-                            pedido['estado']?.toString() ?? 'pendiente',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                // Fecha
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.calendar_today,
-                      size: 18,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Fecha: ${formatearFecha(pedido['created_at']?.toString() ?? '')}',
-                      style: const TextStyle(fontSize: 15, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                // Productos
-                const Text(
-                  'Productos:',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ...productos.map(
-                  (producto) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
+                  
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(24),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Imagen del producto si hay
-                        if (producto['img'] != null && producto['img'].toString().isNotEmpty)
-                          ClipRRect(
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: getEstadoColor(pedido['estado']?.toString() ?? 'pendiente').withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              producto['img'],
-                              width: 38,
-                              height: 38,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                width: 38,
-                                height: 38,
-                                color: Colors.grey[200],
-                                child: const Icon(
-                                  Icons.fastfood,
-                                  color: Colors.grey,
-                                  size: 20,
+                          ),
+                          child: Icon(
+                            getEstadoIcon(pedido['estado']?.toString() ?? 'pendiente'),
+                            color: getEstadoColor(pedido['estado']?.toString() ?? 'pendiente'),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Detalles del Pedido',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
                                 ),
                               ),
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.fastfood,
-                              color: Colors.grey,
-                              size: 20,
-                            ),
-                          ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            producto['nombre']?.toString() ?? 'Sin nombre',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
+                              Text(
+                                'Pedido #${pedido['id']?.toString().substring(0, 8) ?? 'N/A'}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        Text(
-                          'x${producto['cantidad']?.toString() ?? '1'}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '\$${formatearPrecio(producto['precio'])}',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(
+                            Icons.close,
+                            color: Colors.grey[600],
+                            size: 20,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                // Total destacado
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 18,
-                  ),
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '\$${total.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Ubicación
-                if (pedido['direccion_entrega'] != null && pedido['direccion_entrega'].toString().isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          pedido['direccion_entrega'],
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Colors.black87,
+
+                  // Contenido scrolleable
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Column(
+                        children: [
+                          // Estado del pedido
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: getEstadoColor(pedido['estado']?.toString() ?? 'pendiente').withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: getEstadoColor(pedido['estado']?.toString() ?? 'pendiente'),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    getEstadoIcon(pedido['estado']?.toString() ?? 'pendiente'),
+                                    color: getEstadoColor(pedido['estado']?.toString() ?? 'pendiente'),
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    pedido['estado']?.toString().toUpperCase() ?? 'PENDIENTE',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: getEstadoColor(pedido['estado']?.toString() ?? 'pendiente'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
+
+                          const SizedBox(height: 20),
+
+                          // Información del pedido
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Column(
+                              children: [
+                                // Fecha
+                                _buildInfoRow(
+                                  icon: Icons.calendar_today,
+                                  iconColor: Colors.blue,
+                                  title: 'Fecha del Pedido',
+                                  value: formatearFecha(pedido['created_at']?.toString() ?? ''),
+                                ),
+                                
+                                const SizedBox(height: 12),
+                                
+                                // Cliente
+                                _buildInfoRow(
+                                  icon: Icons.person,
+                                  iconColor: Colors.green,
+                                  title: 'Cliente',
+                                  value: pedido['nombre_cliente']?.toString() ?? 'Cliente',
+                                ),
+                                
+                                const SizedBox(height: 12),
+                                
+                                // Teléfono
+                                if (pedido['telefono_cliente'] != null && pedido['telefono_cliente'].toString().isNotEmpty)
+                                  _buildInfoRow(
+                                    icon: Icons.phone,
+                                    iconColor: Colors.orange,
+                                    title: 'Teléfono',
+                                    value: pedido['telefono_cliente'].toString(),
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Productos
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Productos',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[800],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                ...productos.map((producto) => _buildProductoCard(producto)),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Total
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 20,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Colors.blue[50]!, Colors.blue[100]!],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.blue[200]!),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Total del Pedido',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue[800],
+                                    ),
+                                  ),
+                                  Text(
+                                    '\$${total.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Información de entrega
+                          if (pedido['direccion_entrega'] != null && pedido['direccion_entrega'].toString().isNotEmpty) ...[
+                            const SizedBox(height: 20),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Información de Entrega',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[800],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildInfoRow(
+                                    icon: Icons.location_on,
+                                    iconColor: Colors.red,
+                                    title: 'Dirección',
+                                    value: pedido['direccion_entrega'].toString(),
+                                  ),
+                                  if (pedido['referencias'] != null && pedido['referencias'].toString().isNotEmpty) ...[
+                                    const SizedBox(height: 12),
+                                    _buildInfoRow(
+                                      icon: Icons.info_outline,
+                                      iconColor: Colors.orange,
+                                      title: 'Referencias',
+                                      value: pedido['referencias'].toString(),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 24),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ],
-                // Referencias
-                if (pedido['referencias'] != null && pedido['referencias'].toString().isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: Colors.orange,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          pedido['referencias'],
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Widget helper para información
+  Widget _buildInfoRow({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-                const SizedBox(height: 18),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[800],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  // Widget helper para productos
+  Widget _buildProductoCard(Map<String, dynamic> producto) {
+    final precio = formatearPrecio(producto['precio']);
+    final cantidad = producto['cantidad']?.toString() ?? '1';
+    final subtotal = calcularPrecioTotal(producto['precio'], int.tryParse(cantidad) ?? 1);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey[200]!,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Imagen del producto
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: producto['img'] != null && producto['img'].toString().isNotEmpty
+                ? Image.network(
+                    producto['img'],
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.fastfood,
+                        color: Colors.grey[400],
+                        size: 24,
+                      ),
+                    ),
+                  )
+                : Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.fastfood,
+                      color: Colors.grey[400],
+                      size: 24,
+                    ),
+                  ),
+          ),
+          
+          const SizedBox(width: 12),
+          
+          // Información del producto
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  producto['nombre']?.toString() ?? 'Sin nombre',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      'Cantidad: $cantidad',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Precio: \$$precio',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          // Subtotal
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '\$${subtotal.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[700],
+                ),
+              ),
+              Text(
+                'Subtotal',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -604,43 +792,253 @@ class PedidosDuenioProvider extends ChangeNotifier {
   Future<String?> mostrarModalCambiarEstado(BuildContext context, String estadoActual) async {
     return await showModalBottomSheet<String>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         final estados = [
-          'pendiente',
-          'preparando',
-          'en camino',
-          'listo',
-          'entregado',
-          'cancelado',
+          {
+            'valor': 'pendiente',
+            'icono': Icons.schedule,
+            'color': Colors.orange,
+            'titulo': 'Pendiente',
+            'descripcion': 'Pedido recibido, esperando procesamiento',
+            'traduccion': AppLocalizations.of(context).get('estado_pendiente'),
+          },
+          {
+            'valor': 'preparando',
+            'icono': Icons.restaurant,
+            'color': Colors.blue,
+            'titulo': 'Preparando',
+            'descripcion': 'Pedido en cocina, preparando alimentos',
+            'traduccion': AppLocalizations.of(context).get('estado_preparando'),
+          },
+          {
+            'valor': 'en camino',
+            'icono': Icons.delivery_dining,
+            'color': Colors.purple,
+            'titulo': 'En Camino',
+            'descripcion': 'Pedido en ruta hacia el cliente',
+            'traduccion': AppLocalizations.of(context).get('estado_en_camino'),
+          },
+          {
+            'valor': 'listo',
+            'icono': Icons.check_circle,
+            'color': Colors.green,
+            'titulo': 'Listo',
+            'descripcion': 'Pedido preparado, listo para entrega',
+            'traduccion': 'Listo',
+          },
+          {
+            'valor': 'entregado',
+            'icono': Icons.done_all,
+            'color': Colors.teal,
+            'titulo': 'Entregado',
+            'descripcion': 'Pedido entregado al cliente',
+            'traduccion': AppLocalizations.of(context).get('estado_entregado'),
+          },
+          {
+            'valor': 'cancelado',
+            'icono': Icons.cancel,
+            'color': Colors.red,
+            'titulo': 'Cancelado',
+            'descripcion': 'Pedido cancelado',
+            'traduccion': AppLocalizations.of(context).get('estado_cancelado'),
+          },
         ];
         
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            const Text(
-              'Selecciona el nuevo estado',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...estados.map(
-              (estado) => ListTile(
-                leading: Icon(
-                  getEstadoIcon(estado),
-                  color: getEstadoColor(estado),
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle del modal
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                title: Text(estado.toUpperCase()),
-                onTap: () => Navigator.pop(context, estado),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+              
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.edit,
+                        color: Colors.blue[600],
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Cambiar Estado',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          Text(
+                            'Estado actual: ${estadoActual.toUpperCase()}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Lista de estados
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: estados.length,
+                  itemBuilder: (context, index) {
+                    final estado = estados[index];
+                    final isSelected = estado['valor'] == estadoActual;
+                    
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected 
+                            ? (estado['color'] as Color).withOpacity(0.1)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected 
+                              ? estado['color'] as Color
+                              : Colors.grey[200]!,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: (estado['color'] as Color).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            estado['icono'] as IconData,
+                            color: estado['color'] as Color,
+                            size: 20,
+                          ),
+                        ),
+                        title: Row(
+                          children: [
+                            Text(
+                              estado['traduccion'] as String,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: isSelected 
+                                    ? estado['color'] as Color
+                                    : Colors.grey[800],
+                              ),
+                            ),
+                            if (isSelected) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: estado['color'] as Color,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'ACTUAL',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        subtitle: Text(
+                          estado['descripcion'] as String,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? Icon(
+                                Icons.check_circle,
+                                color: estado['color'] as Color,
+                                size: 20,
+                              )
+                            : Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.grey[400],
+                                size: 16,
+                              ),
+                        onTap: () {
+                          if (!isSelected) {
+                            Navigator.pop(context, estado['valor'] as String);
+                          }
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Botón cancelar
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    child: Text(
+                      'Cancelar',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );

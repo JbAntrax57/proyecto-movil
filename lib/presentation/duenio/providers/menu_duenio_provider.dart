@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../cliente/providers/carrito_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class MenuDuenioProvider extends ChangeNotifier {
   // Estado del menú
@@ -90,6 +91,40 @@ class MenuDuenioProvider extends ChangeNotifier {
     }
   }
 
+  // Cambiar estado activo/inactivo de un producto
+  Future<void> cambiarEstadoProducto(String productoId, bool activo) async {
+    try {
+      await Supabase.instance.client
+          .from('productos')
+          .update({'activo': activo})
+          .eq('id', productoId);
+      
+      // Actualizar el producto en la lista local
+      final index = _productos.indexWhere((p) => p['id'].toString() == productoId);
+      if (index != -1) {
+        _productos[index]['activo'] = activo;
+        notifyListeners();
+      }
+    } catch (e) {
+      throw Exception('Error al cambiar estado del producto: $e');
+    }
+  }
+
+  // Obtener productos activos
+  List<Map<String, dynamic>> getProductosActivos() {
+    return _productos.where((producto) => producto['activo'] == true).toList();
+  }
+
+  // Obtener productos inactivos
+  List<Map<String, dynamic>> getProductosInactivos() {
+    return _productos.where((producto) => producto['activo'] == false).toList();
+  }
+
+  // Verificar si un producto está activo
+  bool isProductoActivo(Map<String, dynamic> producto) {
+    return producto['activo'] == true;
+  }
+
   // Subir imagen a Supabase Storage
   Future<String?> subirImagen(File imagen) async {
     try {
@@ -136,6 +171,7 @@ class MenuDuenioProvider extends ChangeNotifier {
     String? urlSubida = imgController.text.isNotEmpty ? imgController.text : null;
     final picker = ImagePicker();
     bool subiendoImagen = false;
+    bool isEditing = producto != null;
 
     Future<void> seleccionarYSubirImagen(Function setStateDialog) async {
       final picked = await picker.pickImage(
@@ -164,125 +200,595 @@ class MenuDuenioProvider extends ChangeNotifier {
       });
     }
 
-    return showDialog<bool>(
+    return showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          title: Text(
-            producto == null ? 'Agregar producto' : 'Editar producto',
-          ),
-          content: SingleChildScrollView(
+        builder: (context, setStateDialog) => DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.7,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                GestureDetector(
-                  onTap: () async {
-                    await seleccionarYSubirImagen(setStateDialog);
-                  },
-                  child: urlSubida?.isNotEmpty == true
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            urlSubida!,
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : imagenLocal != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(
-                            imagenLocal!,
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.add_a_photo,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
-                        ),
-                ),
-                if (subiendoImagen) ...[
-                  const SizedBox(height: 12),
-                  const CircularProgressIndicator(),
-                ],
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nombreController,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
-                ),
-                TextField(
-                  controller: precioController,
-                  decoration: const InputDecoration(labelText: 'Precio'),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                // Handle del modal
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                TextField(
-                  controller: descripcionController,
-                  decoration: const InputDecoration(labelText: 'Descripción'),
+                
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          isEditing ? Icons.edit : Icons.add,
+                          color: Colors.blue[600],
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isEditing ? 'Editar Producto' : 'Agregar Producto',
+                              style: GoogleFonts.poppins(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            Text(
+                              isEditing ? 'Modifica los datos del producto' : 'Crea un nuevo producto para tu menú',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        icon: Icon(Icons.close, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Contenido scrolleable
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Sección de imagen
+                        _buildImageSection(
+                          urlSubida,
+                          imagenLocal,
+                          subiendoImagen,
+                          () => seleccionarYSubirImagen(setStateDialog),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Sección de información básica
+                        _buildBasicInfoSection(
+                          nombreController,
+                          precioController,
+                          descripcionController,
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Sección de estado (solo para edición)
+                        if (isEditing) ...[
+                          _buildStatusSection(producto!),
+                          const SizedBox(height: 24),
+                        ],
+                        
+                        const SizedBox(height: 80), // Espacio para botones
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Botones de acción
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey[200]!,
+                        blurRadius: 8,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancelar',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: subiendoImagen
+                              ? null
+                              : () async {
+                                  final nombre = nombreController.text.trim();
+                                  final precio = double.tryParse(precioController.text.trim()) ?? 0;
+                                  final descripcion = descripcionController.text.trim();
+                                  final img = imgController.text.trim();
+                                  
+                                  if (nombre.isEmpty || precio <= 0) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Por favor completa todos los campos requeridos',
+                                          style: GoogleFonts.poppins(),
+                                        ),
+                                        backgroundColor: Colors.red,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  
+                                  final data = {
+                                    'nombre': nombre,
+                                    'precio': precio,
+                                    'descripcion': descripcion,
+                                    'img': img,
+                                    'restaurante_id': negocioId,
+                                  };
+                                  
+                                  try {
+                                    if (producto == null) {
+                                      await agregarProducto(data);
+                                    } else {
+                                      await actualizarProducto(producto['id'].toString(), data);
+                                    }
+                                    if (context.mounted) {
+                                      Navigator.pop(context, true);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            isEditing ? 'Producto actualizado correctamente' : 'Producto agregado correctamente',
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                          backgroundColor: Colors.green,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error: $e',
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                          backgroundColor: Colors.red,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[600],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isEditing ? Icons.save : Icons.add,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isEditing ? 'Guardar Cambios' : 'Agregar Producto',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: subiendoImagen
-                  ? null
-                  : () async {
-                      final nombre = nombreController.text.trim();
-                      final precio = double.tryParse(precioController.text.trim()) ?? 0;
-                      final descripcion = descripcionController.text.trim();
-                      final img = imgController.text.trim();
-                      
-                      if (nombre.isEmpty || precio <= 0) {
-                        return;
-                      }
-                      
-                      final data = {
-                        'nombre': nombre,
-                        'precio': precio,
-                        'descripcion': descripcion,
-                        'img': img,
-                        'restaurante_id': negocioId,
-                      };
-                      
-                                             try {
-                         if (producto == null) {
-                           await agregarProducto(data);
-                         } else {
-                           await actualizarProducto(producto['id'].toString(), data);
-                         }
-                         if (context.mounted) {
-                           Navigator.of(context).pop(true);
-                         }
-                       } catch (e) {
-                         // Manejar error
-                         if (context.mounted) {
-                           Navigator.of(context).pop(false);
-                         }
-                       }
-                    },
-              child: Text(producto == null ? 'Agregar' : 'Guardar'),
-            ),
-          ],
         ),
       ),
+    );
+  }
+
+  // Widget helper para la sección de imagen
+  Widget _buildImageSection(
+    String? urlSubida,
+    File? imagenLocal,
+    bool subiendoImagen,
+    VoidCallback onTap,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Imagen del Producto',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[300]!, width: 2, style: BorderStyle.solid),
+            ),
+            child: urlSubida?.isNotEmpty == true
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      children: [
+                        Image.network(
+                          urlSubida!,
+                          width: double.infinity,
+                          height: 200,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: Colors.grey[200],
+                            child: Icon(
+                              Icons.broken_image,
+                              color: Colors.grey[400],
+                              size: 48,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : imagenLocal != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      children: [
+                        Image.file(
+                          imagenLocal!,
+                          width: double.infinity,
+                          height: 200,
+                          fit: BoxFit.cover,
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_a_photo,
+                        size: 48,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Toca para agregar imagen',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        if (subiendoImagen) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Subiendo imagen...',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  // Widget helper para la sección de información básica
+  Widget _buildBasicInfoSection(
+    TextEditingController nombreController,
+    TextEditingController precioController,
+    TextEditingController descripcionController,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Información del Producto',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        // Campo Nombre
+        _buildTextField(
+          controller: nombreController,
+          label: 'Nombre del producto',
+          hint: 'Ej: Hamburguesa Clásica',
+          icon: Icons.restaurant,
+          isRequired: true,
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Campo Precio
+        _buildTextField(
+          controller: precioController,
+          label: 'Precio',
+          hint: '0.00',
+          icon: Icons.attach_money,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          isRequired: true,
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Campo Descripción
+        _buildTextField(
+          controller: descripcionController,
+          label: 'Descripción',
+          hint: 'Describe tu producto...',
+          icon: Icons.description,
+          maxLines: 3,
+        ),
+      ],
+    );
+  }
+
+  // Widget helper para la sección de estado
+  Widget _buildStatusSection(Map<String, dynamic> producto) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Estado del Producto',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                producto['activo'] == true ? Icons.check_circle : Icons.cancel,
+                color: producto['activo'] == true ? Colors.green : Colors.red,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      producto['activo'] == true ? 'Producto Activo' : 'Producto Inactivo',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: producto['activo'] == true ? Colors.green : Colors.red,
+                      ),
+                    ),
+                    Text(
+                      producto['activo'] == true 
+                          ? 'Los clientes pueden ver y ordenar este producto'
+                          : 'Los clientes no pueden ver este producto',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Widget helper para campos de texto
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    bool isRequired = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20, color: Colors.grey[600]),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+              ),
+            ),
+            if (isRequired) ...[
+              const SizedBox(width: 4),
+              Text(
+                '*',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.poppins(
+              color: Colors.grey[400],
+            ),
+            filled: true,
+            fillColor: Colors.grey[50],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+          ),
+        ),
+      ],
     );
   }
 
