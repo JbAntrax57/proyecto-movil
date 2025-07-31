@@ -17,17 +17,24 @@ class DashboardProvider extends ChangeNotifier {
   String? _negocioImgUrl;
   String? _ultimoRestauranteId;
   
+  // Estadísticas del dashboard
+  Map<String, dynamic> _estadisticas = {};
+  bool _cargandoEstadisticas = false;
+  
   // Getters para el estado
   bool get cargandoDatos => _cargandoDatos;
   bool get cargandoNegocio => _cargandoNegocio;
   String? get negocioNombre => _negocioNombre;
   String? get negocioImgUrl => _negocioImgUrl;
+  Map<String, dynamic> get estadisticas => _estadisticas;
+  bool get cargandoEstadisticas => _cargandoEstadisticas;
 
   // Inicialización del dashboard
   Future<void> inicializarDashboard(BuildContext context) async {
     await _restaurarUserIdYEmail(context);
     await _restaurarRestauranteId(context);
     await _cargarDatosNegocio(context);
+    await _cargarEstadisticas(context);
     _setCargandoDatos(false);
   }
 
@@ -87,6 +94,94 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 
+  // Cargar estadísticas del dashboard
+  Future<void> _cargarEstadisticas(BuildContext context) async {
+    final restauranteId = Provider.of<CarritoProvider>(context, listen: false).restauranteId;
+    if (restauranteId == null) return;
+
+    _setCargandoEstadisticas(true);
+    
+    try {
+      // Obtener fecha de hoy
+      final hoy = DateTime.now();
+      final inicioDia = DateTime(hoy.year, hoy.month, hoy.day);
+      final finDia = inicioDia.add(const Duration(days: 1));
+
+      // Pedidos del día
+      final pedidosHoy = await Supabase.instance.client
+          .from('pedidos')
+          .select('*')
+          .eq('restaurante_id', restauranteId)
+          .gte('created_at', inicioDia.toIso8601String())
+          .lt('created_at', finDia.toIso8601String());
+
+      // Pedidos en camino
+      final pedidosEnCamino = await Supabase.instance.client
+          .from('pedidos')
+          .select('*')
+          .eq('restaurante_id', restauranteId)
+          .eq('estado', 'en camino');
+
+      // Calcular ventas del día
+      double ventasHoy = 0;
+      for (var pedido in pedidosHoy) {
+        ventasHoy += (pedido['total'] ?? 0).toDouble();
+      }
+
+      // Obtener puntos del dueño
+      final userId = Provider.of<CarritoProvider>(context, listen: false).userId;
+      Map<String, dynamic> puntosData = {};
+      if (userId != null) {
+        try {
+          puntosData = await PuntosService.obtenerPuntosDueno(userId) ?? {};
+        } catch (e) {
+          print('❌ Error obteniendo puntos: $e');
+        }
+      }
+
+      // Obtener pedidos de ayer para comparación
+      final ayer = hoy.subtract(const Duration(days: 1));
+      final inicioAyer = DateTime(ayer.year, ayer.month, ayer.day);
+      final finAyer = inicioAyer.add(const Duration(days: 1));
+      
+      final pedidosAyer = await Supabase.instance.client
+          .from('pedidos')
+          .select('*')
+          .eq('restaurante_id', restauranteId)
+          .gte('created_at', inicioAyer.toIso8601String())
+          .lt('created_at', finAyer.toIso8601String());
+
+      double ventasAyer = 0;
+      for (var pedido in pedidosAyer) {
+        ventasAyer += (pedido['total'] ?? 0).toDouble();
+      }
+
+      // Calcular porcentajes de cambio
+      final cambioPedidos = pedidosAyer.isNotEmpty 
+          ? ((pedidosHoy.length - pedidosAyer.length) / pedidosAyer.length * 100).round()
+          : 0;
+      
+      final cambioVentas = ventasAyer > 0 
+          ? ((ventasHoy - ventasAyer) / ventasAyer * 100).round()
+          : 0;
+
+      _estadisticas = {
+        'pedidos_hoy': pedidosHoy.length,
+        'ventas_hoy': ventasHoy,
+        'pedidos_en_camino': pedidosEnCamino.length,
+        'puntos_disponibles': puntosData['puntos_disponibles'] ?? 0,
+        'cambio_pedidos': cambioPedidos,
+        'cambio_ventas': cambioVentas,
+        'tiempo_promedio': '25min', // TODO: Calcular tiempo real
+      };
+
+      _setCargandoEstadisticas(false);
+    } catch (e) {
+      print('❌ Error cargando estadísticas: $e');
+      _setCargandoEstadisticas(false);
+    }
+  }
+
   // Cargar datos del negocio de forma reactiva
   Future<Map<String, dynamic>?> cargarDatosNegocioReactivo(String? restauranteId) async {
     if (restauranteId == null || restauranteId.isEmpty) return null;
@@ -99,46 +194,47 @@ class DashboardProvider extends ChangeNotifier {
           .maybeSingle();
       return data;
     } catch (e) {
-      print('❌ Error cargando datos reactivos del negocio: $e');
+      print('❌ Error cargando datos del negocio reactivo: $e');
       return null;
     }
   }
 
+  // Refrescar estadísticas
+  Future<void> refrescarEstadisticas(BuildContext context) async {
+    await _cargarEstadisticas(context);
+  }
+
   // Editar foto del negocio
   Future<void> editarFotoNegocio(BuildContext context) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (picked == null) return;
-    
-    final restauranteId = Provider.of<CarritoProvider>(context, listen: false).restauranteId;
-    if (restauranteId == null) return;
-    
     try {
-      final file = File(picked.path);
-      final fileName = 'negocio_$restauranteId.jpg';
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
       
-      // Subir a Supabase Storage
-      final storage = Supabase.instance.client.storage.from('images');
-      await storage.upload(fileName, file, fileOptions: const FileOptions(upsert: true));
-      final publicUrl = storage.getPublicUrl(fileName);
-      
-      // Actualizar la URL en la base de datos
-      await Supabase.instance.client.from('negocios').update({'img': publicUrl}).eq('id', restauranteId);
-      
-      _negocioImgUrl = publicUrl;
-      notifyListeners();
-      
-      showTopInfoMessage(
-        context,
-        'Foto actualizada',
-        icon: Icons.check_circle,
-        backgroundColor: Colors.green[50],
-        textColor: Colors.green[700],
-        iconColor: Colors.green[700],
-      );
+      if (image == null) return;
+
+      // TODO: Implementar subida de imagen a Supabase Storage
+      // Por ahora solo mostrar mensaje
+      if (context.mounted) {
+        showTopInfoMessage(
+          context,
+          'Función de cambio de foto próximamente disponible',
+          icon: Icons.info,
+          backgroundColor: Colors.blue[50],
+          textColor: Colors.blue[700],
+          iconColor: Colors.blue[700],
+        );
+      }
     } catch (e) {
-      print('❌ Error actualizando foto del negocio: $e');
-      showErrorAlert(context, 'Error al actualizar la foto');
+      if (context.mounted) {
+        showTopInfoMessage(
+          context,
+          'Error al seleccionar imagen: $e',
+          icon: Icons.error,
+          backgroundColor: Colors.red[50],
+          textColor: Colors.red[700],
+          iconColor: Colors.red[700],
+        );
+      }
     }
   }
 
@@ -283,114 +379,111 @@ class DashboardProvider extends ChangeNotifier {
 
   // Mostrar diálogo de puntos
   Future<void> mostrarDialogoPuntos(BuildContext context) async {
-    try {
-      final userProvider = Provider.of<CarritoProvider>(context, listen: false);
-      final userId = userProvider.userId;
-      
-      if (userId == null) {
-        showErrorAlert(context, 'No se pudo identificar al usuario');
-        return;
+    final restauranteId = Provider.of<CarritoProvider>(context, listen: false).restauranteId;
+    final userId = Provider.of<CarritoProvider>(context, listen: false).userId;
+    
+    if (restauranteId == null || userId == null) {
+      if (context.mounted) {
+        showTopInfoMessage(
+          context,
+          'Error: No se pudo obtener información del negocio',
+          icon: Icons.error,
+          backgroundColor: Colors.red[50],
+          textColor: Colors.red[700],
+          iconColor: Colors.red[700],
+        );
       }
+      return;
+    }
 
-      // Mostrar loading
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-
-      // Obtener datos de puntos
+    try {
       final puntosData = await PuntosService.obtenerPuntosDueno(userId);
       
-      // Cerrar loading
-      Navigator.pop(context);
-
-      if (puntosData == null) {
-        showErrorAlert(context, 'No se encontraron datos de puntos para este usuario');
-        return;
-      }
-
-      // Mostrar diálogo con información de puntos
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.stars, color: Colors.amber),
-              const SizedBox(width: 8),
-              const Text('Mis Puntos'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildPuntoInfo('Puntos Disponibles', '${puntosData['puntos_disponibles'] ?? 0}', Colors.green),
-              const SizedBox(height: 12),
-              _buildPuntoInfo('Total Asignado', '${puntosData['total_asignado'] ?? 0}', Colors.blue),
-              const SizedBox(height: 12),
-              _buildPuntoInfo('Puntos por Pedido', '${puntosData['puntos_por_pedido'] ?? 2}', Colors.orange),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Estado del Negocio',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700]),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      (puntosData['puntos_disponibles'] ?? 0) > 0 
-                          ? '✅ Activo - Puedes recibir pedidos'
-                          : '❌ Inactivo - Sin puntos disponibles',
-                      style: TextStyle(
-                        color: (puntosData['puntos_disponibles'] ?? 0) > 0 ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.stars, color: Colors.amber[600]),
+                  const SizedBox(width: 8),
+                  const Text('Mis Puntos'),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      // Cerrar loading si está abierto
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildPuntoInfo('Puntos Disponibles', '${puntosData?['puntos_disponibles'] ?? 0}', Colors.green),
+                  const SizedBox(height: 12),
+                  _buildPuntoInfo('Total Asignado', '${puntosData?['total_asignado'] ?? 0}', Colors.blue),
+                  const SizedBox(height: 12),
+                  _buildPuntoInfo('Puntos por Pedido', '${puntosData?['puntos_por_pedido'] ?? 0}', Colors.orange),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.amber[700], size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Los puntos se consumen automáticamente con cada pedido',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.amber[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cerrar'),
+                ),
+              ],
+            );
+          },
+        );
       }
-      showErrorAlert(context, 'Error al cargar información de puntos: $e');
+    } catch (e) {
+      if (context.mounted) {
+        showTopInfoMessage(
+          context,
+          'Error al cargar puntos: $e',
+          icon: Icons.error,
+          backgroundColor: Colors.red[50],
+          textColor: Colors.red[700],
+          iconColor: Colors.red[700],
+        );
+      }
     }
   }
 
-  // Widget helper para mostrar información de puntos
   Widget _buildPuntoInfo(String label, String value, Color color) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         Text(
           value,
           style: TextStyle(
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: color,
-            fontSize: 16,
           ),
         ),
       ],
@@ -401,26 +494,27 @@ class DashboardProvider extends ChangeNotifier {
   Future<void> cerrarSesion(BuildContext context) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await prefs.remove('isLoggedIn');
+      await prefs.remove('userRol');
+      await prefs.remove('userId');
+      await prefs.remove('userEmail');
       
       if (context.mounted) {
-        Provider.of<CarritoProvider>(context, listen: false).setUserEmail('');
-        Provider.of<CarritoProvider>(context, listen: false).setUserId('');
-        Provider.of<CarritoProvider>(context, listen: false).setRestauranteId(null);
+        Provider.of<CarritoProvider>(context, listen: false).limpiarSesion();
       }
     } catch (e) {
       print('❌ Error cerrando sesión: $e');
     }
   }
 
-  // Setters para el estado
-  void _setCargandoDatos(bool value) {
-    _cargandoDatos = value;
+  // Setters
+  void _setCargandoDatos(bool cargando) {
+    _cargandoDatos = cargando;
     notifyListeners();
   }
 
-  void setCargandoNegocio(bool value) {
-    _cargandoNegocio = value;
+  void _setCargandoEstadisticas(bool cargando) {
+    _cargandoEstadisticas = cargando;
     notifyListeners();
   }
 } 
