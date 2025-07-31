@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
 import '../../cliente/providers/carrito_provider.dart';
 import '../../../services/puntos_service.dart';
@@ -15,6 +16,7 @@ class DashboardProvider extends ChangeNotifier {
   bool _cargandoNegocio = true;
   String? _negocioNombre;
   String? _negocioImgUrl;
+  String? _negocioDescripcion; // Added for new method
   String? _ultimoRestauranteId;
   
   // Estadísticas del dashboard
@@ -85,6 +87,7 @@ class DashboardProvider extends ChangeNotifier {
           
       _negocioNombre = data?['nombre']?.toString() ?? 'Mi Negocio';
       _negocioImgUrl = data?['img']?.toString();
+      _negocioDescripcion = data?['descripcion']?.toString(); // Load description
       _cargandoNegocio = false;
       notifyListeners();
     } catch (e) {
@@ -516,5 +519,552 @@ class DashboardProvider extends ChangeNotifier {
   void _setCargandoEstadisticas(bool cargando) {
     _cargandoEstadisticas = cargando;
     notifyListeners();
+  }
+
+  // Mostrar modal de configuración del negocio
+  Future<void> mostrarDialogoConfiguracionNegocio(BuildContext context, String restauranteId) async {
+    final nombreController = TextEditingController(text: _negocioNombre ?? '');
+    final descripcionController = TextEditingController(text: _negocioDescripcion ?? '');
+    String? imagenUrl = _negocioImgUrl;
+    File? imagenLocal;
+    final picker = ImagePicker();
+    bool subiendoImagen = false;
+
+    Future<void> seleccionarYSubirImagen(Function setStateDialog) async {
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+      if (picked == null) return;
+      
+      imagenLocal = File(picked.path);
+      setStateDialog(() {
+        subiendoImagen = true;
+      });
+      
+      try {
+        final fileName = 'negocio_${DateTime.now().millisecondsSinceEpoch}_${imagenLocal!.path.split('/').last}';
+        final storageResponse = await Supabase.instance.client.storage
+            .from('images')
+            .upload(fileName, imagenLocal!);
+        
+        if (storageResponse.isNotEmpty) {
+          imagenUrl = Supabase.instance.client.storage
+              .from('images')
+              .getPublicUrl(fileName);
+        }
+      } catch (e) {
+        print('Error subiendo imagen: $e');
+      }
+      
+      setStateDialog(() {
+        subiendoImagen = false;
+      });
+    }
+
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.7,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                // Handle del modal
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.store,
+                          color: Colors.blue[600],
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Configuración del Negocio',
+                              style: GoogleFonts.poppins(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            Text(
+                              'Edita la información de tu negocio',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Contenido scrolleable
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Sección de imagen
+                        _buildImageSection(
+                          imagenUrl,
+                          imagenLocal,
+                          subiendoImagen,
+                          () => seleccionarYSubirImagen(setStateDialog),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Sección de información básica
+                        _buildBasicInfoSection(
+                          nombreController,
+                          descripcionController,
+                        ),
+                        
+                        const SizedBox(height: 80), // Espacio para botones
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Botones de acción
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey[200]!,
+                        blurRadius: 8,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancelar',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: subiendoImagen
+                              ? null
+                              : () async {
+                                  final nombre = nombreController.text.trim();
+                                  final descripcion = descripcionController.text.trim();
+                                  final img = imagenUrl ?? '';
+                                  
+                                  if (nombre.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Por favor ingresa el nombre del negocio',
+                                          style: GoogleFonts.poppins(),
+                                        ),
+                                        backgroundColor: Colors.red,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    await Supabase.instance.client
+                                        .from('negocios')
+                                        .update({
+                                          'nombre': nombre,
+                                          'descripcion': descripcion,
+                                          'img': img,
+                                        })
+                                        .eq('id', restauranteId);
+                                    
+                                    // Actualizar datos locales
+                                    _negocioNombre = nombre;
+                                    _negocioDescripcion = descripcion;
+                                    _negocioImgUrl = img;
+                                    notifyListeners();
+                                    
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Información actualizada correctamente',
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                          backgroundColor: Colors.green,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error: $e',
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                          backgroundColor: Colors.red,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[600],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.save, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Guardar Cambios',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Widget helper para la sección de imagen
+  Widget _buildImageSection(
+    String? imagenUrl,
+    File? imagenLocal,
+    bool subiendoImagen,
+    VoidCallback onTap,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Imagen del Negocio',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[300]!, width: 2, style: BorderStyle.solid),
+            ),
+            child: imagenUrl?.isNotEmpty == true
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      children: [
+                        Image.network(
+                          imagenUrl!,
+                          width: double.infinity,
+                          height: 200,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: Colors.grey[200],
+                            child: Icon(
+                              Icons.store,
+                              color: Colors.grey[400],
+                              size: 48,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : imagenLocal != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      children: [
+                        Image.file(
+                          imagenLocal!,
+                          width: double.infinity,
+                          height: 200,
+                          fit: BoxFit.cover,
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_a_photo,
+                        size: 48,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Toca para agregar imagen',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        if (subiendoImagen) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Subiendo imagen...',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  // Widget helper para la sección de información básica
+  Widget _buildBasicInfoSection(
+    TextEditingController nombreController,
+    TextEditingController descripcionController,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Información del Negocio',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        // Campo Nombre
+        _buildTextField(
+          controller: nombreController,
+          label: 'Nombre del negocio',
+          hint: 'Ej: Mi Restaurante',
+          icon: Icons.store,
+          isRequired: true,
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Campo Descripción
+        _buildTextField(
+          controller: descripcionController,
+          label: 'Descripción',
+          hint: 'Describe tu negocio...',
+          icon: Icons.description,
+          maxLines: 3,
+        ),
+      ],
+    );
+  }
+
+  // Widget helper para campos de texto
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+    bool isRequired = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20, color: Colors.grey[600]),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+              ),
+            ),
+            if (isRequired) ...[
+              const SizedBox(width: 4),
+              Text(
+                '*',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.poppins(
+              color: Colors.grey[400],
+            ),
+            filled: true,
+            fillColor: Colors.grey[50],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
   }
 } 

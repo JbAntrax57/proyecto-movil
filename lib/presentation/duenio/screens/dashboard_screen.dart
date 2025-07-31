@@ -488,21 +488,12 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
         },
       ),
       _MenuOption(
-        icon: Icons.bar_chart,
-        title: 'Estadísticas',
-        subtitle: 'Ver ventas y métricas',
-        color: Colors.orange,
-        onTap: () {
-          // TODO: Implementar pantalla de estadísticas
-        },
-      ),
-      _MenuOption(
         icon: Icons.settings,
         title: 'Configuración',
         subtitle: 'Ajustes del negocio',
         color: Colors.grey,
         onTap: () {
-          // TODO: Implementar pantalla de configuración
+          _mostrarModalConfiguracionNegocio();
         },
       ),
     ];
@@ -576,6 +567,20 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
         onTap: opcion.onTap,
       ),
     );
+  }
+
+  void _mostrarModalConfiguracionNegocio() {
+    final dashboardProvider = context.read<DashboardProvider>();
+    final restauranteId = Provider.of<CarritoProvider>(context, listen: false).restauranteId;
+
+    if (restauranteId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo cargar el ID del restaurante.')),
+      );
+      return;
+    }
+
+    dashboardProvider.mostrarDialogoConfiguracionNegocio(context, restauranteId);
   }
 }
 
