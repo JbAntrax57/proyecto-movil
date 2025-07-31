@@ -184,6 +184,53 @@ class AppLocalizations {
       // Notificaciones
       'nuevo_pedido_disponible': '¡Nuevo pedido disponible!',
       'pedidos_listos_para_tomar': 'Hay {count} pedidos listos para tomar.',
+
+      // Profile
+      'error_cargar_perfil': 'Error al cargar perfil',
+      'informacion_personal': 'Información Personal',
+      'cliente': 'Cliente',
+
+      // Cart
+      'explorar': 'Explorar',
+      'agregar_productos_carrito': 'Agrega algunos productos deliciosos\nde los restaurantes disponibles',
+      'explorar_restaurantes': 'Explorar restaurantes',
+
+      // Profile - Form fields
+      'nombre_completo': 'Nombre completo',
+      'ingrese_nombre': 'Por favor ingresa tu nombre',
+      'ingrese_telefono': 'Por favor ingresa tu teléfono',
+      'ingrese_direccion': 'Por favor ingresa tu dirección',
+      'guardar_cambios': 'Guardar cambios',
+      'acciones': 'Acciones',
+      'completar_datos_repartidor': 'Por favor, completa todos tus datos (nombre, correo, dirección y teléfono) antes de solicitar ser repartidor.',
+      'notificacion_enviada': '¡Se notificó a los restaurantes que quieres ser repartidor!',
+      'error_notificar': 'Error al notificar: ',
+      'no_identificar_usuario': 'No se pudo identificar al usuario',
+      'error_cargar_perfil_detalle': 'Error al cargar perfil: ',
+      'perfil_actualizado': 'Perfil actualizado correctamente',
+      'error_actualizar_perfil': 'Error al actualizar perfil: ',
+      'mensaje_repartidor_disponible': 'El cliente {nombre} ({correo}) quiere ser repartidor. Dirección: {direccion}, Teléfono: {telefono}',
+      // Confirmación notificar repartidor
+      'confirmar_notificar_repartidor_titulo': '¿Notificar restaurantes?',
+      'confirmar_notificar_repartidor_mensaje': '¿Estás seguro de que quieres notificar a los restaurantes que deseas ser repartidor? Esta acción enviará una notificación a todos los dueños de restaurantes.',
+
+      // Cart - Additional strings
+      'refrescar_carrito': 'Refrescar carrito',
+      'vaciar_carrito_tooltip': 'Vaciar carrito',
+      'productos_incompletos': 'Productos incompletos',
+      'productos_informacion_incompleta': 'Algunos productos no tienen la información completa del negocio y no se pueden procesar.',
+      'carrito_vaciado_success': 'Carrito vaciado',
+      'necesitamos_ubicacion': 'Necesitamos tu ubicación para entregar tu pedido',
+      'obteniendo_ubicacion': 'Obteniendo ubicación...',
+      'usar_ubicacion_actual': 'Usar ubicación actual',
+      'referencias_placeholder': 'Color de casa, puntos de referencia, instrucciones especiales, etc.',
+      'referencias_ejemplo': 'Ej: Casa azul, frente al parque, tocar timbre 2 veces...',
+      'ubicacion_no_seleccionada': 'Ubicación no seleccionada',
+      'debes_obtener_ubicacion': 'Debes obtener tu ubicación actual e ingresar referencias adicionales.',
+      'referencias_requeridas': 'Referencias requeridas',
+      'debes_ingresar_referencias': 'Debes ingresar referencias adicionales para la entrega.',
+      'error_realizar_pedido': 'Error al realizar el pedido',
+      'error_realizar_pedido_detalle': 'Error al realizar el pedido: ',
     },
     'en': {
       // Navigation
@@ -353,6 +400,53 @@ class AppLocalizations {
       // Notifications
       'nuevo_pedido_disponible': 'New order available!',
       'pedidos_listos_para_tomar': 'There are {count} orders ready to take.',
+
+      // Profile
+      'error_cargar_perfil': 'Error loading profile',
+      'informacion_personal': 'Personal Information',
+      'cliente': 'Client',
+
+      // Cart
+      'explorar': 'Explore',
+      'agregar_productos_carrito': 'Add some delicious products\nfrom available restaurants',
+      'explorar_restaurantes': 'Explore restaurants',
+
+      // Profile - Form fields
+      'nombre_completo': 'Full name',
+      'ingrese_nombre': 'Please enter your name',
+      'ingrese_telefono': 'Please enter your phone number',
+      'ingrese_direccion': 'Please enter your address',
+      'guardar_cambios': 'Save changes',
+      'acciones': 'Actions',
+      'completar_datos_repartidor': 'Please complete all your data (name, email, address and phone) before requesting to be a delivery person.',
+      'notificacion_enviada': 'Restaurants have been notified that you want to be a delivery person!',
+      'error_notificar': 'Error notifying: ',
+      'no_identificar_usuario': 'Could not identify user',
+      'error_cargar_perfil_detalle': 'Error loading profile: ',
+      'perfil_actualizado': 'Profile updated successfully',
+      'error_actualizar_perfil': 'Error updating profile: ',
+      'mensaje_repartidor_disponible': 'Client {nombre} ({correo}) wants to be a delivery person. Address: {direccion}, Phone: {telefono}',
+      // Confirm notify delivery
+      'confirmar_notificar_repartidor_titulo': 'Notify restaurants?',
+      'confirmar_notificar_repartidor_mensaje': 'Are you sure you want to notify restaurants that you want to be a delivery person? This will send a notification to all restaurant owners.',
+
+      // Cart - Additional strings
+      'refrescar_carrito': 'Refresh cart',
+      'vaciar_carrito_tooltip': 'Empty cart',
+      'productos_incompletos': 'Incomplete products',
+      'productos_informacion_incompleta': 'Some products do not have complete business information and cannot be processed.',
+      'carrito_vaciado_success': 'Cart emptied',
+      'necesitamos_ubicacion': 'We need your location to deliver your order',
+      'obteniendo_ubicacion': 'Getting location...',
+      'usar_ubicacion_actual': 'Use current location',
+      'referencias_placeholder': 'House color, landmarks, special instructions, etc.',
+      'referencias_ejemplo': 'Ex: Blue house, in front of the park, ring doorbell 2 times...',
+      'ubicacion_no_seleccionada': 'Location not selected',
+      'debes_obtener_ubicacion': 'You must get your current location and enter additional references.',
+      'referencias_requeridas': 'References required',
+      'debes_ingresar_referencias': 'You must enter additional references for delivery.',
+      'error_realizar_pedido': 'Error placing order',
+      'error_realizar_pedido_detalle': 'Error placing order: ',
     },
   };
 

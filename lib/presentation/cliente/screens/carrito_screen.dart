@@ -332,7 +332,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                   ),
                 ),
                 onPressed: _refrescarCarrito,
-                tooltip: 'Refrescar carrito',
+                tooltip: AppLocalizations.of(context).get('refrescar_carrito'),
               ),
               if (carrito.isNotEmpty)
                 IconButton(
@@ -349,7 +349,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                     ),
                   ),
                   onPressed: _limpiarCarrito,
-                  tooltip: 'Vaciar carrito',
+                  tooltip: AppLocalizations.of(context).get('vaciar_carrito_tooltip'),
                 ),
               const SizedBox(width: 8),
             ],
@@ -395,7 +395,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Productos incompletos',
+                                AppLocalizations.of(context).get('productos_incompletos'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -407,7 +407,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Algunos productos no tienen la información completa del negocio y no se pueden procesar.',
+                          AppLocalizations.of(context).get('productos_informacion_incompleta'),
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.orange[700],
@@ -424,13 +424,13 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                       .read<CarritoProvider>()
                                       .limpiarCarrito();
                                   _mostrarAlertaPersonalizada(
-                                    'Carrito vaciado',
+                                    AppLocalizations.of(context).get('carrito_vaciado_success'),
                                     Colors.blue,
                                     Icons.clear_all,
                                   );
                                 },
                                 icon: const Icon(Icons.clear_all, size: 18),
-                                label: const Text('Vaciar carrito'),
+                                label: Text(AppLocalizations.of(context).get('vaciar_carrito')),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.orange[700],
                                   side: BorderSide(color: Colors.orange[300]!),
@@ -445,7 +445,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                               child: ElevatedButton.icon(
                                 onPressed: () => Navigator.pop(context),
                                 icon: const Icon(Icons.store, size: 18),
-                                label: const Text('Explorar'),
+                                label: Text(AppLocalizations.of(context).get('explorar')),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.orange[600],
                                   foregroundColor: Colors.white,
@@ -482,7 +482,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                 ),
                                 const SizedBox(height: 24),
                                 Text(
-                                  'Tu carrito está vacío',
+                                  AppLocalizations.of(context).get('carrito_vacio'),
                                   style: TextStyle(
                                     fontSize: 22,
                                     color: Colors.grey[700],
@@ -492,7 +492,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Agrega algunos productos deliciosos\nde los restaurantes disponibles',
+                                  AppLocalizations.of(context).get('agregar_productos_carrito'),
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Colors.grey[500],
@@ -504,7 +504,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                 ElevatedButton.icon(
                                   onPressed: () => Navigator.pop(context),
                                   icon: const Icon(Icons.store),
-                                  label: const Text('Explorar restaurantes'),
+                                  label: Text(AppLocalizations.of(context).get('explorar_restaurantes')),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.green,
                                     foregroundColor: Colors.white,
@@ -759,7 +759,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                                             index,
                                                           ),
                                                       tooltip:
-                                                          'Eliminar producto',
+                                                          AppLocalizations.of(context).get('eliminar_producto'),
                                                       padding:
                                                           const EdgeInsets.all(
                                                             8,
@@ -929,7 +929,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                                         CrossAxisAlignment.end,
                                                     children: [
                                                       Text(
-                                                        'Subtotal',
+                                                        AppLocalizations.of(context).get('subtotal'),
                                                         style: TextStyle(
                                                           color:
                                                               Colors.grey[600],
