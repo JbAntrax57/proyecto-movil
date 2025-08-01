@@ -218,4 +218,39 @@ router.get('/:id/productos', async (req, res) => {
   }
 });
 
+// GET /api/negocios/:id/dueno - Obtener dueño del negocio
+router.get('/:id/dueno', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, name, email')
+      .eq('restaurante_id', id)
+      .eq('rol', 'duenio')
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error obteniendo dueño del negocio:', error);
+      return res.status(500).json({
+        error: 'Error al obtener dueño del negocio',
+        message: 'No se pudo obtener la información del dueño'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: data || null
+    });
+
+  } catch (error) {
+    console.error('Error en dueño del negocio:', error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      message: 'Error al procesar la solicitud del dueño'
+    });
+  }
+});
+
 module.exports = router; 

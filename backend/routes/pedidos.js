@@ -159,7 +159,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/pedidos - Crear nuevo pedido
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { 
       usuario_email, 
@@ -167,7 +167,7 @@ router.post('/', authenticateToken, async (req, res) => {
       direccion_entrega,
       productos,
       total,
-      notas 
+      referencias 
     } = req.body;
 
     // Validar datos requeridos
@@ -186,7 +186,7 @@ router.post('/', authenticateToken, async (req, res) => {
         restaurante_id,
         direccion_entrega,
         total,
-        notas,
+        referencias,
         estado: 'pendiente',
         created_at: new Date().toISOString()
       })
@@ -205,10 +205,13 @@ router.post('/', authenticateToken, async (req, res) => {
     const detalles = productos.map(producto => ({
       pedido_id: pedido.id,
       producto_id: producto.id,
-      cantidad: producto.cantidad,
-      precio_unitario: producto.precio,
-      subtotal: producto.precio * producto.cantidad,
-      opciones: producto.opciones || {}
+      nombre: producto.nombre || producto['nombre'],
+      descripcion: producto.descripcion || producto['descripcion'] || '',
+      precio: producto.precio || producto['precio'],
+      cantidad: producto.cantidad || producto['cantidad'],
+      img: producto.img || producto['img'] || '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }));
 
     const { error: detallesError } = await supabase

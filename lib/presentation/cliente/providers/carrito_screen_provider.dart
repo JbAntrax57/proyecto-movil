@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'dart:async';
 import '../../../data/services/detalles_pedidos_service.dart';
+import '../../../data/services/negocios_service.dart';
+import '../../../data/services/pedidos_service.dart';
+import '../../../data/services/http_service.dart';
 import '../../../services/puntos_service.dart';
 
 class CarritoScreenProvider extends ChangeNotifier {
@@ -113,33 +115,22 @@ class CarritoScreenProvider extends ChangeNotifier {
     return productosPorNegocio;
   }
 
-  // Obtener información del negocio
+  // Obtener información del negocio desde el backend
   Future<Map<String, dynamic>?> obtenerInfoNegocio(String negocioId) async {
     try {
-      final data = await Supabase.instance.client
-          .from('negocios')
-          .select('nombre')
-          .eq('id', negocioId)
-          .single();
-      return data;
+      final response = await HttpService.get('/negocios/$negocioId');
+      return response['data'];
     } catch (e) {
       print('❌ Error obteniendo información del negocio: $e');
       return null;
     }
   }
 
-  // Obtener dueño del negocio
+  // Obtener dueño del negocio desde el backend
   Future<String?> obtenerDuenoNegocio(String negocioId) async {
     try {
-      final data = await Supabase.instance.client
-          .from('usuarios')
-          .select('id')
-          .eq('restaurante_id', negocioId)
-          .eq('rol', 'duenio')
-          .limit(1)
-          .maybeSingle();
-      
-      return data?['id'];
+      final response = await HttpService.get('/negocios/$negocioId/dueno');
+      return response['data']?['id'];
     } catch (e) {
       print('❌ Error obteniendo dueño del negocio: $e');
       return null;
@@ -156,26 +147,27 @@ class CarritoScreenProvider extends ChangeNotifier {
     }
   }
 
-  // Crear pedido en Supabase
+  // Crear pedido usando el backend
   Future<Map<String, dynamic>?> crearPedido({
     required String userEmail,
     required String negocioId,
     required double total,
     required String direccionEntrega,
     required String referencias,
+    required List<Map<String, dynamic>> productos,
   }) async {
     try {
-      final result = await Supabase.instance.client.from('pedidos').insert({
+      final data = {
         'usuario_email': userEmail,
         'restaurante_id': negocioId,
         'total': total,
-        'estado': 'pendiente',
         'direccion_entrega': direccionEntrega,
         'referencias': referencias,
-        'created_at': DateTime.now().toIso8601String(),
-      }).select().single();
-      
-      return result;
+        'productos': productos,
+      };
+
+      final response = await HttpService.post('/pedidos', data);
+      return response['data'];
     } catch (e) {
       print('❌ Error creando pedido: $e');
       return null;
@@ -200,16 +192,11 @@ class CarritoScreenProvider extends ChangeNotifier {
     }
   }
 
-  // Obtener puntos por pedido del sistema
+  // Obtener puntos por pedido del sistema desde el backend
   Future<int> obtenerPuntosPorPedido(String duenoId) async {
     try {
-      final data = await Supabase.instance.client
-          .from('sistema_puntos')
-          .select('puntos_por_pedido')
-          .eq('dueno_id', duenoId)
-          .single();
-      
-      return data['puntos_por_pedido'] ?? 2;
+      final response = await HttpService.get('/sistema-puntos/$duenoId');
+      return response['data']?['puntos_por_pedido'] ?? 2;
     } catch (e) {
       print('❌ Error obteniendo puntos por pedido: $e');
       return 2; // Valor por defecto
@@ -301,6 +288,7 @@ class CarritoScreenProvider extends ChangeNotifier {
           total: total,
           direccionEntrega: ubicacion,
           referencias: referencias,
+          productos: productos,
         );
 
         if (pedidoResult == null) {
