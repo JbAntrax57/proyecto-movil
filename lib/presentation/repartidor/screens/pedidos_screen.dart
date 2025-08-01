@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'notificaciones_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../cliente/screens/login_screen.dart';
 import '../../cliente/providers/carrito_provider.dart';
 import '../providers/pedidos_repartidor_provider.dart';
 import '../../../core/localization.dart';
 
 // pedidos_screen.dart - Pantalla de pedidos asignados para el repartidor
-// Refactorizada para usar PedidosRepartidorProvider y separar lógica de negocio
+// Rediseñada con patrón moderno de diseño
 class RepartidorPedidosScreen extends StatefulWidget {
   const RepartidorPedidosScreen({super.key});
   @override
@@ -42,146 +43,513 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
     }
   }
 
+  // Obtener color según el estado del pedido
+  Color _getEstadoColor(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'pendiente':
+        return Colors.orange;
+      case 'preparando':
+        return Colors.blue;
+      case 'en camino':
+        return Colors.purple;
+      case 'entregado':
+        return Colors.green;
+      case 'cancelado':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  // Obtener icono según el estado del pedido
+  IconData _getEstadoIcon(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'pendiente':
+        return Icons.schedule;
+      case 'preparando':
+        return Icons.restaurant;
+      case 'en camino':
+        return Icons.delivery_dining;
+      case 'entregado':
+        return Icons.check_circle;
+      case 'cancelado':
+        return Icons.cancel;
+      default:
+        return Icons.info;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<PedidosRepartidorProvider>(
       builder: (context, pedidosProvider, child) {
         return Scaffold(
-          appBar: AppBar(
-            title: Text(pedidosProvider.selectedIndex == 0 ? 'Pedidos disponibles' : 'Mis pedidos'),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.logout),
-                tooltip: 'Cerrar sesión',
-                onPressed: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove('isLoggedIn');
-                  await prefs.remove('userRol');
-                  await prefs.remove('userId');
-                                     if (context.mounted) {
-                     Provider.of<CarritoProvider>(context, listen: false).setUserEmail('');
-                     Provider.of<CarritoProvider>(context, listen: false).setUserId('');
-                     Provider.of<CarritoProvider>(context, listen: false).setRestauranteId(null);
-                   }
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ClienteLoginScreen()),
-                    (route) => false,
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.notifications),
-                tooltip: 'Ver notificaciones',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const RepartidorNotificacionesScreen(),
-                    ),
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Actualizar',
-                onPressed: () => pedidosProvider.cargarAmbasListas(context),
-              ),
-            ],
-          ),
-          body: pedidosProvider.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  if (pedidosProvider.notificaciones.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      color: Colors.green[50],
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: pedidosProvider.notificaciones.map((n) => Text('🔔 $n', style: const TextStyle(color: Colors.green))).toList(),
-                      ),
-                    ),
-                  Expanded(
-                    child: pedidosProvider.selectedIndex == 0
-                      ? _buildPedidosList(pedidosProvider.pedidosDisponibles, true, pedidosProvider)
-                      : _buildPedidosList(pedidosProvider.misPedidos, false, pedidosProvider),
-                  ),
-                ],
-              ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: pedidosProvider.selectedIndex,
-            onTap: (index) => pedidosProvider.setSelectedIndex(index),
-            items: [
-              BottomNavigationBarItem(
-                icon: Stack(
-                  children: [
-                    const Icon(Icons.assignment_turned_in),
-                    if (pedidosProvider.pedidosDisponibles.isNotEmpty)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          child: Text(
-                            pedidosProvider.pedidosDisponibles.length.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
+          backgroundColor: Colors.grey[50],
+          body: CustomScrollView(
+            slivers: [
+              // AppBar moderno
+              _buildAppBar(pedidosProvider),
+              
+              // Sección de notificaciones
+              if (pedidosProvider.notificaciones.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: _buildNotificationsSection(pedidosProvider),
                 ),
-                label: 'Disponibles',
+              
+              // Sección de estadísticas
+              SliverToBoxAdapter(
+                child: _buildStatsSection(pedidosProvider),
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.list_alt),
-                label: 'Mis pedidos',
+              
+              // Sección de filtros
+              SliverToBoxAdapter(
+                child: _buildFiltersSection(pedidosProvider),
+              ),
+              
+              // Contenido principal
+              SliverToBoxAdapter(
+                child: _buildContentSection(pedidosProvider),
               ),
             ],
           ),
-          floatingActionButton: null,
+          bottomNavigationBar: _buildBottomNavigationBar(pedidosProvider),
         );
       },
     );
   }
 
-  Widget _buildPedidosList(List<Map<String, dynamic>> pedidos, bool mostrarTomar, PedidosRepartidorProvider pedidosProvider) {
-    if (pedidos.isEmpty) {
-      return const Center(child: Text('No hay pedidos para mostrar.', style: TextStyle(color: Colors.grey)));
-    }
-    
-    final pedidosOrdenados = pedidosProvider.getPedidosOrdenados(pedidos);
-    
-    return ListView.builder(
+  // AppBar moderno
+  Widget _buildAppBar(PedidosRepartidorProvider pedidosProvider) {
+    return SliverAppBar(
+      expandedHeight: 120,
+      floating: false,
+      pinned: true,
+      backgroundColor: Colors.white,
+      elevation: 0,
+      actions: [
+        IconButton(
+          onPressed: () => pedidosProvider.cargarAmbasListas(context),
+          icon: Icon(Icons.refresh, color: Colors.white),
+          tooltip: 'Actualizar',
+        ),
+        IconButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const RepartidorNotificacionesScreen(),
+              ),
+            );
+          },
+          icon: Icon(Icons.notifications, color: Colors.white),
+          tooltip: 'Ver notificaciones',
+        ),
+        IconButton(
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.remove('isLoggedIn');
+            await prefs.remove('userRol');
+            await prefs.remove('userId');
+            if (context.mounted) {
+              Provider.of<CarritoProvider>(context, listen: false).setUserEmail('');
+              Provider.of<CarritoProvider>(context, listen: false).setUserId('');
+              Provider.of<CarritoProvider>(context, listen: false).setRestauranteId(null);
+            }
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const ClienteLoginScreen()),
+              (route) => false,
+            );
+          },
+          icon: Icon(Icons.logout, color: Colors.white),
+          tooltip: 'Cerrar sesión',
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.orange[600]!,
+                Colors.orange[700]!,
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.delivery_dining,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          pedidosProvider.selectedIndex == 0 
+                            ? 'Pedidos Disponibles' 
+                            : 'Mis Pedidos',
+                          style: GoogleFonts.poppins(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          pedidosProvider.selectedIndex == 0 
+                            ? 'Toma pedidos para entregar' 
+                            : 'Gestiona tus entregas',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Sección de notificaciones
+  Widget _buildNotificationsSection(PedidosRepartidorProvider pedidosProvider) {
+    return Container(
+      margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(16),
-      itemCount: pedidosOrdenados.length,
-      itemBuilder: (context, index) {
-        final pedido = pedidosOrdenados[index];
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.green[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.green.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.notifications_active,
+                color: Colors.green[600],
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Notificaciones',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...pedidosProvider.notificaciones.map((n) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              '🔔 $n',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.green[700],
+              ),
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  // Sección de estadísticas
+  Widget _buildStatsSection(PedidosRepartidorProvider pedidosProvider) {
+    final pedidosDisponibles = pedidosProvider.pedidosDisponibles.length;
+    final misPedidos = pedidosProvider.misPedidos.length;
+    final pedidosEnCamino = pedidosProvider.misPedidos
+        .where((p) => p['estado']?.toString().toLowerCase() == 'en camino')
+        .length;
+
+    return Container(
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey[200]!,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Resumen',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Disponibles',
+                  '$pedidosDisponibles',
+                  Icons.assignment_turned_in,
+                  Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Mis Pedidos',
+                  '$misPedidos',
+                  Icons.list_alt,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'En Camino',
+                  '$pedidosEnCamino',
+                  Icons.delivery_dining,
+                  Colors.purple,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget helper para tarjetas de estadísticas
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 10,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Sección de filtros
+  Widget _buildFiltersSection(PedidosRepartidorProvider pedidosProvider) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildFilterChip(
+              'Disponibles',
+              pedidosProvider.selectedIndex == 0,
+              Icons.assignment_turned_in,
+              Colors.orange,
+              () => pedidosProvider.setSelectedIndex(0),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildFilterChip(
+              'Mis Pedidos',
+              pedidosProvider.selectedIndex == 1,
+              Icons.list_alt,
+              Colors.blue,
+              () => pedidosProvider.setSelectedIndex(1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget helper para chips de filtro
+  Widget _buildFilterChip(String title, bool isSelected, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey[300]!,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isSelected ? color.withOpacity(0.3) : Colors.grey.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : color,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Sección de contenido principal
+  Widget _buildContentSection(PedidosRepartidorProvider pedidosProvider) {
+    if (pedidosProvider.isLoading) {
+      return Container(
+        height: 300,
+        margin: const EdgeInsets.all(20),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.orange[600]!),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Cargando pedidos...',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final pedidos = pedidosProvider.selectedIndex == 0 
+        ? pedidosProvider.pedidosDisponibles 
+        : pedidosProvider.misPedidos;
+    final mostrarTomar = pedidosProvider.selectedIndex == 0;
+
+    if (pedidos.isEmpty) {
+      return Container(
+        height: 300,
+        margin: const EdgeInsets.all(20),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                mostrarTomar ? Icons.assignment_turned_in : Icons.list_alt,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                mostrarTomar ? 'No hay pedidos disponibles' : 'No tienes pedidos asignados',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                mostrarTomar ? 'Los pedidos aparecerán aquí cuando estén listos' : 'Los pedidos que tomes aparecerán aquí',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final pedidosOrdenados = pedidosProvider.getPedidosOrdenados(pedidos);
+
+    return Column(
+      children: pedidosOrdenados.map((pedido) {
         final productos = List<Map<String, dynamic>>.from(
           pedido['productos'] ?? [],
         );
         final total = pedidosProvider.calcularTotalPedido(productos);
-        
-        return Card(
-          elevation: 4,
-          margin: const EdgeInsets.only(bottom: 16),
-          shape: RoundedRectangleBorder(
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey[200]!,
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -190,187 +558,475 @@ class _RepartidorPedidosScreenState extends State<RepartidorPedidosScreen> {
               children: [
                 // Header con estado y fecha
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // Indicador de estado
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.blue[50],
+                        color: _getEstadoColor(
+                          pedido['estado']?.toString() ?? 'pendiente',
+                        ).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        _traducirEstado(pedido['estado']?.toString() ?? 'pendiente').toUpperCase(),
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          'Folio: ${pedidosProvider.obtenerFolio(pedido['id']?.toString())}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[700],
+                        border: Border.all(
+                          color: _getEstadoColor(
+                            pedido['estado']?.toString() ?? 'pendiente',
                           ),
                         ),
-                        Text(
-                          _formatearFechaPedido(pedido['created_at']?.toString()),
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getEstadoIcon(
+                              pedido['estado']?.toString() ?? 'pendiente',
+                            ),
+                            size: 16,
+                            color: _getEstadoColor(
+                              pedido['estado']?.toString() ?? 'pendiente',
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _traducirEstado(
+                              pedido['estado']?.toString() ?? 'pendiente',
+                            ).toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: _getEstadoColor(
+                                pedido['estado']?.toString() ?? 'pendiente',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    // Fecha
+                    Text(
+                      _formatearFecha(pedido['created_at']?.toString() ?? ''),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+
+                // Información del cliente
+                Row(
+                  children: [
+                    Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Cliente: ${pedido['cliente_nombre'] ?? 'Sin nombre'}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Dirección de entrega
+                if (pedido['direccion_entrega'] != null) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '📍 ${pedido['direccion_entrega']}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 // Productos
                 Text(
-                  'Productos:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
+                  '${AppLocalizations.of(context).get('productos')}:',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
                   ),
                 ),
                 const SizedBox(height: 8),
-                ...productos.take(3).map(
-                  (producto) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      children: [
-                        Text(
-                          '• ${producto['nombre']?.toString() ?? 'Sin nombre'}',
-                          style: const TextStyle(fontSize: 14),
+                ...productos.take(3).map((producto) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        '• ${producto['nombre']?.toString() ?? 'Sin nombre'}',
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'x${producto['cantidad']?.toString() ?? '1'}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey[600],
                         ),
-                        const Spacer(),
-                        Text(
-                          'x${producto['cantidad']?.toString() ?? '1'}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ),
+                )),
                 if (productos.length > 3)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       '... y ${productos.length - 3} más',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ),
-                const SizedBox(height: 12),
+
+                const SizedBox(height: 16),
                 const Divider(),
-                // Total y ubicación
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+
+                // Total y botones de acción
+                Row(
                   children: [
-                    Text(
-                      'Total: \$${total.toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${AppLocalizations.of(context).get('total')}: \$${total.toStringAsFixed(2)}',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.orange[600],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    // Mostrar dirección de entrega si existe en cualquier campo común
-                    () {
-                      final direccion = pedido['direccion_entrega'] ?? pedido['direccion'] ?? pedido['direccionEntrega'];
-                      if (direccion != null && direccion.toString().isNotEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.location_on, color: Colors.red, size: 18),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                fit: FlexFit.loose,
-                                child: Text(
-                                  direccion,
-                                  style: const TextStyle(fontSize: 13, color: Colors.black87),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  softWrap: true,
-                                ),
-                              ),
-                            ],
+                    if (mostrarTomar)
+                      ElevatedButton(
+                        onPressed: () => pedidosProvider.tomarPedido(context, pedido),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    }(),
-                    // Mostrar referencias si existen (solo en 'Mis pedidos')
-                    if (!mostrarTomar) ...[
-                      if (pedido['referencias'] != null && pedido['referencias'].toString().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6, bottom: 2),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.info_outline, color: Colors.orange, size: 18),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                fit: FlexFit.loose,
-                                child: Text(
-                                  pedido['referencias'],
-                                  style: const TextStyle(fontSize: 13, color: Colors.black87),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  softWrap: true,
-                                ),
-                              ),
-                            ],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          elevation: 0,
                         ),
-                    ],
-                    // Botón para marcar como entregado debajo de la dirección en 'Mis pedidos'
-                    if (!mostrarTomar && (pedido['estado']?.toString().toLowerCase() == 'en camino'))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 14.0),
-                        child: Center(
-                          child: ElevatedButton(
-                            onPressed: pedidosProvider.isLoading ? null : () => pedidosProvider.marcarEntregado(context, pedido),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                            child: const Text('Marcar como entregado'),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.delivery_dining, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Tomar',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ElevatedButton(
+                        onPressed: () => _mostrarOpcionesPedido(pedido, pedidosProvider),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.more_vert, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Opciones',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                   ],
                 ),
-                // Botón para tomar pedido directamente debajo de la dirección
-                if (mostrarTomar)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 14.0),
-                    child: Center(
-                      child: ElevatedButton(
-                        onPressed: pedidosProvider.isLoading ? null : () async {
-                          await pedidosProvider.tomarPedido(context, pedido);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // Bottom Navigation Bar moderno
+  Widget _buildBottomNavigationBar(PedidosRepartidorProvider pedidosProvider) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        currentIndex: pedidosProvider.selectedIndex,
+        onTap: (index) => pedidosProvider.setSelectedIndex(index),
+        backgroundColor: Colors.white,
+        selectedItemColor: Colors.orange[600],
+        unselectedItemColor: Colors.grey[600],
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        items: [
+          BottomNavigationBarItem(
+            icon: Stack(
+              children: [
+                const Icon(Icons.assignment_turned_in),
+                if (pedidosProvider.pedidosDisponibles.isNotEmpty)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Text(
+                        pedidosProvider.pedidosDisponibles.length.toString(),
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
-                        child: const Text('Tomar pedido', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
               ],
             ),
+            label: 'Disponibles',
           ),
-        );
-      },
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt),
+            label: 'Mis pedidos',
+          ),
+        ],
+      ),
     );
   }
 
-  String _formatearFechaPedido(String? fecha) {
-    if (fecha == null) return '';
+  // Mostrar opciones del pedido
+  void _mostrarOpcionesPedido(Map<String, dynamic> pedido, PedidosRepartidorProvider pedidosProvider) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.4,
+        minChildSize: 0.3,
+        maxChildSize: 0.6,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Handle del modal
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.delivery_dining,
+                        color: Colors.orange[600],
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Opciones del Pedido',
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          Text(
+                            'Gestiona la entrega',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Opciones
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  children: [
+                    _buildOptionTile(
+                      'Ver detalles',
+                      Icons.info_outline,
+                      Colors.blue,
+                      () {
+                        Navigator.pop(context);
+                        // Implementar ver detalles
+                      },
+                    ),
+                    _buildOptionTile(
+                      'Actualizar estado',
+                      Icons.update,
+                      Colors.orange,
+                      () {
+                        Navigator.pop(context);
+                        // Implementar actualizar estado
+                      },
+                    ),
+                    _buildOptionTile(
+                      'Ver mapa',
+                      Icons.map,
+                      Colors.green,
+                      () {
+                        Navigator.pop(context);
+                        // Implementar ver mapa
+                      },
+                    ),
+                    _buildOptionTile(
+                      'Marcar como entregado',
+                      Icons.check_circle,
+                      Colors.green,
+                      () {
+                        Navigator.pop(context);
+                        pedidosProvider.marcarEntregado(context, pedido);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Widget helper para opciones del modal
+  Widget _buildOptionTile(String title, IconData icon, Color color, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Formatear fecha
+  String _formatearFecha(String fecha) {
     try {
       final date = DateTime.parse(fecha);
-      final now = DateTime.now();
-      if (date.year == now.year && date.month == now.month && date.day == now.day) {
-        return 'Hoy';
-      }
-      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
-      return '';
+      return fecha;
     }
   }
 } 

@@ -26,13 +26,17 @@ class NegociosScreen extends StatefulWidget {
   State<NegociosScreen> createState() => _NegociosScreenState();
 }
 
-class _NegociosScreenState extends State<NegociosScreen> {
+class _NegociosScreenState extends State<NegociosScreen> with TickerProviderStateMixin {
   // Controladores para scroll y refresco
   PageController? _pageController;
   ScrollController? _scrollController;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   int _currentSliderIndex = 0;
+  
+  // Controlador de animación para el icono de saludo
+  late AnimationController _handAnimationController;
+  late Animation<double> _handAnimation;
 
   // Variables para el saludo personalizado
   String? _userName;
@@ -111,6 +115,24 @@ class _NegociosScreenState extends State<NegociosScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // Inicializar animación del icono de saludo
+    _handAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 2500),
+      vsync: this,
+    );
+    
+    _handAnimation = Tween<double>(
+      begin: -0.5,
+      end: 0.5,
+    ).animate(CurvedAnimation(
+      parent: _handAnimationController,
+      curve: Curves.elasticOut,
+    ));
+    
+    // Iniciar animación
+    _handAnimationController.repeat(reverse: true);
+    
     _cargarNombreUsuario();
     _saludoActual = _generarSaludo();
     _fraseActual = _generarFrase();
@@ -129,6 +151,7 @@ class _NegociosScreenState extends State<NegociosScreen> {
     _scrollController?.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _handAnimationController.dispose();
     super.dispose();
   }
 
@@ -218,89 +241,80 @@ class _NegociosScreenState extends State<NegociosScreen> {
                       padding: const EdgeInsets.only(bottom: 20),
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
-                        // Widget de saludo personalizado
+                        // Widget de saludo personalizado rediseñado
                         if (!_isLoadingUser)
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 800),
+                          Container(
                             width: double.infinity,
                             margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                            padding: const EdgeInsets.all(20),
-                                                               decoration: BoxDecoration(
-                                     gradient: LinearGradient(
-                                       begin: Alignment.topLeft,
-                                       end: Alignment.bottomRight,
-                                       colors: [Colors.blue[100]!, Colors.blue[600]!],
-                                     ),
-                                     borderRadius: BorderRadius.circular(16),
-                                     boxShadow: [
-                                       BoxShadow(
-                                         color: Colors.black.withOpacity(0.08),
-                                         blurRadius: 16,
-                                         offset: const Offset(0, 6),
-                                         spreadRadius: 2,
-                                       ),
-                                       BoxShadow(
-                                         color: Colors.blue.withOpacity(0.1),
-                                         blurRadius: 24,
-                                         offset: const Offset(0, 8),
-                                         spreadRadius: 1,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.blue[600]!,
+                                  Colors.blue[800]!,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.3),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                                                         child: Padding(
+                               padding: const EdgeInsets.all(32),
+                               child: Column(
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                 children: [
+                                   // Header con icono y saludo
+                                                                       Row(
+                                      children: [
+                                        AnimatedBuilder(
+                                          animation: _handAnimation,
+                                          builder: (context, child) {
+                                            return Transform.rotate(
+                                              angle: _handAnimation.value,
+                                              child: Icon(
+                                                Icons.waving_hand,
+                                                color: Colors.white,
+                                                size: 32,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(width: 20),
+                                       Expanded(
+                                         child: Column(
+                                           crossAxisAlignment: CrossAxisAlignment.start,
+                                           children: [
+                                             Text(
+                                               '$_saludoActual ${_userName ?? AppLocalizations.of(context).get('nombre')}',
+                                               style: GoogleFonts.poppins(
+                                                 fontSize: 28,
+                                                 fontWeight: FontWeight.bold,
+                                                 color: Colors.white,
+                                               ),
+                                             ),
+                                             const SizedBox(height: 4),
+                                             Text(
+                                               _fraseActual,
+                                               style: GoogleFonts.poppins(
+                                                 fontSize: 16,
+                                                 color: Colors.white.withOpacity(0.9),
+                                               ),
+                                             ),
+                                           ],
+                                         ),
                                        ),
                                      ],
                                    ),
-                            child: TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0, end: 1),
-                              duration: const Duration(milliseconds: 800),
-                              builder: (context, value, child) => Opacity(
-                                opacity: value.clamp(0.0, 1.0),
-                                child: Transform.translate(
-                                  offset: Offset(0, 20 * (1 - value)),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: Colors.blue[100],
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Icon(
-                                              Icons.waving_hand,
-                                              color: Colors.blue[700],
-                                              size: 20,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              '$_saludoActual ${_userName ?? AppLocalizations.of(context).get('nombre')}',
-                                              style: GoogleFonts.montserrat(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        _fraseActual,
-                                        style: GoogleFonts.montserrat(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.black,
-                                          letterSpacing: -0.2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                                   
+                                 ],
+                               ),
+                             ),
                           ),
                         // Barra de búsqueda mejorada
                         Container(
@@ -963,4 +977,6 @@ class _NegociosScreenState extends State<NegociosScreen> {
        
      );
    }
+
+       
  }

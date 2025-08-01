@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'historial_pedidos_screen.dart';
+import 'direcciones_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 import '../../../shared/widgets/custom_alert.dart';
@@ -729,6 +730,22 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => const HistorialPedidosScreen(),
+                ),
+              );
+            },
+          ),
+
+          // Registrar direcciones
+          _buildActionTile(
+            icon: Icons.location_on,
+            iconColor: Colors.green,
+            title: AppLocalizations.of(context).get('registrar_direcciones'),
+            subtitle: AppLocalizations.of(context).get('gestionar_mis_direcciones'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DireccionesScreen(),
                 ),
               );
             },
