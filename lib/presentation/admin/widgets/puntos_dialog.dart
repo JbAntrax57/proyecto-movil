@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../shared/widgets/top_info_message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/puntos_service.dart';
+import '../../../core/localization.dart';
 
 class PuntosDialog extends StatefulWidget {
   final Map<String, dynamic> dueno;
@@ -116,7 +117,7 @@ class _PuntosDialogState extends State<PuntosDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('${_tipoOperacion == 'agregar' ? 'Agregar' : 'Quitar'} Puntos'),
+      title: Text('${_tipoOperacion == 'agregar' ? AppLocalizations.of(context).get('agregar_puntos') : AppLocalizations.of(context).get('quitar_puntos')}'),
       content: Form(
         key: _formKey,
         child: Column(
@@ -148,9 +149,9 @@ class _PuntosDialogState extends State<PuntosDialog> {
 
             // Tipo de operación
             SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'agregar', label: Text('Agregar')),
-                ButtonSegment(value: 'quitar', label: Text('Quitar')),
+              segments: [
+                ButtonSegment(value: 'agregar', label: Text(AppLocalizations.of(context).get('agregar'))),
+                ButtonSegment(value: 'quitar', label: Text(AppLocalizations.of(context).get('quitar'))),
               ],
               selected: {_tipoOperacion},
               onSelectionChanged: (Set<String> newSelection) {
@@ -206,7 +207,7 @@ class _PuntosDialogState extends State<PuntosDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+                      child: Text(AppLocalizations.of(context).get('cancelar')),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _procesarPuntos,
@@ -220,7 +221,7 @@ class _PuntosDialogState extends State<PuntosDialog> {
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(_tipoOperacion == 'agregar' ? 'Agregar' : 'Quitar'),
+              : Text(_tipoOperacion == 'agregar' ? AppLocalizations.of(context).get('agregar') : AppLocalizations.of(context).get('quitar')),
         ),
       ],
     );

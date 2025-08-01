@@ -9,6 +9,7 @@ import '../providers/notificaciones_pedidos_provider.dart';
 import 'asignar_repartidores_screen.dart';
 import '../../cliente/screens/login_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/localization.dart';
 
 /// dashboard_screen.dart - Dashboard moderno para el dueño
 /// Muestra estadísticas, métricas y opciones de gestión del restaurante
@@ -575,7 +576,7 @@ class _DuenioDashboardScreenState extends State<DuenioDashboardScreen> {
 
     if (restauranteId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo cargar el ID del restaurante.')),
+        SnackBar(content: Text(AppLocalizations.of(context).get('no_cargar_restaurante'))),
       );
       return;
     }

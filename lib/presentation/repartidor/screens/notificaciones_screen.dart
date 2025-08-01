@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../cliente/providers/carrito_provider.dart';
+import '../../../core/localization.dart';
 
 /// notificaciones_screen.dart - Pantalla para que el repartidor vea sus notificaciones
 /// Muestra una lista de notificaciones obtenidas de la tabla 'notificaciones' filtradas por el usuario actual (repartidor).
@@ -39,7 +40,7 @@ class RepartidorNotificacionesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis notificaciones'),
+        title: Text(AppLocalizations.of(context).get('mis_notificaciones')),
         centerTitle: true,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -54,9 +55,9 @@ class RepartidorNotificacionesScreen extends StatelessWidget {
               child: Card(
                 color: Colors.blue[50],
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: const Padding(
-                  padding: EdgeInsets.all(18),
-                  child: Text('No tienes notificaciones recientes.', style: TextStyle(color: Colors.blueGrey)),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Text(AppLocalizations.of(context).get('no_notificaciones_recientes'), style: const TextStyle(color: Colors.blueGrey)),
                 ),
               ),
             );

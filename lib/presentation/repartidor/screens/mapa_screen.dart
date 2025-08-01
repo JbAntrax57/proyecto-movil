@@ -2,6 +2,7 @@
 // Muestra un mapa simulado y permite volver a la lista de pedidos.
 // Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
 import 'package:flutter/material.dart';
+import '../../../core/localization.dart';
 
 class MapaScreen extends StatelessWidget {
   // Pantalla de mapa de entrega para el repartidor
@@ -11,7 +12,7 @@ class MapaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Scaffold principal con animación y visualización de mapa
     return Scaffold(
-      appBar: AppBar(title: const Text('Mapa de entrega'), centerTitle: true),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).get('mapa_entrega')), centerTitle: true),
       body: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: 1),
         duration: const Duration(milliseconds: 500),
@@ -42,7 +43,7 @@ class MapaScreen extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back),
-                label: const Text('Volver'),
+                label: Text(AppLocalizations.of(context).get('volver')),
               ),
             ],
           ),

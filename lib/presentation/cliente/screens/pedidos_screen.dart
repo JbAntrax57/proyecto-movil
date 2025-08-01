@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/carrito_provider.dart';
 import '../providers/pedidos_provider.dart';
+import '../../../core/localization.dart';
 
 // pedidos_screen.dart - Pantalla de pedidos del cliente
 // Permite ver el historial de pedidos realizados y su estado.
@@ -33,7 +34,7 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
       backgroundColor: Colors.blue[50],
       appBar: AppBar(
         backgroundColor: Colors.blue[50],
-        title: const Text('Mis Pedidos'),
+        title: Text(AppLocalizations.of(context).get('mis_pedidos')),
         centerTitle: true,
       ),
       body: Consumer<PedidosProvider>(
@@ -45,7 +46,7 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
 
           // Mostrar error
           if (pedidosProvider.error != null) {
-            return Center(child: Text('Error: ${pedidosProvider.error}'));
+            return Center(child: Text('${AppLocalizations.of(context).get('error')}: ${pedidosProvider.error}'));
           }
 
           // Mostrar estado vacío
@@ -229,7 +230,7 @@ class _ClientePedidosScreenState extends State<ClientePedidosScreen> {
                                   ),
                                   // Precio del producto
                                   Text(
-                                    '\$${(producto['precio'] as int) * (producto['cantidad'] as int)}',
+                                    '\$${((producto['precio'] as int) * (producto['cantidad'] as int)).toStringAsFixed(2)}',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.blue,

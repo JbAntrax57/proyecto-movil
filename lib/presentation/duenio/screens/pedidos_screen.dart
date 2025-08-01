@@ -149,7 +149,7 @@ class _DuenioPedidosScreenState extends State<DuenioPedidosScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Reintentar'),
+                            child: Text(AppLocalizations.of(context).get('reintentar')),
           ),
         ],
       ),

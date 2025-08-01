@@ -610,7 +610,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
             ],
           ),
           child: Text(
-            '\$$subtotal',
+            '\$${subtotal.toStringAsFixed(2)}',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -736,7 +736,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
               ),
             ),
             Text(
-              '\$$total',
+              '\$${total.toStringAsFixed(2)}',
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -932,8 +932,8 @@ class _CarritoScreenState extends State<CarritoScreen> {
   }
 
   void _realizarPedido() async {
-    final carrito = context.watch<CarritoProvider>().carrito;
-    final carritoProvider = context.watch<CarritoScreenProvider>();
+    final carrito = context.read<CarritoProvider>().carrito;
+    final carritoProvider = context.read<CarritoScreenProvider>();
     
     if (carrito.isEmpty) {
       _mostrarAlertaPersonalizada(
@@ -1067,12 +1067,12 @@ class _UbicacionModalState extends State<UbicacionModal> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmar dirección'),
+        title: Text(AppLocalizations.of(context).get('confirmar_direccion')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('¿Estás seguro de que quieres enviar tu pedido a esta dirección?'),
+            Text(AppLocalizations.of(context).get('confirmar_envio_direccion')),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -1115,7 +1115,7 @@ class _UbicacionModalState extends State<UbicacionModal> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(AppLocalizations.of(context).get('cancelar')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1129,7 +1129,7 @@ class _UbicacionModalState extends State<UbicacionModal> {
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Confirmar'),
+            child: Text(AppLocalizations.of(context).get('confirmar')),
           ),
         ],
       ),
@@ -1147,8 +1147,8 @@ class _UbicacionModalState extends State<UbicacionModal> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '📍 Selecciona tu ubicación',
+              Text(
+                '📍 ${AppLocalizations.of(context).get('seleccionar_ubicacion')}',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -1156,8 +1156,8 @@ class _UbicacionModalState extends State<UbicacionModal> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Necesitamos tu ubicación para entregar tu pedido',
+              Text(
+                AppLocalizations.of(context).get('necesitamos_ubicacion_entrega'),
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 24),
@@ -1183,7 +1183,7 @@ class _UbicacionModalState extends State<UbicacionModal> {
                   Icon(Icons.location_on, color: Colors.green, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    'Mis direcciones guardadas',
+                    AppLocalizations.of(context).get('mis_direcciones_guardadas'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -1300,7 +1300,7 @@ class _UbicacionModalState extends State<UbicacionModal> {
               );
             },
             icon: const Icon(Icons.add_location, size: 18),
-            label: const Text('Gestionar direcciones'),
+            label: Text(AppLocalizations.of(context).get('gestionar_direcciones')),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.blue,
               side: BorderSide(color: Colors.blue.shade300),
@@ -1324,30 +1324,37 @@ class _UbicacionModalState extends State<UbicacionModal> {
         Expanded(
           child: TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(AppLocalizations.of(context).get('cancelar')),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: ElevatedButton(
             onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Selección requerida'),
-                    content: const Text(
-                      'Por favor, selecciona una de tus direcciones guardadas para continuar.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Aceptar'),
+              // Verificar si hay direcciones guardadas
+              final direccionesProvider = context.read<DireccionesProvider>();
+              if (direccionesProvider.direcciones.isEmpty) {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text(AppLocalizations.of(context).get('seleccion_requerida')),
+                      content: Text(
+                        AppLocalizations.of(context).get('por_favor_selecciona_direccion'),
                       ),
-                    ],
-                  );
-                },
-              );
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(AppLocalizations.of(context).get('aceptar')),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              } else {
+                // Si hay direcciones, cerrar el modal sin seleccionar (el usuario debe elegir una)
+                Navigator.pop(context);
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
@@ -1357,7 +1364,7 @@ class _UbicacionModalState extends State<UbicacionModal> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Confirmar'),
+            child: Text(AppLocalizations.of(context).get('confirmar')),
           ),
         ),
       ],

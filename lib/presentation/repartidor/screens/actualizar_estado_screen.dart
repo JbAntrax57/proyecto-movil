@@ -2,6 +2,7 @@
 // Permite marcar un pedido como entregado y volver a la lista de pedidos.
 // Todos los métodos, variables y widgets están documentados para facilitar el mantenimiento y la extensión.
 import 'package:flutter/material.dart';
+import '../../../core/localization.dart';
 
 class ActualizarEstadoScreen extends StatefulWidget {
   // Pantalla para actualizar el estado de un pedido
@@ -18,7 +19,7 @@ class _ActualizarEstadoScreenState extends State<ActualizarEstadoScreen> {
   Widget build(BuildContext context) {
     // Scaffold principal con animación y botón para marcar como entregado
     return Scaffold(
-      appBar: AppBar(title: const Text('Actualizar estado del pedido'), centerTitle: true),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).get('actualizar_estado_pedido')), centerTitle: true),
       body: Center(
         child: TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
@@ -51,7 +52,7 @@ class _ActualizarEstadoScreenState extends State<ActualizarEstadoScreen> {
                 onPressed: entregado
                     ? () => Navigator.pop(context)
                     : () => setState(() => entregado = true),
-                child: Text(entregado ? 'Volver' : 'Marcar como entregado'),
+                child: Text(entregado ? AppLocalizations.of(context).get('volver') : AppLocalizations.of(context).get('marcar_entregado')),
               ),
             ],
           ),

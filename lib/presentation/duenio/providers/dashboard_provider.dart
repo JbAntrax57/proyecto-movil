@@ -9,6 +9,7 @@ import '../../cliente/providers/carrito_provider.dart';
 import '../../../services/puntos_service.dart';
 import '../../../shared/widgets/custom_alert.dart';
 import '../../../shared/widgets/top_info_message.dart';
+import '../../../core/localization.dart';
 
 class DashboardProvider extends ChangeNotifier {
   // Estado del dashboard
@@ -411,7 +412,7 @@ class DashboardProvider extends ChangeNotifier {
                 children: [
                   Icon(Icons.stars, color: Colors.amber[600]),
                   const SizedBox(width: 8),
-                  const Text('Mis Puntos'),
+                  Text(AppLocalizations.of(context).get('mis_puntos')),
                 ],
               ),
               content: Column(
@@ -452,7 +453,7 @@ class DashboardProvider extends ChangeNotifier {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cerrar'),
+                  child: Text(AppLocalizations.of(context).get('cerrar')),
                 ),
               ],
             );

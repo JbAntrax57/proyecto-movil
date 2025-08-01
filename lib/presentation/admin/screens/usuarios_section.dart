@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../providers/admin_usuarios_provider.dart';
+import '../../../core/localization.dart';
 
 // usuarios_section.dart - Pantalla de gestión de usuarios para el admin
 // Refactorizada para usar AdminUsuariosProvider y separar lógica de negocio
@@ -59,10 +60,10 @@ class _AdminUsuariosSectionState extends State<AdminUsuariosSection> {
                         decoration: const InputDecoration(labelText: 'Filtrar por rol'),
                         isExpanded: true,
                         items: [
-                          const DropdownMenuItem(value: 'Todos', child: Text('Todos')),
-                          const DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                          const DropdownMenuItem(value: 'duenio', child: Text('Dueño')),
-                          const DropdownMenuItem(value: 'repartidor', child: Text('Repartidor')),
+                          DropdownMenuItem(value: 'Todos', child: Text(AppLocalizations.of(context).get('todos'))),
+                          DropdownMenuItem(value: 'admin', child: Text(AppLocalizations.of(context).get('admin'))),
+                          DropdownMenuItem(value: 'duenio', child: Text(AppLocalizations.of(context).get('duenio'))),
+                          DropdownMenuItem(value: 'repartidor', child: Text(AppLocalizations.of(context).get('repartidor'))),
                         ],
                         onChanged: (value) {
                           usuariosProvider.setFiltroRol(value ?? 'Todos');
@@ -99,12 +100,12 @@ class _AdminUsuariosSectionState extends State<AdminUsuariosSection> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Nombre')),
-          DataColumn(label: Text('Email')),
-          DataColumn(label: Text('Rol')),
-          DataColumn(label: Text('Restaurante')),
-          DataColumn(label: Text('Acciones')),
+        columns: [
+          DataColumn(label: Text(AppLocalizations.of(context).get('nombre'))),
+          DataColumn(label: Text(AppLocalizations.of(context).get('email'))),
+          DataColumn(label: Text(AppLocalizations.of(context).get('rol'))),
+          DataColumn(label: Text(AppLocalizations.of(context).get('restaurante'))),
+          DataColumn(label: Text(AppLocalizations.of(context).get('acciones'))),
         ],
         rows: usuariosProvider.usuariosFiltrados.map((usuario) {
           return DataRow(cells: [

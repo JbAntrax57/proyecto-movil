@@ -5,6 +5,7 @@ import 'dart:convert'; // Para utf8.encode
 import 'package:go_router/go_router.dart'; // Importa context.go
 import '../../../shared/widgets/custom_alert.dart';
 import '../../../shared/widgets/top_info_message.dart';
+import '../../../core/localization.dart';
 
 // register_screen.dart (común) - Pantalla de registro genérica
 // Muestra un formulario de registro simple para cualquier rol.
@@ -92,7 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registro')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).get('registro'))),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -185,17 +186,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     DropdownButtonFormField<String>(
                       value: rol,
                       decoration: const InputDecoration(labelText: 'Rol'),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: 'cliente',
-                          child: Text('Cliente'),
+                          child: Text(AppLocalizations.of(context).get('cliente')),
                         ),
                         DropdownMenuItem(
                           value: 'repartidor',
-                          child: Text('Repartidor'),
+                          child: Text(AppLocalizations.of(context).get('repartidor')),
                         ),
-                        DropdownMenuItem(value: 'duenio', child: Text('Dueño')),
-                        DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                        DropdownMenuItem(
+                          value: 'duenio', 
+                          child: Text(AppLocalizations.of(context).get('duenio'))
+                        ),
+                        DropdownMenuItem(
+                          value: 'admin', 
+                          child: Text(AppLocalizations.of(context).get('admin'))
+                        ),
                       ],
                       onChanged: (v) => setState(() {
                         rol = v ?? 'cliente';
@@ -231,7 +238,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text('Registrarse'),
+                            : Text(AppLocalizations.of(context).get('registrarse')),
                       ),
                     ),
                   ],

@@ -221,7 +221,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                          ],
                        ),
                        child: Text(
-                         '\$${producto['precio']?.toString() ?? '0.00'}',
+                         '\$${(double.tryParse(producto['precio']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
                          style: GoogleFonts.poppins(
                            fontSize: 20,
                            fontWeight: FontWeight.bold,
@@ -1041,7 +1041,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                        children: [
                          Expanded(
                            child: Text(
-                             '\$${producto['precio']?.toString() ?? '0.00'}',
+                             '\$${(double.tryParse(producto['precio']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
                              style: GoogleFonts.poppins(
                                fontSize: 14,
                                fontWeight: FontWeight.bold,

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../cliente/providers/carrito_provider.dart';
 import '../../../shared/widgets/custom_alert.dart';
 import '../../../shared/widgets/top_info_message.dart';
+import '../../../core/localization.dart';
 
 class RepartidoresProvider extends ChangeNotifier {
   // Estado de repartidores
@@ -255,20 +256,20 @@ class RepartidoresProvider extends ChangeNotifier {
           children: [
             const Icon(Icons.person, color: Colors.orange),
             const SizedBox(width: 8),
-            const Text('Detalles del Cliente'),
+            Text(AppLocalizations.of(context).get('detalles_cliente')),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow('Nombre', nombre),
+            _buildInfoRow(context, 'Nombre', nombre),
             const SizedBox(height: 8),
-            _buildInfoRow('Email', email),
+            _buildInfoRow(context, 'Email', email),
             const SizedBox(height: 8),
-            _buildInfoRow('Dirección', direccion),
+            _buildInfoRow(context, 'Dirección', direccion),
             const SizedBox(height: 8),
-            _buildInfoRow('Teléfono', telefono),
+            _buildInfoRow(context, 'Teléfono', telefono),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(8),
@@ -294,7 +295,7 @@ class RepartidoresProvider extends ChangeNotifier {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
+            child: Text(AppLocalizations.of(context).get('cerrar')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -305,7 +306,7 @@ class RepartidoresProvider extends ChangeNotifier {
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Contactar'),
+            child: Text(AppLocalizations.of(context).get('contactar')),
           ),
         ],
       ),
@@ -313,7 +314,7 @@ class RepartidoresProvider extends ChangeNotifier {
   }
 
   // Widget auxiliar para mostrar información
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -324,7 +325,7 @@ class RepartidoresProvider extends ChangeNotifier {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
-        Expanded(child: Text(value.isEmpty ? 'No disponible' : value)),
+        Expanded(child: Text(value.isEmpty ? AppLocalizations.of(context).get('no_disponible') : value)),
       ],
     );
   }
