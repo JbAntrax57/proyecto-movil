@@ -40,6 +40,23 @@ class DireccionModel {
     );
   }
 
+  factory DireccionModel.fromMap(Map<String, dynamic> map) {
+    return DireccionModel(
+      id: map['id']?.toString(),
+      usuarioId: map['usuario_id']?.toString() ?? '',
+      nombre: map['nombre']?.toString() ?? '',
+      direccion: map['direccion']?.toString() ?? '',
+      referencias: map['referencias']?.toString(),
+      latitud: map['latitud']?.toDouble(),
+      longitud: map['longitud']?.toDouble(),
+      esPredeterminada: map['es_predeterminada'] ?? false,
+      fechaCreacion: DateTime.parse(map['fecha_creacion'] ?? DateTime.now().toIso8601String()),
+      fechaActualizacion: map['fecha_actualizacion'] != null 
+          ? DateTime.parse(map['fecha_actualizacion']) 
+          : null,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> json = {
       'usuario_id': usuarioId,
@@ -63,6 +80,31 @@ class DireccionModel {
     }
     
     return json;
+  }
+
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      'usuario_id': usuarioId,
+      'nombre': nombre,
+      'direccion': direccion,
+      'referencias': referencias,
+      'latitud': latitud,
+      'longitud': longitud,
+      'es_predeterminada': esPredeterminada,
+      'fecha_creacion': fechaCreacion.toIso8601String(),
+    };
+    
+    // Solo incluir id si no es null (para actualizaciones)
+    if (id != null) {
+      map['id'] = id;
+    }
+    
+    // Solo incluir fecha_actualizacion si no es null
+    if (fechaActualizacion != null) {
+      map['fecha_actualizacion'] = fechaActualizacion!.toIso8601String();
+    }
+    
+    return map;
   }
 
   DireccionModel copyWith({

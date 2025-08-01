@@ -22,9 +22,11 @@ class _DireccionesScreenState extends State<DireccionesScreen> {
   }
 
   Future<void> _cargarDirecciones() async {
-    final userEmail = context.read<CarritoProvider>().userEmail;
-    if (userEmail != null) {
-      await context.read<DireccionesProvider>().cargarDirecciones(userEmail);
+    final userId = context.read<CarritoProvider>().userId;
+    if (userId != null) {
+      await context.read<DireccionesProvider>().cargarDirecciones(userId);
+    } else {
+      print('❌ Error: No se encontró userId en CarritoProvider');
     }
   }
 

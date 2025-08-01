@@ -3,10 +3,6 @@ import 'package:provider/provider.dart';
 import '../../cliente/providers/carrito_provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../duenio/providers/notificaciones_pedidos_provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
-import 'package:crypto/crypto.dart'; // Para encriptar la contraseña
-import 'dart:convert'; // Para utf8.encode
-import '../../repartidor/screens/pedidos_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../cliente/screens/home_screen.dart';
 import '../../repartidor/screens/pedidos_screen.dart';
@@ -14,6 +10,8 @@ import '../../duenio/screens/dashboard_screen.dart';
 import '../../admin/screens/admin_home.dart';
 import '../../common/screens/register_screen.dart';
 import '../../../core/localization.dart';
+import '../../../data/services/auth_service.dart';
+import '../../../data/services/http_service.dart';
 
 // login_screen.dart - Pantalla de inicio de sesión para clientes y demo multirol
 // Permite iniciar sesión con usuarios demo y navega según el rol seleccionado.
@@ -46,56 +44,52 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
     {'email': 'admin@wasp.mx', 'password': 'res123', 'rol': 'Admin'},
   ];
 
-  // Función para encriptar la contraseña con SHA-256
-  String hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
-  // Lógica de login: consulta Supabase y navega según el rol
+  // Lógica de login: usa el backend para autenticación
   void _login() async {
     setState(() {
       error = null;
       loading = true;
     });
+    
     try {
-      // Consulta el usuario directamente en la tabla 'usuarios' de Supabase
+      print('🔐 Login: Intentando login para: $email');
       
-      final userData = await Supabase.instance.client
-          .from('usuarios')
-          .select()
-          .eq('email', email)
-          .eq('password', hashPassword(password)) // Compara el hash
-          .single();
-      print('🔐 Login: Intentando login con id: ${userData['user_id']}');
-      if (userData == null) {
+      // Usar el servicio de autenticación del backend
+      final authData = await AuthService.login(email, password);
+      
+      if (authData == null) {
         setState(() {
           loading = false;
           error = 'Usuario o contraseña incorrectos';
         });
         return;
       }
+
+      // Guardar token en el HttpService
+      await HttpService.saveToken(authData['token']);
+      
+      final user = authData['user'];
+      final userId = user['id'].toString();
+      final rol = user['rol'].toLowerCase();
+      
+      print('🔐 Login: Login exitoso para: $email, ID: $userId, Rol: $rol');
       
       // Configura el carrito global para este usuario
       context.read<CarritoProvider>().setUserEmail(email);
-      final rol = (userData['rol'] as String).toLowerCase();
-      final userId = userData['user_id']?.toString() ?? userData['id']?.toString();
+      context.read<CarritoProvider>().setUserId(userId);
+      
       // Guarda el estado de login, el rol y el id en shared_preferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isLoggedIn', true);
       await prefs.setString('userRol', rol);
-      if (userId != null) await prefs.setString('userId', userId);
+      await prefs.setString('userId', userId);
       await prefs.setString('userEmail', email);
-      // Asigna el id al provider global
-      if (userId != null) context.read<CarritoProvider>().setUserId(userId);
       
       // Si es dueño, configura el restauranteId en el provider y activa notificaciones globales
-      print('🔐 Login: id: ${userData['restaurante_id']}');
-      if (rol == 'duenio' && userData['restaurante_id'] != null) {
-        context.read<CarritoProvider>().setRestauranteId(userData['restaurante_id'] as String);
+      if (rol == 'duenio' && user['restaurante_id'] != null) {
+        context.read<CarritoProvider>().setRestauranteId(user['restaurante_id'] as String);
         context.read<NotificacionesPedidosProvider>().configurarRestaurante(
-          userData['restaurante_id'] as String,
+          user['restaurante_id'] as String,
           context,
         );
       }
@@ -140,6 +134,7 @@ class _LoginScreenState extends State<ClienteLoginScreen> {
           });
       }
     } catch (e) {
+      print('❌ Error en login: $e');
       setState(() {
         loading = false;
         error = 'Usuario o contraseña incorrectos';

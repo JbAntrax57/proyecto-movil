@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
-import 'dart:convert'; // Para jsonDecode
+import '../../../data/services/carrito_service.dart';
 
 class CarritoProvider extends ChangeNotifier {
   final List<Map<String, dynamic>> _carrito = [];
@@ -72,9 +71,9 @@ class CarritoProvider extends ChangeNotifier {
     // Cargar carrito de forma asíncrona
     Future.microtask(() async {
       try {
-        // Obtener el carrito desde Supabase (incluye limpieza de duplicados)
-        final carritoDb = await obtenerCarrito(_userEmail!);
-        print('Carrito obtenido de DB: $carritoDb'); // Debug
+        // Obtener el carrito desde el backend
+        final carritoDb = await CarritoService.obtenerCarrito(_userEmail!);
+        print('Carrito obtenido del backend: $carritoDb'); // Debug
         
         _carrito.clear();
         _carrito.addAll(carritoDb);
@@ -90,7 +89,7 @@ class CarritoProvider extends ChangeNotifier {
   Future<void> cargarCarrito() async {
     if (_userEmail == null || _userEmail!.isEmpty) return;
     try {
-      final carritoDb = await obtenerCarrito(_userEmail!);
+      final carritoDb = await CarritoService.obtenerCarrito(_userEmail!);
       _carrito.clear();
       _carrito.addAll(carritoDb);
       notifyListeners();
@@ -100,107 +99,23 @@ class CarritoProvider extends ChangeNotifier {
     }
   }
 
-  // Limpia carritos duplicados para un usuario
-  Future<void> _limpiarCarritosDuplicados() async {
-    if (_userEmail == null || _userEmail!.isEmpty) return;
-    
-    try {
-      // Obtener todos los carritos del usuario
-      final carritos = await Supabase.instance.client
-          .from('carritos')
-          .select('id, updated_at')
-          .eq('email', _userEmail!)
-          .order('updated_at', ascending: false);
-      
-      if (carritos.length > 1) {
-        print('Encontrados ${carritos.length} carritos para $_userEmail, limpiando duplicados...'); // Debug
-        
-        // Mantener solo el más reciente
-        final carritoMasReciente = carritos.first;
-        final carritosAEliminar = carritos.skip(1).map((c) => c['id']).toList();
-        
-        // Eliminar carritos duplicados
-        for (final id in carritosAEliminar) {
-          await Supabase.instance.client
-              .from('carritos')
-              .delete()
-              .eq('id', id);
-        }
-        
-        print('Carritos duplicados eliminados, manteniendo ID: ${carritoMasReciente['id']}'); // Debug
-      }
-    } catch (e) {
-      print('Error limpiando carritos duplicados: $e');
-    }
-  }
-
   // Método público para limpiar carritos duplicados manualmente
   Future<void> limpiarCarritosDuplicados() async {
-    await _limpiarCarritosDuplicados();
+    // La limpieza de duplicados ahora se maneja en el backend
+    print('Limpieza de duplicados manejada por el backend');
   }
 
-  // Obtiene el carrito del usuario desde Supabase
+  // Obtiene el carrito del usuario desde el backend
   Future<List<Map<String, dynamic>>> obtenerCarrito(String email) async {
     try {
-      // Primero obtener todos los carritos del usuario
-      final carritos = await Supabase.instance.client
-          .from('carritos')
-          .select('id, carrito, updated_at')
-          .eq('email', email)
-          .order('updated_at', ascending: false);
-      
-      if (carritos.isEmpty) {
-        print('No se encontró carrito para: $email'); // Debug
-        return [];
-      }
-      
-      // Si hay múltiples carritos, limpiar duplicados
-      if (carritos.length > 1) {
-        print('Encontrados ${carritos.length} carritos para $email, limpiando duplicados...'); // Debug
-        await _limpiarCarritosDuplicados();
-        // Después de limpiar, obtener el carrito más reciente
-        final carritoLimpio = await Supabase.instance.client
-            .from('carritos')
-            .select('carrito')
-            .eq('email', email)
-            .single();
-        return _parsearCarrito(carritoLimpio['carrito']);
-      }
-      
-      // Si solo hay un carrito, usarlo directamente
-      final data = carritos.first;
-      return _parsearCarrito(data['carrito']);
-      
+      return await CarritoService.obtenerCarrito(email);
     } catch (e) {
       print('Error obteniendo carrito: $e');
       return [];
     }
   }
 
-  // Función auxiliar para parsear el carrito
-  List<Map<String, dynamic>> _parsearCarrito(dynamic carritoData) {
-    if (carritoData == null) return [];
-    
-    // Si carrito es una lista, la devolvemos directamente
-    if (carritoData is List) {
-      return List<Map<String, dynamic>>.from(carritoData);
-    }
-    // Si es un string JSON, lo parseamos
-    if (carritoData is String) {
-      try {
-        final List<dynamic> parsed = jsonDecode(carritoData);
-        return parsed
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList();
-      } catch (e) {
-        print('Error parsing carrito JSON: $e');
-        return [];
-      }
-    }
-    return [];
-  }
-
-  // Actualiza el carrito en Supabase
+  // Actualiza el carrito en el backend
   Future<void> actualizarCarrito(
     String email,
     List<Map<String, dynamic>> carrito,
@@ -210,38 +125,11 @@ class CarritoProvider extends ChangeNotifier {
       return;
     }
     try {
-      print('Actualizando carrito en DB para: $email'); // Debug
+      print('Actualizando carrito en backend para: $email'); // Debug
       
-      // Primero limpiar carritos duplicados si existen
-      await _limpiarCarritosDuplicados();
-      
-      // Verificar si existe un carrito para este usuario
-      final carritos = await Supabase.instance.client
-          .from('carritos')
-          .select('id')
-          .eq('email', email);
-      
-      if (carritos.isNotEmpty) {
-        // Actualizar el carrito existente (el más reciente después de limpiar)
-        await Supabase.instance.client
-            .from('carritos')
-            .update({
-              'carrito': carrito,
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .eq('email', email);
-        print('Carrito existente actualizado en DB'); // Debug
-      } else {
-        // Crear un nuevo carrito
-        await Supabase.instance.client
-            .from('carritos')
-            .insert({
-              'email': email,
-              'carrito': carrito,
-              'updated_at': DateTime.now().toIso8601String(),
-            });
-        print('Nuevo carrito creado en DB'); // Debug
-      }
+      // La actualización del carrito se maneja automáticamente por el backend
+      // cuando se agregan, eliminan o modifican productos
+      print('Carrito actualizado en backend'); // Debug
     } catch (e) {
       print('Error actualizando carrito: $e');
     }
@@ -273,8 +161,29 @@ class CarritoProvider extends ChangeNotifier {
     }
     
     print('Carrito actual: $_carrito'); // Debug
-    actualizarCarrito(_userEmail!, _carrito);
+    
+    // Actualizar en el backend
+    _actualizarCarritoEnBackend();
     notifyListeners();
+  }
+
+  // Método privado para actualizar el carrito en el backend
+  Future<void> _actualizarCarritoEnBackend() async {
+    if (_userEmail == null || _userEmail!.isEmpty) return;
+    
+    try {
+      // Enviar cada producto al backend
+      for (final producto in _carrito) {
+        await CarritoService.agregarProducto(
+          userEmail: _userEmail!,
+          productoId: producto['id'].toString(),
+          cantidad: _parseCantidad(producto['cantidad']),
+          opciones: producto['opciones'],
+        );
+      }
+    } catch (e) {
+      print('Error actualizando carrito en backend: $e');
+    }
   }
 
   void eliminarProducto(int index) {
@@ -282,9 +191,27 @@ class CarritoProvider extends ChangeNotifier {
       print('Error: No se puede eliminar producto sin email de usuario');
       return;
     }
+    
+    final producto = _carrito[index];
     _carrito.removeAt(index);
-    actualizarCarrito(_userEmail!, _carrito);
+    
+    // Eliminar del backend
+    _eliminarProductoEnBackend(producto);
     notifyListeners();
+  }
+
+  // Método privado para eliminar producto del backend
+  Future<void> _eliminarProductoEnBackend(Map<String, dynamic> producto) async {
+    if (_userEmail == null || _userEmail!.isEmpty) return;
+    
+    try {
+      await CarritoService.eliminarProducto(
+        userEmail: _userEmail!,
+        productoId: producto['id'].toString(),
+      );
+    } catch (e) {
+      print('Error eliminando producto del backend: $e');
+    }
   }
 
   void limpiarCarrito() {
@@ -293,8 +220,21 @@ class CarritoProvider extends ChangeNotifier {
       return;
     }
     _carrito.clear();
-    actualizarCarrito(_userEmail!, _carrito);
+    
+    // Limpiar en el backend
+    _limpiarCarritoEnBackend();
     notifyListeners();
+  }
+
+  // Método privado para limpiar carrito en el backend
+  Future<void> _limpiarCarritoEnBackend() async {
+    if (_userEmail == null || _userEmail!.isEmpty) return;
+    
+    try {
+      await CarritoService.limpiarCarrito(_userEmail!);
+    } catch (e) {
+      print('Error limpiando carrito en backend: $e');
+    }
   }
 
   void modificarCantidad(int index, int delta) {
@@ -308,8 +248,24 @@ class CarritoProvider extends ChangeNotifier {
       final nuevaCantidad = cantidadActual + delta;
       _carrito[index]['cantidad'] = nuevaCantidad < 1 ? 1 : nuevaCantidad;
 
-      actualizarCarrito(_userEmail!, _carrito);
+      // Actualizar en el backend
+      _actualizarCantidadEnBackend(_carrito[index], nuevaCantidad);
       notifyListeners();
+    }
+  }
+
+  // Método privado para actualizar cantidad en el backend
+  Future<void> _actualizarCantidadEnBackend(Map<String, dynamic> producto, int nuevaCantidad) async {
+    if (_userEmail == null || _userEmail!.isEmpty) return;
+    
+    try {
+      await CarritoService.actualizarCantidad(
+        userEmail: _userEmail!,
+        productoId: producto['id'].toString(),
+        cantidad: nuevaCantidad,
+      );
+    } catch (e) {
+      print('Error actualizando cantidad en backend: $e');
     }
   }
 

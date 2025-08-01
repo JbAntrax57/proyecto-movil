@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../data/services/pedidos_service.dart';
 import '../../../shared/utils/pedidos_helper.dart';
 
 class PedidosProvider extends ChangeNotifier {
@@ -34,9 +34,7 @@ class PedidosProvider extends ChangeNotifier {
     limpiarError();
 
     try {
-      final pedidosData = await PedidosHelper.obtenerPedidosConDetalles(
-        usuarioEmail: _userEmail,
-      );
+      final pedidosData = await PedidosService.obtenerPedidosUsuario(_userEmail!);
       
       _pedidos = pedidosData;
       notifyListeners();

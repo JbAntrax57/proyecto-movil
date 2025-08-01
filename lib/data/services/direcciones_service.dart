@@ -1,146 +1,186 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/direccion_model.dart';
+import '../services/http_service.dart';
 
 class DireccionesService {
-  final SupabaseClient _supabase = Supabase.instance.client;
-
-  // Obtener todas las direcciones de un usuario
-  Future<List<DireccionModel>> obtenerDirecciones(String usuarioId) async {
+  // Obtener direcciones de un usuario
+  static Future<List<Map<String, dynamic>>> obtenerDirecciones(String userId) async {
     try {
-      final response = await _supabase
-          .from('direcciones')
-          .select()
-          .eq('usuario_id', usuarioId)
-          .order('es_predeterminada', ascending: false)
-          .order('fecha_creacion', ascending: false);
-
-      return (response as List)
-          .map((json) => DireccionModel.fromJson(json))
-          .toList();
+      print('🔍 DireccionesService.obtenerDirecciones() - User ID: $userId');
+      final response = await HttpService.get('/direcciones/$userId');
+      print('🔍 DireccionesService.obtenerDirecciones() - Respuesta recibida: ${response.toString()}');
+      final data = List<Map<String, dynamic>>.from(response['data'] ?? []);
+      print('🔍 DireccionesService.obtenerDirecciones() - Direcciones procesadas: ${data.length}');
+      return data;
     } catch (e) {
-      throw Exception('Error al obtener direcciones: $e');
+      print('❌ Error obteniendo direcciones: $e');
+      return [];
     }
   }
 
-  // Obtener una dirección específica
-  Future<DireccionModel?> obtenerDireccion(String direccionId) async {
+  // Obtener dirección por ID
+  static Future<Map<String, dynamic>?> obtenerDireccion(String direccionId) async {
     try {
-      final response = await _supabase
-          .from('direcciones')
-          .select()
-          .eq('id', direccionId)
-          .single();
-
-      return DireccionModel.fromJson(response);
+      final response = await HttpService.get('/direcciones/detalle/$direccionId');
+      return response['data'];
     } catch (e) {
-      if (e.toString().contains('No rows returned')) {
-        return null;
-      }
-      throw Exception('Error al obtener dirección: $e');
+      print('Error obteniendo dirección: $e');
+      return null;
     }
   }
 
-  // Crear una nueva dirección
-  Future<DireccionModel> crearDireccion(DireccionModel direccion) async {
+  // Crear nueva dirección
+  static Future<Map<String, dynamic>?> crearDireccion({
+    required String userEmail,
+    required String nombre,
+    required String direccion,
+    required double latitud,
+    required double longitud,
+    String? telefono,
+    String? instrucciones,
+    bool esPredeterminada = false,
+  }) async {
     try {
-      // Si la nueva dirección es predeterminada, quitar predeterminada de otras
-      if (direccion.esPredeterminada) {
-        await _supabase
-            .from('direcciones')
-            .update({'es_predeterminada': false})
-            .eq('usuario_id', direccion.usuarioId)
-            .eq('es_predeterminada', true);
-      }
+      final data = {
+        'userEmail': userEmail,
+        'nombre': nombre,
+        'direccion': direccion,
+        'latitud': latitud,
+        'longitud': longitud,
+        if (telefono != null) 'telefono': telefono,
+        if (instrucciones != null) 'instrucciones': instrucciones,
+        'esPredeterminada': esPredeterminada,
+      };
 
-      final response = await _supabase
-          .from('direcciones')
-          .insert(direccion.toJson())
-          .select()
-          .single();
-
-      return DireccionModel.fromJson(response);
+      final response = await HttpService.post('/direcciones', data);
+      return response['data'];
     } catch (e) {
-      throw Exception('Error al crear dirección: $e');
+      print('Error creando dirección: $e');
+      return null;
     }
   }
 
-  // Actualizar una dirección existente
-  Future<DireccionModel> actualizarDireccion(DireccionModel direccion) async {
+  // Actualizar dirección
+  static Future<bool> actualizarDireccion({
+    required String direccionId,
+    String? nombre,
+    String? direccion,
+    double? latitud,
+    double? longitud,
+    String? telefono,
+    String? instrucciones,
+    bool? esPredeterminada,
+  }) async {
     try {
-      // Si la dirección se marca como predeterminada, quitar predeterminada de otras
-      if (direccion.esPredeterminada) {
-        await _supabase
-            .from('direcciones')
-            .update({'es_predeterminada': false})
-            .eq('usuario_id', direccion.usuarioId)
-            .eq('es_predeterminada', true)
-            .neq('id', direccion.id!);
-      }
+      final data = <String, dynamic>{};
+      if (nombre != null) data['nombre'] = nombre;
+      if (direccion != null) data['direccion'] = direccion;
+      if (latitud != null) data['latitud'] = latitud;
+      if (longitud != null) data['longitud'] = longitud;
+      if (telefono != null) data['telefono'] = telefono;
+      if (instrucciones != null) data['instrucciones'] = instrucciones;
+      if (esPredeterminada != null) data['esPredeterminada'] = esPredeterminada;
 
-      final response = await _supabase
-          .from('direcciones')
-          .update({
-            ...direccion.toJson(),
-            'fecha_actualizacion': DateTime.now().toIso8601String(),
-          })
-          .eq('id', direccion.id!)
-          .select()
-          .single();
-
-      return DireccionModel.fromJson(response);
+      final response = await HttpService.put('/direcciones/$direccionId', data);
+      return response['success'] ?? false;
     } catch (e) {
-      throw Exception('Error al actualizar dirección: $e');
+      print('Error actualizando dirección: $e');
+      return false;
     }
   }
 
-  // Eliminar una dirección
-  Future<void> eliminarDireccion(String direccionId) async {
+  // Eliminar dirección
+  static Future<bool> eliminarDireccion(String direccionId) async {
     try {
-      await _supabase
-          .from('direcciones')
-          .delete()
-          .eq('id', direccionId);
+      final response = await HttpService.delete('/direcciones/$direccionId');
+      return response['success'] ?? false;
     } catch (e) {
-      throw Exception('Error al eliminar dirección: $e');
+      print('Error eliminando dirección: $e');
+      return false;
     }
   }
 
-  // Marcar una dirección como predeterminada
-  Future<void> marcarComoPredeterminada(String direccionId, String usuarioId) async {
+  // Establecer dirección como predeterminada
+  static Future<bool> establecerPredeterminada(String direccionId) async {
     try {
-      // Quitar predeterminada de todas las direcciones del usuario
-      await _supabase
-          .from('direcciones')
-          .update({'es_predeterminada': false})
-          .eq('usuario_id', usuarioId);
-
-      // Marcar la dirección específica como predeterminada
-      await _supabase
-          .from('direcciones')
-          .update({
-            'es_predeterminada': true,
-            'fecha_actualizacion': DateTime.now().toIso8601String(),
-          })
-          .eq('id', direccionId);
+      final response = await HttpService.post('/direcciones/$direccionId/predeterminada', {});
+      return response['success'] ?? false;
     } catch (e) {
-      throw Exception('Error al marcar dirección como predeterminada: $e');
+      print('Error estableciendo dirección predeterminada: $e');
+      return false;
     }
   }
 
-  // Obtener la dirección predeterminada de un usuario
-  Future<DireccionModel?> obtenerDireccionPredeterminada(String usuarioId) async {
+  // Obtener dirección predeterminada
+  static Future<Map<String, dynamic>?> obtenerDireccionPredeterminada(String userEmail) async {
     try {
-      final response = await _supabase
-          .from('direcciones')
-          .select()
-          .eq('usuario_id', usuarioId)
-          .eq('es_predeterminada', true)
-          .maybeSingle();
-
-      if (response == null) return null;
-      return DireccionModel.fromJson(response);
+      final response = await HttpService.get('/direcciones/$userEmail/predeterminada');
+      return response['data'];
     } catch (e) {
-      throw Exception('Error al obtener dirección predeterminada: $e');
+      print('Error obteniendo dirección predeterminada: $e');
+      return null;
+    }
+  }
+
+  // Validar dirección
+  static Future<Map<String, dynamic>?> validarDireccion(String direccion) async {
+    try {
+      final response = await HttpService.post('/direcciones/validar', {
+        'direccion': direccion,
+      });
+      return response['data'];
+    } catch (e) {
+      print('Error validando dirección: $e');
+      return null;
+    }
+  }
+
+  // Obtener coordenadas desde dirección
+  static Future<Map<String, dynamic>?> obtenerCoordenadas(String direccion) async {
+    try {
+      final response = await HttpService.post('/direcciones/geocodificar', {
+        'direccion': direccion,
+      });
+      return response['data'];
+    } catch (e) {
+      print('Error obteniendo coordenadas: $e');
+      return null;
+    }
+  }
+
+  // Obtener dirección desde coordenadas
+  static Future<Map<String, dynamic>?> obtenerDireccionDesdeCoordenadas({
+    required double latitud,
+    required double longitud,
+  }) async {
+    try {
+      final response = await HttpService.post('/direcciones/reverse-geocoding', {
+        'latitud': latitud,
+        'longitud': longitud,
+      });
+      return response['data'];
+    } catch (e) {
+      print('Error obteniendo dirección desde coordenadas: $e');
+      return null;
+    }
+  }
+
+  // Calcular distancia entre dos puntos
+  static Future<double?> calcularDistancia({
+    required double lat1,
+    required double lng1,
+    required double lat2,
+    required double lng2,
+  }) async {
+    try {
+      final response = await HttpService.post('/direcciones/calcular-distancia', {
+        'lat1': lat1,
+        'lng1': lng1,
+        'lat2': lat2,
+        'lng2': lng2,
+      });
+      return response['distancia'];
+    } catch (e) {
+      print('Error calculando distancia: $e');
+      return null;
     }
   }
 } 

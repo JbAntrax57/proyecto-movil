@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../data/services/negocios_service.dart';
 
 class NegociosProvider extends ChangeNotifier {
   // Estado de carga
@@ -48,41 +48,27 @@ class NegociosProvider extends ChangeNotifier {
     return 0.0;
   }
 
-  // Obtiene las categorías desde Supabase
+  // Obtiene las categorías desde el backend
   Future<List<Map<String, dynamic>>> obtenerCategorias() async {
     try {
-      final data = await Supabase.instance.client
-          .from('categorias_principales')
-          .select()
-          .eq('activo', true)
-          .order('nombre');
-      return List<Map<String, dynamic>>.from(data);
+      return await NegociosService.obtenerCategorias();
     } catch (e) {
       print('❌ Error al obtener categorías: $e');
       return [];
     }
   }
 
-  // Obtiene los negocios desde Supabase, filtrando por categoría si aplica
+  // Obtiene los negocios desde el backend, filtrando por categoría si aplica
   Future<List<Map<String, dynamic>>> obtenerNegocios({
     String? categoriaId,
   }) async {
     try {
       if (categoriaId != null && categoriaId.isNotEmpty) {
-        // Si hay filtro de categoría, usar la relación inner con filtro
-        final data = await Supabase.instance.client
-          .from('negocios')
-          .select('*, negocios_categorias!inner(categoria_id)')
-          .eq('negocios_categorias.categoria_id', categoriaId)
-          .order('nombre');
-        return List<Map<String, dynamic>>.from(data);
+        // Si hay filtro de categoría, obtener negocios por categoría
+        return await NegociosService.obtenerNegociosPorCategoria(categoriaId);
       } else {
         // Si no hay filtro, obtener todos los negocios
-        final data = await Supabase.instance.client
-          .from('negocios')
-          .select('*')
-          .order('nombre');
-        return List<Map<String, dynamic>>.from(data);
+        return await NegociosService.obtenerNegocios();
       }
     } catch (e) {
       print('❌ Error al obtener negocios: $e');
@@ -90,7 +76,7 @@ class NegociosProvider extends ChangeNotifier {
     }
   }
 
-  // Cargar categorías desde Supabase
+  // Cargar categorías desde el backend
   Future<void> cargarCategorias() async {
     if (_categorias.isNotEmpty) return; // Ya están cargadas
 
@@ -112,7 +98,7 @@ class NegociosProvider extends ChangeNotifier {
     }
   }
 
-  // Cargar todos los negocios una sola vez con sus categorías
+  // Cargar todos los negocios desde el backend
   Future<void> cargarNegocios() async {
     if (_todosLosNegocios.isNotEmpty) return; // Ya están cargados
 
@@ -122,11 +108,8 @@ class NegociosProvider extends ChangeNotifier {
     });
 
     try {
-      // Cargar todos los negocios con sus categorías para poder filtrar correctamente
-      final data = await Supabase.instance.client
-          .from('negocios')
-          .select('*, negocios_categorias(categoria_id, categorias_principales(nombre))')
-          .order('nombre');
+      // Cargar todos los negocios desde el backend
+      final data = await NegociosService.obtenerNegocios();
       
       print('📊 cargarNegocios - Datos obtenidos: ${data.length} negocios');
       if (data.isNotEmpty) {

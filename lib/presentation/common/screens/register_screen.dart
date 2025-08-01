@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Importa Supabase
-import 'package:crypto/crypto.dart'; // Para encriptar la contraseña
-import 'dart:convert'; // Para utf8.encode
 import 'package:go_router/go_router.dart'; // Importa context.go
 import '../../../shared/widgets/custom_alert.dart';
 import '../../../shared/widgets/top_info_message.dart';
+import '../../../data/services/twilio_service.dart';
+import '../../../data/services/auth_service.dart';
 import '../../../core/localization.dart';
+import 'phone_verification_screen.dart';
 
 // register_screen.dart (común) - Pantalla de registro genérica
 // Muestra un formulario de registro simple para cualquier rol.
@@ -28,64 +28,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool loading = false;
   bool _obscurePassword = true; // Para mostrar/ocultar contraseña
 
-  // Función para encriptar la contraseña con SHA-256
-  String hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
-  // Lógica de registro: crea usuario en Supabase Auth y en la tabla 'usuarios'
+  // Lógica de registro: valida datos y navega a verificación de teléfono
   void _register() async {
     setState(() {
       error = null;
       loading = true;
     });
+
     try {
-      // Crea el usuario en Supabase Auth
-      // final response = await Supabase.instance.client.auth.signUp(
-      //   email: email,
-      //   password: password,
-      // );
-      // if (response.user == null) {
-      //   setState(() {
-      //     loading = false;
-      //     error = 'No se pudo registrar el usuario';
-      //   });
-      //   return;
-      // }
-      // Inserta el perfil en la tabla 'usuarios'
-      await Supabase.instance.client.from('usuarios').insert({
-        'email': email,
-        'rol': rol, // Debes definir cómo se selecciona el rol
-        'name': nombre,
-        'telephone': telefono,
-        'direccion': direccion,
-        'created_at': DateTime.now().toIso8601String(),
-        'password': hashPassword(password), // Contraseña encriptada
-      });
+      // Validar número de teléfono
+      if (!TwilioService.isValidPhoneNumber(telefono)) {
+        setState(() {
+          loading = false;
+          error = 'Número de teléfono inválido';
+        });
+        return;
+      }
+
+      // Validar que el email no esté registrado usando el backend
+      try {
+        final existingUser = await AuthService.checkEmailExists(email);
+        
+        if (existingUser) {
+          setState(() {
+            loading = false;
+            error = 'Este email ya está registrado';
+          });
+          return;
+        }
+      } catch (e) {
+        print('❌ Error validando email: $e');
+        // Si hay error en la validación, continuamos con el registro
+      }
+
       setState(() {
         loading = false;
       });
-      // Navega o muestra mensaje de éxito
+
+      // Navegar a la pantalla de verificación de teléfono
       if (mounted) {
-        showTopInfoMessage(
+        Navigator.push(
           context,
-          'Registro exitoso. Ahora puedes iniciar sesión.',
-          icon: Icons.check_circle,
-          backgroundColor: Colors.green[50],
-          textColor: Colors.green[700],
-          iconColor: Colors.green[700],
+          MaterialPageRoute(
+            builder: (context) => PhoneVerificationScreen(
+              phoneNumber: telefono,
+              email: email,
+              password: password,
+              nombre: nombre,
+              rol: rol,
+              direccion: direccion,
+            ),
+          ),
         );
-        // Navega a login después de un frame
-        Future.delayed(Duration.zero, () {
-          context.go('/login');
-        });
       }
     } catch (e) {
       setState(() {
         loading = false;
-        error = 'Error al registrar: ${e.toString()}';
+        error = 'Error al validar datos: ${e.toString()}';
       });
     }
   }

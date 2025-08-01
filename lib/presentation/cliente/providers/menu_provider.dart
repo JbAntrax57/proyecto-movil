@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../data/services/productos_service.dart';
 
 class MenuProvider extends ChangeNotifier {
   // Estado de carga
@@ -55,14 +55,13 @@ class MenuProvider extends ChangeNotifier {
     }
   }
 
-  // Obtiene el menú del restaurante desde Supabase
+  // Obtiene el menú del restaurante desde el backend
   Future<List<Map<String, dynamic>>> obtenerMenu(String restauranteId) async {
     try {
-      final data = await Supabase.instance.client
-          .from('productos')
-          .select()
-          .eq('restaurante_id', restauranteId);
-      return List<Map<String, dynamic>>.from(data);
+      print('🔍 MenuProvider.obtenerMenu() - Restaurante ID: $restauranteId');
+      final data = await ProductosService.obtenerProductosNegocio(restauranteId);
+      print('🔍 MenuProvider.obtenerMenu() - Productos obtenidos: ${data.length}');
+      return data;
     } catch (e) {
       print('❌ Error al obtener menú: $e');
       return [];
@@ -71,7 +70,10 @@ class MenuProvider extends ChangeNotifier {
 
   // Cargar productos del restaurante
   Future<void> cargarProductos(String restauranteId) async {
+    print('🔍 MenuProvider.cargarProductos() - Iniciando carga para restaurante: $restauranteId');
+    
     if (_restauranteId == restauranteId && _productos.isNotEmpty) {
+      print('🔍 MenuProvider.cargarProductos() - Productos ya cargados para este restaurante');
       return; // Ya están cargados para este restaurante
     }
 
@@ -83,6 +85,7 @@ class MenuProvider extends ChangeNotifier {
 
     try {
       final productosData = await obtenerMenu(restauranteId);
+      print('🔍 MenuProvider.cargarProductos() - Productos cargados: ${productosData.length}');
       setState(() {
         _productos = productosData;
         _isLoading = false;
@@ -98,10 +101,16 @@ class MenuProvider extends ChangeNotifier {
 
   // Aplicar filtro de búsqueda a los productos
   List<Map<String, dynamic>> getProductosFiltrados() {
-    if (_searchText.trim().isEmpty) return _productos;
+    // Primero filtrar solo productos activos (disponibles)
+    final productosDisponibles = _productos.where((producto) => 
+      producto['activo'] == true
+    ).toList();
+    
+    // Luego aplicar filtro de búsqueda si hay texto
+    if (_searchText.trim().isEmpty) return productosDisponibles;
     
     final busqueda = _searchText.toLowerCase();
-    return _productos.where((producto) {
+    return productosDisponibles.where((producto) {
       final nombre = (producto['nombre']?.toString() ?? '').toLowerCase();
       final descripcion = (producto['descripcion']?.toString() ?? '').toLowerCase();
       return nombre.contains(busqueda) || descripcion.contains(busqueda);

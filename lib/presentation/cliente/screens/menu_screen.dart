@@ -597,10 +597,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                 Expanded(
                   child: _buildQuickStat(
                     icon: Icons.check_circle,
-                    value: menuProvider.getProductosFiltrados()
-                        .where((p) => p['activo'] == true)
-                        .length
-                        .toString(),
+                    value: menuProvider.getProductosFiltrados().length.toString(),
                     label: 'Disponibles',
                     color: Colors.white,
                   ),

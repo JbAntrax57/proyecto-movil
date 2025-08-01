@@ -3,7 +3,6 @@ import '../../../data/models/direccion_model.dart';
 import '../../../data/services/direcciones_service.dart';
 
 class DireccionesProvider extends ChangeNotifier {
-  final DireccionesService _direccionesService = DireccionesService();
   
   List<DireccionModel> _direcciones = [];
   DireccionModel? _direccionSeleccionada;
@@ -17,12 +16,16 @@ class DireccionesProvider extends ChangeNotifier {
   String? get error => _error;
 
   // Obtener todas las direcciones de un usuario
-  Future<void> cargarDirecciones(String usuarioId) async {
+  Future<void> cargarDirecciones(String userId) async {
     _setLoading(true);
     _error = null;
 
     try {
-      _direcciones = await _direccionesService.obtenerDirecciones(usuarioId);
+      print('🔍 DireccionesProvider.cargarDirecciones() - User ID: $userId');
+      final direccionesData = await DireccionesService.obtenerDirecciones(userId);
+      _direcciones = direccionesData.map((data) => DireccionModel.fromMap(data)).toList();
+      
+      print('🔍 DireccionesProvider.cargarDirecciones() - Direcciones cargadas: ${_direcciones.length}');
       
       // Si no hay dirección seleccionada, seleccionar la predeterminada
       if (_direccionSeleccionada == null && _direcciones.isNotEmpty) {
@@ -33,6 +36,7 @@ class DireccionesProvider extends ChangeNotifier {
         _direccionSeleccionada = predeterminada;
       }
     } catch (e) {
+      print('❌ Error cargando direcciones: $e');
       _error = e.toString();
     } finally {
       _setLoading(false);
@@ -45,16 +49,29 @@ class DireccionesProvider extends ChangeNotifier {
     _error = null;
 
     try {
-      final nuevaDireccion = await _direccionesService.crearDireccion(direccion);
-      _direcciones.add(nuevaDireccion);
-      
-      // Si es la primera dirección, seleccionarla
-      if (_direcciones.length == 1) {
-        _direccionSeleccionada = nuevaDireccion;
+      final nuevaDireccionData = await DireccionesService.crearDireccion(
+        userEmail: direccion.usuarioId,
+        nombre: direccion.nombre,
+        direccion: direccion.direccion,
+        latitud: direccion.latitud ?? 0.0,
+        longitud: direccion.longitud ?? 0.0,
+        instrucciones: direccion.referencias,
+        esPredeterminada: direccion.esPredeterminada,
+      );
+      if (nuevaDireccionData != null) {
+        final nuevaDireccion = DireccionModel.fromMap(nuevaDireccionData);
+        _direcciones.add(nuevaDireccion);
+        
+        // Si es la primera dirección, seleccionarla
+        if (_direcciones.length == 1) {
+          _direccionSeleccionada = nuevaDireccion;
+        }
+        
+        notifyListeners();
+        return true;
+      } else {
+        return false;
       }
-      
-      notifyListeners();
-      return true;
     } catch (e) {
       _error = e.toString();
       return false;
@@ -69,20 +86,31 @@ class DireccionesProvider extends ChangeNotifier {
     _error = null;
 
     try {
-      final direccionActualizada = await _direccionesService.actualizarDireccion(direccion);
+      final success = await DireccionesService.actualizarDireccion(
+        direccionId: direccion.id!,
+        nombre: direccion.nombre,
+        direccion: direccion.direccion,
+        latitud: direccion.latitud,
+        longitud: direccion.longitud,
+        instrucciones: direccion.referencias,
+        esPredeterminada: direccion.esPredeterminada,
+      );
       
-      final index = _direcciones.indexWhere((d) => d.id == direccion.id);
-      if (index != -1) {
-        _direcciones[index] = direccionActualizada;
-        
-        // Si es la dirección seleccionada, actualizarla también
-        if (_direccionSeleccionada?.id == direccion.id) {
-          _direccionSeleccionada = direccionActualizada;
+      if (success) {
+        // Actualizar en la lista local
+        final index = _direcciones.indexWhere((d) => d.id == direccion.id);
+        if (index != -1) {
+          _direcciones[index] = direccion;
+          
+          // Si es la dirección seleccionada, actualizarla también
+          if (_direccionSeleccionada?.id == direccion.id) {
+            _direccionSeleccionada = direccion;
+          }
         }
       }
       
       notifyListeners();
-      return true;
+      return success;
     } catch (e) {
       _error = e.toString();
       return false;
@@ -97,7 +125,7 @@ class DireccionesProvider extends ChangeNotifier {
     _error = null;
 
     try {
-      await _direccionesService.eliminarDireccion(direccionId);
+      await DireccionesService.eliminarDireccion(direccionId);
       
       _direcciones.removeWhere((d) => d.id == direccionId);
       
@@ -117,29 +145,31 @@ class DireccionesProvider extends ChangeNotifier {
   }
 
   // Marcar una dirección como predeterminada
-  Future<bool> marcarComoPredeterminada(String direccionId, String usuarioId) async {
+  Future<bool> marcarComoPredeterminada(String direccionId, String userEmail) async {
     _setLoading(true);
     _error = null;
 
     try {
-      await _direccionesService.marcarComoPredeterminada(direccionId, usuarioId);
+      final success = await DireccionesService.establecerPredeterminada(direccionId);
       
-      // Actualizar el estado local
-      for (int i = 0; i < _direcciones.length; i++) {
-        _direcciones[i] = _direcciones[i].copyWith(
-          esPredeterminada: _direcciones[i].id == direccionId,
-        );
+      if (success) {
+        // Actualizar el estado local
+        for (int i = 0; i < _direcciones.length; i++) {
+          _direcciones[i] = _direcciones[i].copyWith(
+            esPredeterminada: _direcciones[i].id == direccionId,
+          );
+        }
+        
+        // Reordenar la lista (predeterminada primero)
+        _direcciones.sort((a, b) {
+          if (a.esPredeterminada && !b.esPredeterminada) return -1;
+          if (!a.esPredeterminada && b.esPredeterminada) return 1;
+          return b.fechaCreacion.compareTo(a.fechaCreacion);
+        });
       }
       
-      // Reordenar la lista (predeterminada primero)
-      _direcciones.sort((a, b) {
-        if (a.esPredeterminada && !b.esPredeterminada) return -1;
-        if (!a.esPredeterminada && b.esPredeterminada) return 1;
-        return b.fechaCreacion.compareTo(a.fechaCreacion);
-      });
-      
       notifyListeners();
-      return true;
+      return success;
     } catch (e) {
       _error = e.toString();
       return false;
