@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/carrito_provider.dart';
@@ -272,29 +273,36 @@ class _HistorialPedidosScreenState extends State<HistorialPedidosScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: CustomScrollView(
-        slivers: [
-          // AppBar moderno
-          _buildAppBar(),
-          
-          // Sección de información
-          if (_mostrarLeyenda) 
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF1976D2), // Colors.blue[600]
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.grey[50],
+        body: CustomScrollView(
+          slivers: [
+            // AppBar moderno
+            _buildAppBar(),
+            
+            // Sección de información
+            if (_mostrarLeyenda) 
+              SliverToBoxAdapter(
+                child: _buildInfoSection(),
+              ),
+            
+            // Estadísticas
             SliverToBoxAdapter(
-              child: _buildInfoSection(),
+              child: _buildStatsSection(),
             ),
-          
-          // Estadísticas
-          SliverToBoxAdapter(
-            child: _buildStatsSection(),
-          ),
-          
-          // Contenido principal
-          SliverToBoxAdapter(
-            child: _buildContentSection(),
-          ),
-        ],
+            
+            // Contenido principal
+            SliverToBoxAdapter(
+              child: _buildContentSection(),
+            ),
+          ],
+        ),
       ),
     );
   }

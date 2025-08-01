@@ -67,13 +67,29 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     print('🏠 HomeScreen build - Current index: $_currentIndex');
+    
+    // Determinar el color de la barra de estado basado en la pantalla actual
+    Color statusBarColor;
+    Brightness statusBarIconBrightness;
+    Brightness statusBarBrightness;
+    
+    if (_currentIndex == 1) {
+      // HistorialPedidosScreen - usar azul para coincidir con el header
+      statusBarColor = const Color(0xFF1976D2); // Colors.blue[600]
+      statusBarIconBrightness = Brightness.light;
+      statusBarBrightness = Brightness.dark;
+    } else {
+      // Otras pantallas - usar blanco
+      statusBarColor = Colors.white;
+      statusBarIconBrightness = Brightness.dark;
+      statusBarBrightness = Brightness.light;
+    }
+    
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor:
-            Colors.white, // Color de la barra de estado igual al fondo
-        statusBarIconBrightness:
-            Brightness.dark, // Iconos oscuros para fondo claro
-        statusBarBrightness: Brightness.light, // iOS: texto oscuro
+        statusBarColor: statusBarColor,
+        statusBarIconBrightness: statusBarIconBrightness,
+        statusBarBrightness: statusBarBrightness,
       ),
       child: Container(
         color: Colors.blue[50], // Fondo azul claro para toda la pantalla
